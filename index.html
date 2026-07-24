@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PORTFOLIO — 박지현</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="header__inner">
+      <a href="#intro" class="logo">PORTFOLIO</a>
+
+      <nav class="nav" id="nav">
+        <a href="#intro" class="nav__link is-active" data-nav="intro">INTRO</a>
+        <a href="#work" class="nav__link" data-nav="work">WORK</a>
+        <a href="#skill" class="nav__link" data-nav="skill">SKILL</a>
+        <a href="#about" class="nav__link" data-nav="about">ABOUT</a>
+        <a href="#contact" class="nav__link" data-nav="contact">CONTACT</a>
+      </nav>
+
+      <button class="hamburger" id="hamburgerBtn" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mobileNav">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <nav class="mobile-nav" id="mobileNav">
+      <a href="#intro" class="mobile-nav__link" data-nav="intro">INTRO</a>
+      <a href="#work" class="mobile-nav__link" data-nav="work">WORK</a>
+      <a href="#skill" class="mobile-nav__link" data-nav="skill">SKILL</a>
+      <a href="#about" class="mobile-nav__link" data-nav="about">ABOUT</a>
+      <a href="#contact" class="mobile-nav__link" data-nav="contact">CONTACT</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="intro">
+      <div class="grid-lines-container" aria-hidden="true">
+        <div class="grid-lines-col"></div>
+        <div class="grid-lines-col"></div>
+        <div class="grid-lines-col"></div>
+        <div class="grid-lines-col"></div>
+      </div>
+
+      <div class="hero__stage">
+        <div class="hero__letters" aria-hidden="true">
+          <div class="letter letter--j"><img src="images/letter-j.svg" alt=""></div>
+          <div class="letter letter--i"><img src="images/letter-i.svg" alt=""></div>
+          <div class="letter letter--y"><img src="images/letter-y.svg" alt=""></div>
+          <div class="letter letter--h"><img src="images/letter-h.svg" alt=""></div>
+          <div class="letter letter--u"><img src="images/letter-u.svg" alt=""></div>
+          <div class="letter letter--n"><img src="images/letter-n.svg" alt=""></div>
+        </div>
+
+        <h1 class="hero__title">
+          <span class="hero__title-line">DESIGNING</span>
+          <span class="hero__title-line">REASONS TO <em>stay</em></span>
+        </h1>
+      </div>
+    </section>
+
+    <section class="intro-reasons">
+      <div class="intro-reasons__sticky">
+        <div class="grid-lines-container" aria-hidden="true">
+          <div class="grid-lines-col"></div>
+          <div class="grid-lines-col"></div>
+          <div class="grid-lines-col"></div>
+          <div class="grid-lines-col"></div>
+        </div>
+
+        <div class="intro-reasons__stage">
+          <div class="stay-title intro-reasons__title" aria-hidden="true">
+            <span class="stay-title-line">DESIGNING</span>
+            <span class="stay-title-line">REASONS TO <em>stay</em></span>
+          </div>
+
+          <p class="intro-reasons__subtitle intro-reasons__reveal">
+            <strong>[머물고 싶은 이유]</strong>를 고민하는 디자이너 <strong>박지현</strong>
+          </p>
+
+          <div class="intro-reasons__photo intro-reasons__reveal">
+            <img src="images/portrait-intro.jpg" alt="디자이너 박지현 프로필 사진">
+          </div>
+
+          <div class="intro-reasons__text intro-reasons__reveal">
+            <p class="intro-reasons__text-line intro-reasons__text-en">
+              I believe every great experience gives people a reason to stay longer.<br>
+              By understanding those reasons from the user&#39;s perspective,<br>
+              I design experiences that people want to come back to.
+            </p>
+            <p class="intro-reasons__text-line intro-reasons__text-kr">
+              좋은 경험에는 언제나 오래 머물고 싶은 이유가 있다고 생각합니다.<br>
+              사용자의 관점에서 그 이유를 고민하고, 다시 찾고 싶은 경험을 설계합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="reason-quote" id="reasonQuote">
+      <div class="reason-quote__sticky">
+        <div class="reason-quote__stage">
+          <div class="sentence">
+            <p class="line">
+              <span class="word">FROM</span>
+              <span class="word"><em>music</em></span>
+              <span class="media-chip media-chip--photo"><img src="images/reason-music.jpg" alt="피아노 연주 사진"></span>
+              <span class="word">TO</span>
+            </p>
+            <p class="line">
+              <span class="word">UX/UI</span>
+              <span class="media-chip media-chip--placeholder" aria-hidden="true"></span>
+              <span class="word"><em>design</em>,</span>
+            </p>
+            <p class="line">
+              <span class="word">ALWAYS</span>
+              <span class="word">CREATING</span>
+            </p>
+            <p class="line">
+              <span class="word">MEANINGFUL</span>
+            </p>
+            <p class="line">
+              <span class="word"><em>experiences</em></span>
+              <span class="media-chip media-chip--placeholder" aria-hidden="true"></span>
+              <span class="word">FOR</span>
+              <span class="word"><em>people</em>.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="work"><p class="section__placeholder">WORK — 준비중</p></section>
+    <section class="section" id="skill"><p class="section__placeholder">SKILL — 준비중</p></section>
+    <section class="section" id="about"><p class="section__placeholder">ABOUT — 준비중</p></section>
+    <section class="section" id="contact"><p class="section__placeholder">CONTACT — 준비중</p></section>
+  </main>
+
+  <div class="stay-title flying-title" id="flyingTitle" aria-hidden="true">
+    <span class="stay-title-line">DESIGNING</span>
+    <span class="stay-title-line">REASONS TO <em>stay</em></span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

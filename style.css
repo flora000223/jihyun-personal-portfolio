@@ -1,0 +1,1037 @@
+/* ==========================================================================
+   Fonts
+   Matches the exact family/weight/style pairs used in the Figma file.
+   ========================================================================== */
+@font-face {
+  font-family: 'Neue Montreal';
+  src: url('fonts/NeueMontreal-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Montreal';
+  src: url('fonts/NeueMontreal-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Montreal';
+  src: url('fonts/NeueMontreal-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Montreal';
+  src: url('fonts/NeueMontreal-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Montreal';
+  src: url('fonts/NeueMontreal-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Montreal';
+  src: url('fonts/NeueMontreal-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Montreal';
+  src: url('fonts/NeueMontreal-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Montreal';
+  src: url('fonts/NeueMontreal-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cardinal Fruit';
+  src: url('fonts/cardinal-fruit.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cardinal Fruit';
+  src: url('fonts/cardinal-fruit-italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cardinal Fruit';
+  src: url('fonts/cardinal-fruit-medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cardinal Fruit';
+  src: url('fonts/cardinal-fruit-medium-italic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cardinal Fruit';
+  src: url('fonts/cardinal-fruit-semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cardinal Fruit';
+  src: url('fonts/cardinal-fruit-semibold-italic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cardinal Fruit';
+  src: url('fonts/cardinal-fruit-bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cardinal Fruit';
+  src: url('fonts/cardinal-fruit-bold-italic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('fonts/Pretendard-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('fonts/Pretendard-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   Reset & base
+   ========================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Neue Montreal', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Design scale unit
+   1 unit (--u) = 1% of a 1920px design width.
+   Everything inside the hero poster is expressed as N * var(--u),
+   so the whole composition scales perfectly at any viewport width
+   up to 1920px, then is pinned in px above that.
+   ========================================================================== */
+:root {
+  --u: min(1cqw, 19.2px);
+  --color-line: #E7E6E7;
+  --color-muted: #B3B3B3;
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: transparent;
+  transition: transform 0.3s ease;
+}
+
+.header--hidden {
+  transform: translateY(-100%);
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 72px;
+}
+
+.logo {
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  letter-spacing: 1.6px;
+  white-space: nowrap;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 100px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.nav__link {
+  font-size: 18px;
+  color: var(--color-muted);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.nav__link:hover,
+.nav__link.is-active {
+  color: #000000;
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 32px;
+  height: 32px;
+  z-index: 110;
+}
+
+.hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: #000000;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.hamburger.is-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.is-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.mobile-nav {
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s ease;
+  background: #ffffff;
+  border-top: 1px solid var(--color-line);
+}
+
+.mobile-nav.is-open {
+  max-height: 400px;
+}
+
+.mobile-nav__link {
+  padding: 18px 24px;
+  font-size: 18px;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.mobile-nav__link.is-active {
+  color: #000000;
+}
+
+/* ==========================================================================
+   Grid lines background (reference snippet, used as-is)
+   ========================================================================== */
+.grid-lines-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  max-width: 1280px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: #ffffff;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-left: 1px solid var(--color-line);
+  border-right: 1px solid var(--color-line);
+  z-index: 0;
+}
+
+.grid-lines-col {
+  border-right: 1px solid var(--color-line);
+}
+
+.grid-lines-col:last-child {
+  border-right: none;
+}
+
+/* The generic grid snippet above is a fixed 1280px block centered in the
+   viewport, but .intro-reasons' title/subtitle/photo/text are positioned as
+   percentages of a 1920px poster (var(--u)). The two coordinate systems only
+   coincide by chance at exactly 1920px wide — below that, the fixed 1280px
+   block drifts away from the poster's own margins. Locking this instance's
+   left/right inset to the same --u scale keeps it flush with the poster's
+   content edge at every width. */
+.intro-reasons .grid-lines-container {
+  left: calc(16.6667 * var(--u));
+  right: calc(16.6667 * var(--u));
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+
+/* ==========================================================================
+   Hero
+   ========================================================================== */
+.hero {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  container-type: inline-size;
+}
+
+/* .hero__stage keeps a fixed 16:9 ratio (bounded by width), so a normal
+   browser window -- always a little wider-than-16:9 once you subtract the
+   browser chrome's height from the viewport -- looks right bottom-anchored,
+   matching how this was designed/reviewed. Only when the viewport itself
+   turns taller than 16:9 (e.g. entering F11 fullscreen removes the chrome
+   and hands that height back, and on some laptop panels that pushes the
+   ratio past 16:9) does bottom-anchoring leave a big gap above the title;
+   in that case only, anchor to the top instead so the gap moves below. */
+@media (max-aspect-ratio: 16/9) {
+  .hero {
+    align-items: flex-start;
+  }
+}
+
+.hero__stage {
+  position: relative;
+  z-index: 1;
+  width: min(100cqw, 1920px);
+  aspect-ratio: 1920 / 1080;
+  margin: 0 auto;
+}
+
+.hero__letters {
+  position: absolute;
+  inset: 0;
+  transform: translateX(calc(0.05 * var(--u)));
+}
+
+.letter {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.letter img {
+  width: 100%;
+  height: 100%;
+}
+
+.letter--j {
+  left: calc(0.169 * var(--u));
+  top: calc(21.9922 * var(--u));
+  width: calc(16.3899 * var(--u));
+  height: calc(19.8192 * var(--u));
+}
+.letter--j img {
+  width: calc(11.3966 * var(--u));
+  height: calc(17.0019 * var(--u));
+  transform: rotate(-19.37deg);
+}
+
+.letter--h {
+  left: calc(1.9792 * var(--u));
+  top: calc(39.6411 * var(--u));
+  width: calc(14.0923 * var(--u));
+  height: calc(16.5999 * var(--u));
+}
+
+.letter--y {
+  left: calc(18.4113 * var(--u));
+  top: calc(24.8552 * var(--u));
+  width: calc(20.1752 * var(--u));
+  height: calc(19.2964 * var(--u));
+}
+.letter--y img {
+  width: calc(15.3738 * var(--u));
+  height: calc(16.6407 * var(--u));
+  transform: rotate(74.27deg);
+}
+
+.letter--n {
+  left: calc(35.7292 * var(--u));
+  top: calc(39.6354 * var(--u));
+  width: calc(14.2341 * var(--u));
+  height: calc(16.6402 * var(--u));
+}
+
+.letter--i {
+  left: calc(14.1823 * var(--u));
+  top: calc(23.1901 * var(--u));
+  width: calc(9.0426 * var(--u));
+  height: calc(17.1155 * var(--u));
+}
+.letter--i img {
+  width: calc(4.1865 * var(--u));
+  height: calc(16.6407 * var(--u));
+  transform: rotate(-162.31deg);
+}
+
+.letter--u {
+  left: calc(13.8545 * var(--u));
+  top: calc(37.2917 * var(--u));
+  width: calc(21.8859 * var(--u));
+  height: calc(21.0801 * var(--u));
+}
+.letter--u img {
+  width: calc(13.9085 * var(--u));
+  height: calc(17.0019 * var(--u));
+  transform: rotate(55.61deg);
+}
+
+.hero__title {
+  position: absolute;
+  left: calc(49.6 * var(--u));
+  top: calc(15.8333 * var(--u));
+  width: calc(41.4583 * var(--u));
+  margin: 0;
+  font-family: 'Neue Montreal', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
+  font-size: calc(5.7292 * var(--u));
+  line-height: 1.1;
+  letter-spacing: calc(-0.11458 * var(--u));
+  color: #000000;
+  white-space: nowrap;
+}
+
+.hero__title-line {
+  display: block;
+}
+
+.hero__title em {
+  font-family: 'Cardinal Fruit', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ==========================================================================
+   Intro — Reasons (scrolls in right after the hero)
+   ========================================================================== */
+.intro-reasons {
+  position: relative;
+  /* 100vh of visible section + 300vh of scroll "dwell" — the sticky wrapper
+     below holds the layout in place for that extra distance so the
+     scroll-driven sequence (script.js: subtitle gray -> black fill, a short
+     hold, the English -> Korean text cross-fade, then another hold) fully
+     plays out before the next section is allowed to scroll into view. The
+     dwell is intentionally long so no single scroll gesture (wheel flick,
+     Page Down, trackpad fling) can skip past a whole stage unnoticed -- the
+     final hold in particular (after the Korean swap finishes) is sized so
+     several more scroll actions are needed before the next section appears,
+     rather than releasing right after the swap. */
+  height: 400vh;
+  container-type: inline-size;
+}
+
+.intro-reasons__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.intro-reasons__stage {
+  position: relative;
+  z-index: 1;
+  width: min(100cqw, 1920px);
+  aspect-ratio: 1920 / 1080;
+  margin: 0 auto;
+}
+
+/* Shared typography for the title that travels from the hero into this
+   section — kept independent from .hero__title so the hero's verified
+   alignment is never touched by changes made here. */
+.stay-title {
+  position: absolute;
+  margin: 0;
+  font-family: 'Neue Montreal', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
+  font-size: calc(5.7292 * var(--u));
+  line-height: 1.1;
+  letter-spacing: calc(-0.11458 * var(--u));
+  color: #000000;
+  white-space: nowrap;
+}
+
+.stay-title-line {
+  display: block;
+}
+
+.stay-title em {
+  font-family: 'Cardinal Fruit', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.intro-reasons__title {
+  left: calc(16.3542 * var(--u));
+  top: calc(15.6771 * var(--u));
+  width: calc(41.4583 * var(--u));
+}
+
+/* The floating clone shown only mid-scroll, positioned in real px by
+   script.js as it interpolates between the hero title and .intro-reasons__title. */
+.flying-title {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: calc(41.4583 * var(--u));
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-reasons__subtitle {
+  position: absolute;
+  left: calc(16.6667 * var(--u));
+  top: calc(29.2188 * var(--u));
+  width: calc(34.0104 * var(--u));
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(1.875 * var(--u));
+  line-height: 1.4;
+  letter-spacing: calc(-0.0375 * var(--u));
+  color: #eceae9;
+}
+
+.intro-reasons__subtitle strong {
+  font-weight: 600;
+}
+
+/* Box that hosts the English -> Korean text swap: both lines sit stacked
+   in the exact same spot (confirmed via getBoundingClientRect — both boxes
+   share the identical top edge). English fades out in place; Korean fades
+   in while rising up slightly (same opacity+translateY recipe as
+   .intro-reasons__reveal's initial appear), so the swap doesn't read as a
+   flat crossfade but as Korean gently arriving from just below. */
+.intro-reasons__text {
+  position: absolute;
+  left: calc(16.6667 * var(--u));
+  top: calc(36.25 * var(--u));
+  width: calc(30.625 * var(--u));
+  height: calc(4.375 * var(--u));
+}
+
+.intro-reasons__text-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(1.0417 * var(--u));
+  line-height: 1.4;
+  letter-spacing: calc(-0.0208 * var(--u));
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.intro-reasons__text-en {
+  opacity: 1;
+}
+
+.intro-reasons__text-kr {
+  opacity: 0;
+  --swap-rise: 1;
+  transform: translateY(calc(var(--swap-rise) * 1.4583 * var(--u)));
+}
+
+.intro-reasons__photo {
+  position: absolute;
+  left: calc(66.6667 * var(--u));
+  top: calc(15.6771 * var(--u));
+  width: calc(16.6667 * var(--u));
+  height: calc(24.9479 * var(--u));
+  overflow: hidden;
+}
+
+.intro-reasons__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* JS-driven state: the hero title fades out, the docked title/reveal
+   content fade in, once script.js reports the hand-off is complete.
+   No transition here -- the flying title (which has no transition of
+   its own) sits at this exact same spot the instant this swap happens,
+   so an instant swap is seamless. A transitioned fade here previously
+   raced the flying title's instant disappearance and produced a visible
+   blink where neither title was drawn for a moment. */
+body.js-anim .intro-reasons__title {
+  opacity: 0;
+}
+
+
+body.js-anim .intro-reasons__reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+body.js-anim .intro-reasons__subtitle.intro-reasons__reveal {
+  transition-delay: 0s;
+}
+
+body.js-anim .intro-reasons__photo.intro-reasons__reveal {
+  transition-delay: 0.12s;
+}
+
+body.js-anim .intro-reasons__text.intro-reasons__reveal {
+  transition-delay: 0.38s;
+}
+
+body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   Reason Quote — personal statement that scrolls in right after
+   intro-reasons. Background crossfades white -> black as the section
+   scrolls into place (script.js), then it pins (same sticky-dwell pattern
+   as intro-reasons above) while words and inline photo/placeholder chips
+   reveal in scroll-triggered batches.
+   ========================================================================== */
+.reason-quote {
+  position: relative;
+  height: 450vh; /* 100vh visible + 350vh dwell for the batched word/chip reveal */
+  background: #ffffff;
+  container-type: inline-size;
+}
+
+.reason-quote__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.reason-quote__stage {
+  width: min(100cqw, 1920px);
+  margin: 0 auto;
+  padding: 0 calc(16.6667 * var(--u));
+  box-sizing: border-box;
+}
+
+.sentence {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.reason-quote .line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: calc(1.0417 * var(--u));
+  margin: 0;
+  font-family: 'Neue Montreal', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
+  font-size: calc(6.6667 * var(--u));
+  line-height: 1.08;
+  color: #ffffff;
+  text-align: center;
+}
+
+.reason-quote .line em {
+  font-family: 'Cardinal Fruit', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Ghost -> filled mask wipe, triggered per-batch by script.js toggling
+   .is-revealed (not scroll-scrubbed) -- the transition's own duration sets
+   the fill speed, independent of how fast the user scrolled past it. The
+   hidden mask stop (0.27 alpha) approximates the design's dim gray (#454545)
+   as a fraction of white-on-black rather than an actual gray color, since
+   the mask (not color) is what's animating. */
+.reason-quote .word {
+  display: inline-block;
+  -webkit-mask-image: linear-gradient(90deg, #fff 33.3%, rgba(255, 255, 255, 0.27) 66.6%);
+  mask-image: linear-gradient(90deg, #fff 33.3%, rgba(255, 255, 255, 0.27) 66.6%);
+  -webkit-mask-position: 100% 100%;
+  mask-position: 100% 100%;
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  transition: -webkit-mask-position 1.45s cubic-bezier(0.45, 0, 0.25, 1),
+              mask-position 1.45s cubic-bezier(0.45, 0, 0.25, 1);
+}
+
+.reason-quote .word.is-revealed {
+  -webkit-mask-position: 0 100%;
+  mask-position: 0 100%;
+}
+
+/* Photo/placeholder chips inline between words -- start collapsed and
+   invisible (no card, no photo) and expand into place as their batch
+   reveals, so nothing shows before its word group arrives. */
+.media-chip {
+  display: inline-block;
+  width: 0;
+  height: calc(6.09375 * var(--u));
+  border-radius: calc(1.0417 * var(--u));
+  overflow: hidden;
+  opacity: 0;
+  margin-left: -0.18em;
+  margin-right: -0.18em;
+  vertical-align: middle;
+  transition: width 1s cubic-bezier(0.55, 0, 0.25, 1),
+              opacity 0.65s linear,
+              margin 1s cubic-bezier(0.55, 0, 0.25, 1);
+}
+
+.media-chip--placeholder {
+  background: #d9d9d9;
+}
+
+.media-chip--photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-chip.is-revealed {
+  width: calc(8.5417 * var(--u));
+  opacity: 1;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* ==========================================================================
+   Placeholder sections (to be implemented from future Figma frames)
+   ========================================================================== */
+.section {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid var(--color-line);
+}
+
+.section__placeholder {
+  color: var(--color-muted);
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+
+/* ==========================================================================
+   Breakpoints
+   ========================================================================== */
+
+/* Desktop 1440 */
+@media (max-width: 1440px) {
+  .header__inner {
+    padding: 24px 56px;
+  }
+  .nav {
+    gap: 76px;
+  }
+  .logo {
+    font-size: 26px;
+  }
+  .nav__link {
+    font-size: 16px;
+  }
+}
+
+/* Laptop 1280 */
+@media (max-width: 1280px) {
+  .header__inner {
+    padding: 22px 48px;
+  }
+  .nav {
+    gap: 56px;
+  }
+  .logo {
+    font-size: 24px;
+  }
+  .nav__link {
+    font-size: 15px;
+  }
+}
+
+/* Tablet 768 and below: collapse to hamburger menu */
+@media (max-width: 768px) {
+  .header__inner {
+    padding: 18px 32px;
+  }
+  .nav {
+    display: none;
+  }
+  .hamburger {
+    display: flex;
+  }
+  .mobile-nav {
+    display: flex;
+  }
+  .logo {
+    font-size: 22px;
+  }
+
+  /* Intro-reasons: temporary mobile legibility fix. The desktop layout
+     scales the whole section as a fixed 1920x1080 poster via --u, which
+     shrinks the subtitle/text down to a few px on narrow screens.
+     Below 768px, drop the poster positioning for a plain stacked flow
+     with fixed, legible sizes until a dedicated mobile frame exists.
+     The sticky dwell pin is also dropped here — the stacked content is
+     already taller than one viewport, so there's natural scroll room
+     for the subtitle fill without needing a pinned viewport. */
+  .intro-reasons {
+    height: auto;
+  }
+
+  .intro-reasons__sticky {
+    position: static;
+    height: auto;
+  }
+
+  .intro-reasons__stage {
+    aspect-ratio: unset;
+    width: 100%;
+    padding: 96px 24px 64px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .intro-reasons__title,
+  .intro-reasons__subtitle,
+  .intro-reasons__photo,
+  .intro-reasons__text {
+    position: static;
+    left: auto;
+    top: auto;
+  }
+
+  /* No scroll-linked color fill or text swap on this temporary mobile
+     layout — just show the English text plainly, static-flowed. */
+  .intro-reasons__text {
+    height: auto;
+    overflow: visible;
+  }
+
+  .intro-reasons__text-line {
+    position: static;
+    opacity: 1;
+    transform: none;
+  }
+
+  .intro-reasons__text-kr {
+    display: none;
+  }
+
+  .intro-reasons__title {
+    margin-bottom: 24px;
+  }
+
+  .intro-reasons__subtitle {
+    width: auto;
+    font-size: 17px;
+    letter-spacing: normal;
+    margin-bottom: 24px;
+  }
+
+  .intro-reasons__photo {
+    width: 160px;
+    height: 220px;
+    margin-bottom: 24px;
+  }
+
+  .intro-reasons__text {
+    width: auto;
+  }
+
+  .intro-reasons__text-line {
+    font-size: 14px;
+    letter-spacing: normal;
+  }
+
+  /* Reason-quote: same temporary mobile treatment as intro-reasons above --
+     drop the pinned poster/scroll-batch reveal for a plain static black
+     block with everything already shown, until a dedicated mobile frame
+     exists. */
+  .reason-quote {
+    height: auto;
+    background: #000000;
+  }
+
+  .reason-quote__sticky {
+    position: static;
+    height: auto;
+  }
+
+  .reason-quote__stage {
+    width: 100%;
+    padding: 64px 24px;
+  }
+
+  .reason-quote .line {
+    font-size: 32px;
+    gap: 12px;
+  }
+
+  .reason-quote .word {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .media-chip {
+    width: 72px;
+    height: 51px;
+    opacity: 1;
+    margin: 0 4px;
+    transition: none;
+  }
+}
+
+/* Mobile 430 */
+@media (max-width: 430px) {
+  .header__inner {
+    padding: 16px 20px;
+  }
+  .logo {
+    font-size: 19px;
+    letter-spacing: 1px;
+  }
+  .hamburger {
+    width: 28px;
+    height: 28px;
+  }
+  .section__placeholder {
+    font-size: 16px;
+    padding: 0 24px;
+    text-align: center;
+  }
+
+  .intro-reasons__stage {
+    padding: 80px 20px 56px;
+  }
+  .intro-reasons__subtitle {
+    font-size: 15px;
+  }
+  .intro-reasons__text-line {
+    font-size: 13px;
+  }
+
+  .reason-quote .line {
+    font-size: 24px;
+    gap: 8px;
+  }
+
+  .media-chip {
+    width: 56px;
+    height: 40px;
+  }
+}
+
+/* Small Mobile 375 */
+@media (max-width: 375px) {
+  .header__inner {
+    padding: 14px 16px;
+  }
+  .logo {
+    font-size: 17px;
+  }
+}
