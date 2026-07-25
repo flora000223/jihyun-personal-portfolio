@@ -237,6 +237,17 @@ button {
   font-size: 32px;
   letter-spacing: 1.6px;
   white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+/* .header--inverted is toggled by script.js once the scroll-dark overlay
+   (see .scroll-dark-overlay) starts covering the screen -- a direct
+   black -> white swap (the same 0.2s ease already used for hover, not a
+   slow scroll-scrubbed blend through gray) for the logo and whichever nav
+   link is active. Inactive links are intentionally left alone here -- they
+   stay --color-muted whether the page is light or dark. */
+.header--inverted .logo {
+  color: #ffffff;
 }
 
 .nav {
@@ -258,6 +269,11 @@ button {
 .nav__link:hover,
 .nav__link.is-active {
   color: #000000;
+}
+
+.header--inverted .nav__link.is-active,
+.header--inverted .nav__link:hover {
+  color: #ffffff;
 }
 
 .hamburger {
@@ -313,6 +329,26 @@ button {
 
 .mobile-nav__link.is-active {
   color: #000000;
+}
+
+/* ==========================================================================
+   Scroll dark takeover overlay
+   A full-viewport fixed layer, opacity-driven by script.js (0 -> 1 as the
+   reason-quote section scrolls into place, back to 0 once it's scrolled
+   past). Sits above the page content (z-index above the default/auto
+   stacking of the sections) but below .header (z-index 100), so the whole
+   screen -- not just the reason-quote section's own box -- reads as
+   turning black together, while the fixed header stays on top and inverts
+   its own text to white in sync (see .header color rules driven inline
+   by script.js).
+   ========================================================================== */
+.scroll-dark-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  opacity: 0;
+  z-index: 40;
+  pointer-events: none;
 }
 
 /* ==========================================================================
@@ -501,17 +537,19 @@ button {
    ========================================================================== */
 .intro-reasons {
   position: relative;
-  /* 100vh of visible section + 300vh of scroll "dwell" — the sticky wrapper
+  /* 100vh of visible section + 450vh of scroll "dwell" — the sticky wrapper
      below holds the layout in place for that extra distance so the
      scroll-driven sequence (script.js: subtitle gray -> black fill, a short
      hold, the English -> Korean text cross-fade, then another hold) fully
      plays out before the next section is allowed to scroll into view. The
      dwell is intentionally long so no single scroll gesture (wheel flick,
-     Page Down, trackpad fling) can skip past a whole stage unnoticed -- the
-     final hold in particular (after the Korean swap finishes) is sized so
-     several more scroll actions are needed before the next section appears,
-     rather than releasing right after the swap. */
-  height: 400vh;
+     Page Down, trackpad fling) can skip past a whole stage unnoticed. Fill
+     and the Korean-swap trigger are pinned to fixed vh distances in
+     script.js (FILL_END_VH / SWAP_TRIGGER_VH), so this height only ever
+     needs to grow/shrink the *final* hold -- the pause after the Korean
+     subtext has fully settled, before the next section is allowed in --
+     without touching how long fill or the pre-swap hold take. */
+  height: 550vh;
   container-type: inline-size;
 }
 
@@ -576,6 +614,35 @@ button {
   pointer-events: none;
 }
 
+/* Three floating clones (one per reason-quote chip) shown only while
+   .cards-reveal is scrolling into place, top/left/width/height/
+   border-radius all set in real px by script.js as it interpolates each
+   one between its source chip and destination card -- same technique as
+   .flying-title above, just driving box geometry instead of just
+   position. */
+.flying-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 42;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.flying-card--placeholder {
+  background: #d9d9d9;
+}
+
+.flying-card--photo img {
+  position: absolute;
+  top: 0;
+  left: -9.12%;
+  width: 218.39%;
+  height: 100%;
+  max-width: none;
+}
+
 .intro-reasons__subtitle {
   position: absolute;
   left: calc(16.6667 * var(--u));
@@ -599,7 +666,14 @@ button {
    share the identical top edge). English fades out in place; Korean fades
    in while rising up slightly (same opacity+translateY recipe as
    .intro-reasons__reveal's initial appear), so the swap doesn't read as a
-   flat crossfade but as Korean gently arriving from just below. */
+   flat crossfade but as Korean gently arriving from just below.
+   script.js toggles .is-swapped on this box once the scroll dwell crosses
+   a single threshold -- a real CSS transition then plays the fade/rise out
+   over a fixed duration, the same threshold-triggered-transition pattern
+   used by .intro-reasons__reveal and .reason-quote .word.is-revealed,
+   rather than mapping opacity directly 1:1 to scroll distance (which
+   read as a mechanical wipe tied to scroll speed instead of a genuine
+   eased fade-in). */
 .intro-reasons__text {
   position: absolute;
   left: calc(16.6667 * var(--u));
@@ -624,12 +698,22 @@ button {
 
 .intro-reasons__text-en {
   opacity: 1;
+  transition: opacity 0.6s ease;
 }
 
 .intro-reasons__text-kr {
   opacity: 0;
-  --swap-rise: 1;
-  transform: translateY(calc(var(--swap-rise) * 1.4583 * var(--u)));
+  transform: translateY(calc(1.4583 * var(--u)));
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.intro-reasons__text.is-swapped .intro-reasons__text-en {
+  opacity: 0;
+}
+
+.intro-reasons__text.is-swapped .intro-reasons__text-kr {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .intro-reasons__photo {
@@ -685,21 +769,31 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
 
 /* ==========================================================================
    Reason Quote — personal statement that scrolls in right after
-   intro-reasons. Background crossfades white -> black as the section
-   scrolls into place (script.js), then it pins (same sticky-dwell pattern
-   as intro-reasons above) while words and inline photo/placeholder chips
-   reveal in scroll-triggered batches.
+   intro-reasons. The full-viewport black takeover (script.js fading
+   #scrollDarkOverlay in/out, see that overlay's own CSS below) crossfades
+   white -> black as the section scrolls into place, then it pins (same
+   sticky-dwell pattern as intro-reasons above) while words and inline
+   photo/placeholder chips reveal in scroll-triggered batches. This
+   section's own background is a static black (not JS-animated) since the
+   overlay above it handles the whole-screen fade.
    ========================================================================== */
 .reason-quote {
   position: relative;
   height: 450vh; /* 100vh visible + 350vh dwell for the batched word/chip reveal */
-  background: #ffffff;
+  background: #000000;
   container-type: inline-size;
 }
 
 .reason-quote__sticky {
   position: sticky;
   top: 0;
+  /* Above .scroll-dark-overlay's z-index: 40 -- this section's own text
+     must stay visible on top of the darkening overlay throughout (both
+     while it's approaching, not yet stuck, and once fully pinned/black),
+     since the overlay's job is to dim whatever ELSE is on screen (the
+     outgoing section above it), never this section's own incoming
+     content. */
+  z-index: 41;
   height: 100vh;
   display: flex;
   align-items: center;
@@ -725,7 +819,16 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: calc(1.0417 * var(--u));
+  /* --word-pad-x is the horizontal mask breathing room added to *each*
+     .word below (see .reason-quote .word) -- since two adjacent words each
+     contribute it on their facing side, the base gap here is shrunk by
+     2x it so the *visible* space between word text ends up matching the
+     original 1.0417u gap exactly (verified against the Figma reference),
+     rather than every word pair drifting wider apart. .media-chip's own
+     collapsed-state margin (below) is derived off this same expression so
+     the two stay in sync if this value ever changes. */
+  --word-pad-x: 0.08em;
+  gap: calc(1.0417 * var(--u) - 2 * var(--word-pad-x));
   margin: 0;
   font-family: 'Neue Montreal', 'Helvetica Neue', Arial, sans-serif;
   font-weight: 400;
@@ -749,6 +852,27 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
    the mask (not color) is what's animating. */
 .reason-quote .word {
   display: inline-block;
+  /* .word's box is otherwise just tight to its glyphs (height from the
+     1.08 line-height, width from shrink-to-fit) -- almost no slack beyond
+     the font's own advance box. Cardinal Fruit's italic descenders
+     (g, p, y), swash tails, and leading entry-strokes (the "m" in music,
+     "d" in design, "p" in people all start with a small upward flick past
+     their own left edge) extend past that, so mask-clip (border-box,
+     padding included but margin excluded) crops them.
+     .word is a flex item of .line, so its *padding* box (what actually
+     gets masked/painted) and its *margin* box (what flex sizing/gap uses)
+     are independent -- padding alone would grow both the line's height
+     and (via the flex `gap`) every word-to-word space, so the matching
+     negative margin cancels padding's contribution back out of the
+     margin box, leaving line-height and vertical rhythm unchanged.
+     Horizontally the same margin trick can't be used here without also
+     touching flex `gap` math shared with neighbors (a fix that shifted
+     into .line's `gap` expression above, and .media-chip's collapsed
+     margin below, instead), so this side only carries the padding --
+     --word-pad-x is intentionally not mirrored into a horizontal margin
+     on this rule. */
+  padding: 0.15em var(--word-pad-x);
+  margin: -0.15em 0;
   -webkit-mask-image: linear-gradient(90deg, #fff 33.3%, rgba(255, 255, 255, 0.27) 66.6%);
   mask-image: linear-gradient(90deg, #fff 33.3%, rgba(255, 255, 255, 0.27) 66.6%);
   -webkit-mask-position: 100% 100%;
@@ -766,7 +890,15 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
 
 /* Photo/placeholder chips inline between words -- start collapsed and
    invisible (no card, no photo) and expand into place as their batch
-   reveals, so nothing shows before its word group arrives. */
+   reveals, so nothing shows before its word group arrives.
+   Margins are -0.5 * the line's actual flex `gap` (the shrunk expression
+   from .reason-quote .line, not the raw 1.0417u) on each side: with a
+   0-width chip, the flex gap still opens a full gap on *both* sides of
+   it, so the two flanking words would sit two gaps apart instead of one
+   -- reading as a lopsided extra-wide space around the hidden card.
+   Pulling in by exactly half a gap on each side collapses that back down
+   to a single normal gap, matching the spacing between every other word
+   pair (word-to-word, not word-to-chip-when-empty). */
 .media-chip {
   display: inline-block;
   width: 0;
@@ -774,8 +906,8 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
   border-radius: calc(1.0417 * var(--u));
   overflow: hidden;
   opacity: 0;
-  margin-left: -0.18em;
-  margin-right: -0.18em;
+  margin-left: calc(-0.5209 * var(--u) + var(--word-pad-x));
+  margin-right: calc(-0.5209 * var(--u) + var(--word-pad-x));
   vertical-align: middle;
   transition: width 1s cubic-bezier(0.55, 0, 0.25, 1),
               opacity 0.65s linear,
@@ -795,8 +927,258 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
 .media-chip.is-revealed {
   width: calc(8.5417 * var(--u));
   opacity: 1;
-  margin-left: 0;
-  margin-right: 0;
+  /* A bit more breathing room than the line's own word-to-word gap once
+     the card is actually showing -- the collapsed-state margins above are
+     tuned to *cancel* the gap (so no card == a normal single gap), but a
+     visible card sitting flush at that same distance read as too close to
+     its flanking words. */
+  margin-left: calc(0.35 * var(--u));
+  margin-right: calc(0.35 * var(--u));
+}
+
+/* ==========================================================================
+   Cards Reveal — scrolls in right after reason-quote. The three cards here
+   are the same three inline chips from reason-quote (the piano photo and
+   two placeholders) landing at full size: as this section scrolls into
+   place, script.js flies three fixed clones (#flyingCard1-3, see
+   .flying-card below) from each chip's resting position/size to its
+   matching big card's resting position/size -- the same flying-clone
+   hand-off technique .flying-title uses for the hero -> intro-reasons
+   title, generalized to three elements. The section keeps the same solid
+   black background reason-quote ends on (no crossfade needed here, unlike
+   reason-quote's own white -> black entrance).
+   ========================================================================== */
+.cards-reveal {
+  position: relative;
+  /* 100vh visible + 100vh for the chip->card flight + 300vh dwell after
+     docking: a short hold, then further scroll flips the three cards
+     (script.js toggling .is-flipped at a fixed vh threshold within that
+     dwell, same FLIP_TRIGGER_VH pattern as reason-quote's fill/swap
+     triggers), then another hold before the pin releases. */
+  height: 400vh;
+  background: #000000;
+  container-type: inline-size;
+}
+
+.cards-reveal__sticky {
+  position: sticky;
+  top: 0;
+  /* Above .scroll-dark-overlay's z-index: 40, same reasoning as
+     .reason-quote__sticky -- this section's own cards/text must stay
+     visible on top of the overlay, not be hidden behind it. */
+  z-index: 41;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cards-reveal__stage {
+  position: relative;
+  z-index: 1;
+  width: min(100cqw, 1920px);
+  aspect-ratio: 1920 / 1080;
+  margin: 0 auto;
+}
+
+.cards-reveal__row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(11.5104 * var(--u));
+  height: calc(23.722 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(3.6458 * var(--u));
+}
+
+/* Hidden by default until script.js docks this section (matches
+   .intro-reasons__title's body.js-anim gating) -- the flying clones stand
+   in for these until the hand-off completes, so these must not flash
+   visible mid-flight. Without JS (no .js-anim on body), skip the gate
+   entirely and just show the cards at rest. */
+body.js-anim .cards-reveal__card {
+  opacity: 0;
+}
+
+body.js-anim .cards-reveal.is-docked .cards-reveal__card {
+  opacity: 1;
+}
+
+.cards-reveal__card {
+  width: calc(19.3108 * var(--u));
+  height: calc(23.722 * var(--u));
+  border-radius: calc(0.9003 * var(--u));
+  position: relative;
+  flex-shrink: 0;
+  /* Must live on the flip's ancestor (this box), not on .cards-reveal__card-inner
+     itself, or rotateY below renders flat with no sense of depth. */
+  perspective: calc(83.3333 * var(--u));
+}
+
+/* Further scroll after docking flips each card over (see script.js
+   toggling .cards-reveal.is-flipped) to reveal a title + description on
+   a darkened back face -- a standard 3D card-flip: .cards-reveal__card
+   holds the perspective, this inner box is the actual rotating plane,
+   and each face below is backface-visibility: hidden so only one is ever
+   showing. Cascading transition-delay per nth-child gives the three
+   cards a left-to-right tumble instead of flipping in lockstep. */
+.cards-reveal__card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+  transition: transform 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.cards-reveal.is-flipped .cards-reveal__card-inner {
+  transform: rotateY(-180deg);
+}
+
+.cards-reveal__card:nth-child(1) .cards-reveal__card-inner {
+  transition-delay: 0s;
+}
+
+.cards-reveal__card:nth-child(2) .cards-reveal__card-inner {
+  transition-delay: 0.12s;
+}
+
+.cards-reveal__card:nth-child(3) .cards-reveal__card-inner {
+  transition-delay: 0.24s;
+}
+
+.cards-reveal__card-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: calc(0.9003 * var(--u));
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.cards-reveal__card-face--front {
+  background: #d9d9d9;
+}
+
+.cards-reveal__card--photo .cards-reveal__card-face--front {
+  background: none;
+}
+
+/* The back face is pre-rotated 180deg so it faces away at rest (hidden by
+   backface-visibility) and rights itself as the inner box rotates past
+   90deg. A black base under the photo/overlay avoids any bright flash of
+   the card-face's own background peeking through during the turn. */
+.cards-reveal__card-face--back {
+  transform: rotateY(180deg);
+  background: #000000;
+}
+
+/* "카드 배경은 좀 어두워지면서" -- the placeholder cards' back face uses a
+   visibly darker gray than the front's #d9d9d9, echoing the photo card's
+   own rgba(0,0,0,0.5) overlay (below) so all three cards read as
+   "darkening to host text" consistently, even though placeholder cards
+   have no photo to actually darken. */
+.cards-reveal__card-face--back-placeholder {
+  background: #9a9a9a;
+}
+
+/* Matches the Figma crop exactly (scaled 218.39%, shifted left 9.12%) so
+   the pianist is framed the same way here as in the design, rather than
+   object-fit: cover's default center-crop (which would show mostly empty
+   stage/piano body on this portrait-ratio card instead of the pianist).
+   Percentage-based, so it stays correctly cropped at any card size --
+   including the flying clone (see .flying-card img), which is the same
+   photo animating through a continuously changing size. */
+.cards-reveal__card-face--front img,
+.cards-reveal__card-face-photo {
+  position: absolute;
+  top: 0;
+  left: -9.12%;
+  width: 218.39%;
+  height: 100%;
+  max-width: none;
+}
+
+.cards-reveal__card-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.cards-reveal__card-copy {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(11.9792 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(1.8006 * var(--u));
+  text-align: center;
+}
+
+.cards-reveal__card-title {
+  margin: 0;
+  font-family: 'Neue Montreal', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 500;
+  font-size: calc(2.0833 * var(--u));
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.cards-reveal__card-desc {
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(0.8333 * var(--u));
+  line-height: 1.4;
+  letter-spacing: calc(-0.0167 * var(--u));
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Wrapper handles the fixed centering transform; .cards-reveal__text
+   (nested) carries the separate reveal transform (translateY) below --
+   kept apart so the two transforms don't clobber each other. */
+.cards-reveal__text-position {
+  position: absolute;
+  left: 50%;
+  top: calc(41.1458 * var(--u));
+  transform: translateX(-50%);
+}
+
+.cards-reveal__text {
+  text-align: center;
+  white-space: nowrap;
+}
+
+body.js-anim .cards-reveal__reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  transition-delay: 0.2s;
+}
+
+body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cards-reveal__text-line {
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(1.25 * var(--u));
+  line-height: 1.4;
+  letter-spacing: calc(-0.025 * var(--u));
+  color: #ffffff;
+}
+
+.cards-reveal__text-line strong {
+  font-weight: 600;
 }
 
 /* ==========================================================================
@@ -983,6 +1365,93 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
     opacity: 1;
     margin: 0 4px;
     transition: none;
+  }
+
+  /* Cards-reveal: same temporary mobile treatment -- drop the pinned
+     poster/chip-flight hand-off for a plain static block with the three
+     cards already shown stacked, until a dedicated mobile frame exists.
+     The flying clones are only ever relevant to the desktop hand-off, so
+     hide them outright here rather than leaving them to be positioned by
+     script.js's (also mobile-skipped) flight math. */
+  .cards-reveal {
+    height: auto;
+    background: #000000;
+  }
+
+  .cards-reveal__sticky {
+    position: static;
+    height: auto;
+  }
+
+  .cards-reveal__stage {
+    aspect-ratio: unset;
+    width: 100%;
+    padding: 64px 24px;
+    box-sizing: border-box;
+  }
+
+  .cards-reveal__row {
+    position: static;
+    height: auto;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  body.js-anim .cards-reveal__card {
+    opacity: 1;
+  }
+
+  .cards-reveal__card {
+    width: 100%;
+    max-width: 320px;
+    height: 60vw;
+    max-height: 380px;
+    margin: 0 auto;
+    perspective: none;
+  }
+
+  /* No scroll-triggered flip on mobile -- just show each card's back
+     face (title + description on the darkened background) at rest,
+     same "skip the interaction, show the end state" approach as the
+     rest of this mobile fallback. */
+  .cards-reveal__card-inner {
+    transition: none;
+    transform: rotateY(-180deg);
+  }
+
+  .cards-reveal__card-copy {
+    width: 85%;
+  }
+
+  .cards-reveal__card-title {
+    font-size: 28px;
+  }
+
+  .cards-reveal__card-desc {
+    font-size: 14px;
+  }
+
+  .cards-reveal__text-position {
+    position: static;
+    transform: none;
+    margin-top: 32px;
+  }
+
+  body.js-anim .cards-reveal__reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .cards-reveal__text {
+    white-space: normal;
+  }
+
+  .cards-reveal__text-line {
+    font-size: 15px;
+  }
+
+  .flying-card {
+    display: none;
   }
 }
 

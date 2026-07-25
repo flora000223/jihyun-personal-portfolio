@@ -90,8 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const flyingTitleEl = document.getElementById('flyingTitle');
   const introReasons = document.querySelector('.intro-reasons');
   const subtitleEl = document.querySelector('.intro-reasons__subtitle');
-  const textEnEl = document.querySelector('.intro-reasons__text-en');
-  const textKrEl = document.querySelector('.intro-reasons__text-kr');
+  const textEl = document.querySelector('.intro-reasons__text');
 
   /* Splits every text node under `root` into one <span class="fill-char">
      per character (keeping <strong> etc. wrapping intact), so each
@@ -212,22 +211,29 @@ document.addEventListener('DOMContentLoaded', () => {
         : 0;
 
       const stage = (start, end, p) => Math.min(1, Math.max(0, (p - start) / (end - start)));
-      // Fill gets a wider share of the dwell than hold/swap/hold below it --
-      // with a short subtitle sentence, a narrow fill window reads as an
-      // near-instant snap to black rather than a scroll-paced fill.
-      // (These fractions are scaled down from their original 0.75/0.8/0.95
-      // values to keep the same absolute scroll distance for fill/hold/swap
-      // after .intro-reasons' dwell height grew from 250vh to 300vh below
-      // 1 -- the extra vh all goes to the final hold instead.)
-      const fillProgress = stage(0, 0.625, dwellProgress);
-      // Widened, and eased rather than linear, so the English->Korean
-      // crossfade reads as a gradual blend instead of snapping over too
-      // short a scroll distance.
-      const swapProgress = smoothstep(stage(0.667, 0.792, dwellProgress));
-      // Everything from here to dwellProgress 1 is a final hold: the extra
-      // dwell height added above means several more scroll actions are
-      // needed after the Korean swap finishes before the pin releases and
-      // the next section is allowed to scroll into view.
+      // Fill and the Korean-swap trigger are pinned to fixed *vh* distances
+      // (converted to px via the live viewport height, then to a
+      // dwellProgress fraction via the live dwellDist) rather than
+      // baked-in fractions of the whole dwell -- so however long
+      // .intro-reasons' CSS height (and therefore dwellDist) is tuned to
+      // be, fill/swap always happen after the same amount of physical
+      // scrolling, and any extra dwell height added beyond
+      // SWAP_TRIGGER_VH always lands entirely in the final hold (the pause
+      // after the Korean subtext has fully settled, before the pin
+      // releases and the next section is allowed in).
+      const vh = window.innerHeight / 100;
+      const FILL_END_VH = 187.5;
+      const SWAP_TRIGGER_VH = 218.85;
+      const fillProgress = stage(0, (FILL_END_VH * vh) / dwellDist, dwellProgress);
+      // The English->Korean crossfade used to map opacity directly to
+      // scroll distance across this whole window, which read as a
+      // mechanical wipe keyed to scroll speed rather than a genuine
+      // fade-in. Now it's a single trigger at SWAP_TRIGGER_VH --
+      // .is-swapped's CSS transition (see .intro-reasons__text-kr) plays
+      // the actual low-opacity-rising-to-full fade over a fixed duration,
+      // matching how .intro-reasons__reveal and the reason-quote word
+      // reveals already animate elsewhere in this file.
+      const krSwapThreshold = (SWAP_TRIGGER_VH * vh) / dwellDist;
 
       if (fillChars.length) {
         const startRGB = [0xec, 0xea, 0xe9];
@@ -241,10 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      if (textEnEl && textKrEl) {
-        textEnEl.style.opacity = String(1 - swapProgress);
-        textKrEl.style.opacity = String(swapProgress);
-        textKrEl.style.setProperty('--swap-rise', String(1 - swapProgress));
+      if (textEl) {
+        textEl.classList.toggle('is-swapped', dwellProgress >= krSwapThreshold);
       }
     };
 
@@ -311,13 +315,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /* Shared full-screen dark takeover, contributed to by both reason-quote
+     and cards-reveal (two consecutive black sections) -- whichever one is
+     more "on screen" at a given scroll position drives #scrollDarkOverlay
+     and the header inversion, so the header/overlay stay dark across the
+     handoff between them instead of the header flashing back to black at
+     exactly the point reason-quote's own dark contribution fades out
+     (which happens right as cards-reveal takes over -- see each
+     section's own entry/exit math below). */
+  const darkOverlayEl = document.getElementById('scrollDarkOverlay');
+  const headerEl = document.querySelector('.header');
+  // How much of the overlay fade counts as "in the dark section" for the
+  // header's own colors -- deliberately low, so the logo/active nav link
+  // swap to white as soon as the screen visibly starts darkening rather
+  // than waiting for it to nearly finish.
+  const HEADER_DARK_THRESHOLD = 0.08;
+  let reasonDarkContribution = 0;
+  let cardsDarkContribution = 0;
+
+  // A direct black<->white swap (.header--inverted, see CSS) once the
+  // overlay is dark enough -- not a per-frame RGB blend. Blending toward
+  // white tracked the scroll position 1:1, so for most of the scroll it
+  // sat at some intermediate gray -- exactly the muted color inactive
+  // links already use, making active/inactive momentarily
+  // indistinguishable, and it meant black text stayed low-contrast
+  // against the darkening background for a long stretch instead of
+  // becoming legible (white) as soon as darkening starts.
+  const applyCombinedDarkState = () => {
+    const combined = Math.max(reasonDarkContribution, cardsDarkContribution);
+    if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
+    if (headerEl) headerEl.classList.toggle('header--inverted', combined > HEADER_DARK_THRESHOLD);
+  };
+
   /* Reason-quote: personal statement that scrolls in right after
-     intro-reasons. The background crossfades white -> black continuously as
-     the section slides into place (scroll-scrubbed, like the flying-title
-     hand-off above), then once pinned, words/chips reveal in scroll-triggered
-     batches -- each batch that's been scrolled past gets .is-revealed and
-     animates in over its own CSS transition, independent of scroll speed,
-     matching INTERACTION_GUIDE.md's mask-wipe + chip-expand pattern. */
+     intro-reasons. The *whole viewport* (not just this section's own box)
+     crossfades white -> black continuously as the section slides into
+     place, via #scrollDarkOverlay -- a fixed full-screen layer whose
+     opacity is scroll-scrubbed (like the flying-title hand-off above) --
+     and fades back out once the section is scrolled past. In sync, the
+     fixed header's logo/active nav-link invert from black to white so
+     they stay legible over the darkening screen. Once pinned, words/chips
+     reveal in scroll-triggered batches -- each batch that's been scrolled
+     past gets .is-revealed and animates in over its own CSS transition,
+     independent of scroll speed, matching INTERACTION_GUIDE.md's
+     mask-wipe + chip-expand pattern. */
   const reasonQuoteEl = document.querySelector('.reason-quote');
 
   if (reasonQuoteEl) {
@@ -335,6 +376,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return Math.min(1, Math.max(0, (vh - rect.top) / vh));
     };
 
+    // Mirrors getReasonEntryProgress but off the section's *bottom* edge,
+    // so the overlay fades back out as the section scrolls past rather
+    // than staying pinned black for every section that follows it.
+    const getReasonExitProgress = () => {
+      const rect = reasonQuoteEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, rect.bottom / vh));
+    };
+
     const getReasonDwellProgress = () => {
       const rect = reasonQuoteEl.getBoundingClientRect();
       const dwellDist = reasonQuoteEl.offsetHeight - window.innerHeight;
@@ -343,17 +393,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updateReasonQuote = () => {
       // Mobile fallback (see CSS) shows everything at rest with a plain
-      // static black block -- clear any inline background left over from
-      // a wider viewport instead of letting it fight the CSS override,
-      // and skip the reveal-threshold math entirely.
+      // static black block -- skip the scroll-scrubbed overlay/header
+      // inversion and reveal-threshold math entirely, and clear any
+      // inline styles left over from a wider viewport instead of letting
+      // them fight the CSS override.
       if (window.innerWidth <= 768) {
-        reasonQuoteEl.style.backgroundColor = '';
+        reasonDarkContribution = 0;
+        applyCombinedDarkState();
         return;
       }
 
       const entry = getReasonEntryProgress();
-      const shade = Math.round(255 * (1 - entry));
-      reasonQuoteEl.style.backgroundColor = `rgb(${shade}, ${shade}, ${shade})`;
+      const exit = getReasonExitProgress();
+      reasonDarkContribution = Math.min(entry, exit);
+      applyCombinedDarkState();
 
       // Only start evaluating reveal batches once the section is actually
       // pinned (entry fully complete) -- dwellProgress alone can't tell
@@ -386,5 +439,218 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', onReasonScroll, { passive: true });
     window.addEventListener('resize', updateReasonQuote);
     window.addEventListener('load', updateReasonQuote);
+  }
+
+  /* Cards-reveal: scrolls in right after reason-quote. Its three big cards
+     are the same piano photo + two placeholders as reason-quote's three
+     inline chips, landing at full size -- as this section scrolls into
+     place, three fixed "flying" clones (#flyingCard1-3) interpolate from
+     each chip's resting position/size (while reason-quote was pinned) to
+     its matching big card's resting position/size (once cards-reveal is
+     pinned), the same flying-clone hand-off technique as the hero title ->
+     intro-reasons title above, generalized to three elements animating in
+     parallel instead of one. */
+  const cardsRevealEl = document.querySelector('.cards-reveal');
+
+  if (reasonQuoteEl && cardsRevealEl) {
+    const reasonStickyEl = document.querySelector('.reason-quote__sticky');
+    const cardsStickyEl = document.querySelector('.cards-reveal__sticky');
+
+    const cardSmoothstep = (t) => t * t * (3 - 2 * t);
+
+    const cardPairs = [
+      { chip: document.getElementById('chipMusic'), card: document.getElementById('cardsRevealCard1'), flying: document.getElementById('flyingCard1') },
+      { chip: document.getElementById('chipDesign'), card: document.getElementById('cardsRevealCard2'), flying: document.getElementById('flyingCard2') },
+      { chip: document.getElementById('chipExperiences'), card: document.getElementById('cardsRevealCard3'), flying: document.getElementById('flyingCard3') },
+    ].filter((pair) => pair.chip && pair.card && pair.flying);
+
+    // measureCardFlight() runs once on load/resize, not per scroll frame --
+    // valid only because both endpoints are timing-stable to measure. The
+    // *card* end is simple (its size is constant; only opacity is ever
+    // toggled). The *chip* start is not: .media-chip's width/margin only
+    // reach their final revealed values once .is-revealed has been on it
+    // for a full transition (width 1s, margin 1s) -- measured at load time
+    // (or any time before reason-quote's own scroll-triggered reveal has
+    // played out), getBoundingClientRect() would instead capture it
+    // mid-collapse (width ~0), so the flight would launch from the wrong
+    // size. forceMeasureRevealed briefly forces .is-revealed with
+    // transitions killed, reads the *settled* box synchronously, then
+    // reverts both -- a transition can't be sampled synchronously (it only
+    // animates via the compositor over real time), so this is the only way
+    // to read its end state without actually waiting out the animation.
+    const forceMeasureRevealed = (el) => {
+      const hadClass = el.classList.contains('is-revealed');
+      const prevTransition = el.style.transition;
+      el.style.transition = 'none';
+      if (!hadClass) el.classList.add('is-revealed');
+      void el.offsetHeight; // flush the transition:none + class change together
+      const rect = el.getBoundingClientRect();
+      const radius = parseFloat(getComputedStyle(el).borderRadius) || 0;
+      if (!hadClass) el.classList.remove('is-revealed');
+      void el.offsetHeight; // flush the revert too, before transitions come back
+      el.style.transition = prevTransition;
+      return { rect, radius };
+    };
+
+    // Both anchors are captured as an offset from their own sticky
+    // container's top/left edge, not a live getBoundingClientRect() read
+    // -- this offset is timing-independent (it only reflects the fixed
+    // internal layout inside .reason-quote__sticky / .cards-reveal__sticky,
+    // never the sticky box's own current on-screen position), so it's
+    // valid however early or late measure() runs, exactly like
+    // .intro-reasons__title's endPos above. Once the relevant sticky box
+    // is actually stuck (top: 0), this same offset doubles as the correct
+    // position:fixed viewport coordinate for the flying clone.
+    const measureCardFlight = () => {
+      const reasonStickyRect = reasonStickyEl.getBoundingClientRect();
+      const cardsStickyRect = cardsStickyEl.getBoundingClientRect();
+      cardPairs.forEach((pair) => {
+        const { rect: chipRect, radius: startRadius } = forceMeasureRevealed(pair.chip);
+        const cardRect = pair.card.getBoundingClientRect();
+        pair.start = {
+          top: chipRect.top - reasonStickyRect.top,
+          left: chipRect.left - reasonStickyRect.left,
+          width: chipRect.width,
+          height: chipRect.height,
+        };
+        pair.end = {
+          top: cardRect.top - cardsStickyRect.top,
+          left: cardRect.left - cardsStickyRect.left,
+          width: cardRect.width,
+          height: cardRect.height,
+        };
+        pair.startRadius = startRadius;
+        pair.endRadius = parseFloat(getComputedStyle(pair.card).borderRadius) || 0;
+      });
+    };
+
+    const getCardsEntryProgress = () => {
+      const rect = cardsRevealEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, (vh - rect.top) / vh));
+    };
+
+    // Mirrors getCardsEntryProgress but off the section's *bottom* edge,
+    // same reasoning as reason-quote's own getReasonExitProgress.
+    const getCardsExitProgress = () => {
+      const rect = cardsRevealEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, rect.bottom / vh));
+    };
+
+    // Same dwellProgress pattern as reason-quote's getReasonDwellProgress:
+    // only meaningful once the section is actually pinned (entry === 1),
+    // 0 -> 1 across the scroll distance from dock to release.
+    const getCardsDwellProgress = () => {
+      const rect = cardsRevealEl.getBoundingClientRect();
+      const dwellDist = cardsRevealEl.offsetHeight - window.innerHeight;
+      return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
+    };
+
+    // Fixed vh distance (not a bare fraction -- see script.js's earlier
+    // FILL_END_VH/SWAP_TRIGGER_VH comment for why this needs converting
+    // via window.innerHeight first) into the post-dock dwell before the
+    // cards flip. Reversible: toggled from live dwellProgress every
+    // frame, not a one-shot trigger, so scrolling back up un-flips them.
+    const FLIP_TRIGGER_VH = 75;
+
+    let cardsDocked = false;
+
+    const updateCardsReveal = () => {
+      // Mobile fallback (see CSS) shows the three cards already stacked
+      // at rest -- skip the flight/dark math entirely.
+      if (window.innerWidth <= 768) {
+        cardsDarkContribution = 0;
+        applyCombinedDarkState();
+        cardPairs.forEach((pair) => {
+          pair.chip.style.opacity = '';
+          pair.card.style.opacity = '';
+          pair.flying.style.opacity = '0';
+        });
+        return;
+      }
+
+      const entry = getCardsEntryProgress();
+      const exit = getCardsExitProgress();
+      cardsDarkContribution = Math.min(entry, exit);
+      applyCombinedDarkState();
+
+      const ease = cardSmoothstep(entry);
+
+      cardPairs.forEach((pair) => {
+        if (!pair.start || !pair.end) return;
+
+        if (entry <= 0) {
+          pair.flying.style.opacity = '0';
+          pair.chip.style.opacity = '';
+          pair.card.style.opacity = '0';
+        } else if (entry >= 1) {
+          pair.flying.style.opacity = '0';
+          pair.chip.style.opacity = '0';
+          pair.card.style.opacity = '1';
+        } else {
+          pair.chip.style.opacity = '0';
+          pair.card.style.opacity = '0';
+          pair.flying.style.opacity = '1';
+
+          const top = pair.start.top + (pair.end.top - pair.start.top) * ease;
+          const left = pair.start.left + (pair.end.left - pair.start.left) * ease;
+          const width = pair.start.width + (pair.end.width - pair.start.width) * ease;
+          const height = pair.start.height + (pair.end.height - pair.start.height) * ease;
+          const radius = pair.startRadius + (pair.endRadius - pair.startRadius) * ease;
+
+          pair.flying.style.top = `${top}px`;
+          pair.flying.style.left = `${left}px`;
+          pair.flying.style.width = `${width}px`;
+          pair.flying.style.height = `${height}px`;
+          pair.flying.style.borderRadius = `${radius}px`;
+        }
+      });
+
+      if (entry >= 1 && !cardsDocked) {
+        cardsDocked = true;
+        cardsRevealEl.classList.add('is-docked');
+      } else if (entry < 0.9 && cardsDocked) {
+        cardsDocked = false;
+        cardsRevealEl.classList.remove('is-docked');
+      }
+
+      const dwellProgress = entry >= 1 ? getCardsDwellProgress() : 0;
+      const dwellDist = cardsRevealEl.offsetHeight - window.innerHeight;
+      const vh = window.innerHeight / 100;
+      const flipThreshold = dwellDist > 0 ? (FLIP_TRIGGER_VH * vh) / dwellDist : 1;
+      cardsRevealEl.classList.toggle('is-flipped', entry >= 1 && dwellProgress >= flipThreshold);
+    };
+
+    let cardsTicking = false;
+    const onCardsScroll = () => {
+      if (!cardsTicking) {
+        cardsTicking = true;
+        requestAnimationFrame(() => {
+          updateCardsReveal();
+          cardsTicking = false;
+        });
+      }
+    };
+
+    let cardsResizeTimer;
+    const onCardsResize = () => {
+      measureCardFlight();
+      updateCardsReveal();
+      clearTimeout(cardsResizeTimer);
+      cardsResizeTimer = setTimeout(() => {
+        measureCardFlight();
+        updateCardsReveal();
+      }, 200);
+    };
+
+    measureCardFlight();
+    updateCardsReveal();
+    window.addEventListener('scroll', onCardsScroll, { passive: true });
+    window.addEventListener('resize', onCardsResize);
+    window.addEventListener('load', () => {
+      measureCardFlight();
+      updateCardsReveal();
+    });
   }
 });

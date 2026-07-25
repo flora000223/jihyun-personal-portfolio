@@ -8,6 +8,8 @@
 </head>
 <body>
 
+  <div class="scroll-dark-overlay" id="scrollDarkOverlay" aria-hidden="true"></div>
+
   <header class="header">
     <div class="header__inner">
       <a href="#intro" class="logo">PORTFOLIO</a>
@@ -90,7 +92,7 @@
               I design experiences that people want to come back to.
             </p>
             <p class="intro-reasons__text-line intro-reasons__text-kr">
-              좋은 경험에는 언제나 오래 머물고 싶은 이유가 있다고 생각합니다.<br>
+              좋은 경험에는 언제나 오래 머물고 싶은 이유가 있습니다.<br>
               사용자의 관점에서 그 이유를 고민하고, 다시 찾고 싶은 경험을 설계합니다.
             </p>
           </div>
@@ -98,19 +100,19 @@
       </div>
     </section>
 
-    <section class="reason-quote" id="reasonQuote">
+    <section class="reason-quote">
       <div class="reason-quote__sticky">
         <div class="reason-quote__stage">
           <div class="sentence">
             <p class="line">
               <span class="word">FROM</span>
               <span class="word"><em>music</em></span>
-              <span class="media-chip media-chip--photo"><img src="images/reason-music.jpg" alt="피아노 연주 사진"></span>
+              <span class="media-chip media-chip--photo" id="chipMusic"><img src="images/piano.png" alt="피아노 연주 사진"></span>
               <span class="word">TO</span>
             </p>
             <p class="line">
               <span class="word">UX/UI</span>
-              <span class="media-chip media-chip--placeholder" aria-hidden="true"></span>
+              <span class="media-chip media-chip--placeholder" id="chipDesign" aria-hidden="true"></span>
               <span class="word"><em>design</em>,</span>
             </p>
             <p class="line">
@@ -122,10 +124,63 @@
             </p>
             <p class="line">
               <span class="word"><em>experiences</em></span>
-              <span class="media-chip media-chip--placeholder" aria-hidden="true"></span>
+              <span class="media-chip media-chip--placeholder" id="chipExperiences" aria-hidden="true"></span>
               <span class="word">FOR</span>
               <span class="word"><em>people</em>.</span>
             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cards-reveal">
+      <div class="cards-reveal__sticky">
+        <div class="cards-reveal__stage">
+          <div class="cards-reveal__row">
+            <div class="cards-reveal__card cards-reveal__card--photo" id="cardsRevealCard1">
+              <div class="cards-reveal__card-inner">
+                <div class="cards-reveal__card-face cards-reveal__card-face--front">
+                  <img src="images/piano.png" alt="피아노 연주 사진">
+                </div>
+                <div class="cards-reveal__card-face cards-reveal__card-face--back">
+                  <img src="images/piano.png" alt="" class="cards-reveal__card-face-photo">
+                  <div class="cards-reveal__card-overlay"></div>
+                  <div class="cards-reveal__card-copy">
+                    <p class="cards-reveal__card-title">HARMONY</p>
+                    <p class="cards-reveal__card-desc">음악을 통해 조화와 균형의 가치를 배웠습니다. 다양한 요소를 하나의 경험으로 자연스럽게 연결하는 디자인을 지향합니다.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cards-reveal__card cards-reveal__card--placeholder" id="cardsRevealCard2" aria-hidden="true">
+              <div class="cards-reveal__card-inner">
+                <div class="cards-reveal__card-face cards-reveal__card-face--front"></div>
+                <div class="cards-reveal__card-face cards-reveal__card-face--back cards-reveal__card-face--back-placeholder">
+                  <div class="cards-reveal__card-copy">
+                    <p class="cards-reveal__card-title">GROWTH</p>
+                    <p class="cards-reveal__card-desc">새로운 도전은 저에게 두려움보다 배움의 기회였습니다. 끊임없이 배우고 경험하며, 더 성장하는 내일을 만들어 가고 있습니다.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cards-reveal__card cards-reveal__card--placeholder" id="cardsRevealCard3" aria-hidden="true">
+              <div class="cards-reveal__card-inner">
+                <div class="cards-reveal__card-face cards-reveal__card-face--front"></div>
+                <div class="cards-reveal__card-face cards-reveal__card-face--back cards-reveal__card-face--back-placeholder">
+                  <div class="cards-reveal__card-copy">
+                    <p class="cards-reveal__card-title">EMPATHY</p>
+                    <p class="cards-reveal__card-desc">사용자를 이해하는 태도를 가장 중요한 기준으로 생각합니다. 더 나은 경험을 위해 사용자의 관점에서 끊임없이 고민합니다.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cards-reveal__text-position">
+            <div class="cards-reveal__text cards-reveal__reveal">
+              <p class="cards-reveal__text-line">피아노를 전공하며 항상 <strong>청중</strong>의 입장에서 고민하고 연주했던 경험은</p>
+              <p class="cards-reveal__text-line"><strong>사용자</strong>의 문제를 이해하고 경험을 설계하는 디자인이라는 <strong>새로운 무대</strong>로 이어지고 있습니다.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -141,6 +196,12 @@
     <span class="stay-title-line">DESIGNING</span>
     <span class="stay-title-line">REASONS TO <em>stay</em></span>
   </div>
+
+  <div class="flying-card flying-card--photo" id="flyingCard1" aria-hidden="true">
+    <img src="images/piano.png" alt="">
+  </div>
+  <div class="flying-card flying-card--placeholder" id="flyingCard2" aria-hidden="true"></div>
+  <div class="flying-card flying-card--placeholder" id="flyingCard3" aria-hidden="true"></div>
 
   <script src="script.js"></script>
 </body>
