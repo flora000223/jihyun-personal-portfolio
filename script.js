@@ -1,4 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Shared with the cards-reveal scroll lock further down: while a card
+  // flip is holding the page in place, a bit of scroll can still leak
+  // through (the lock's own 'scroll' listener then snaps it back) --
+  // each snap-back fires a real 'scroll' event of its own, which the
+  // header's scroll-direction tracking below would otherwise read as a
+  // genuine alternating down/up tick and flicker in response. Setting
+  // this flag while locked, and having the header handler bail out on it
+  // (without even updating its own lastScrollY), makes it ignore that
+  // noise entirely and pick back up cleanly once the lock releases.
+  let isScrollLocked = false;
+
   const hamburgerBtn = document.getElementById('hamburgerBtn');
   const mobileNav = document.getElementById('mobileNav');
   const navLinks = document.querySelectorAll('.nav__link, .mobile-nav__link');
@@ -67,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastScrollY = window.scrollY;
 
   window.addEventListener('scroll', () => {
+    if (isScrollLocked) return;
+
     const currentScrollY = window.scrollY;
 
     if (currentScrollY <= hero.offsetHeight) {
@@ -93,21 +106,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const textEl = document.querySelector('.intro-reasons__text');
 
   /* Splits every text node under `root` into one <span class="fill-char">
-     per character (keeping <strong> etc. wrapping intact), so each
-     character's color can be driven independently by scroll position. */
-  const wrapChars = (root) => {
+     (or a custom className, e.g. work-transition's "fog-char") per
+     character (keeping <strong> etc. wrapping intact), so each
+     character's color/opacity/transform can be driven independently by
+     scroll position. */
+  const wrapChars = (root, className = 'fill-char') => {
     Array.from(root.childNodes).forEach((node) => {
       if (node.nodeType === Node.TEXT_NODE) {
         const frag = document.createDocumentFragment();
         Array.from(node.textContent).forEach((ch) => {
           const span = document.createElement('span');
-          span.className = 'fill-char';
+          span.className = className;
           span.textContent = ch;
           frag.appendChild(span);
         });
         root.replaceChild(frag, node);
       } else if (node.nodeType === Node.ELEMENT_NODE) {
-        wrapChars(node);
+        wrapChars(node, className);
       }
     });
   };
@@ -332,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const HEADER_DARK_THRESHOLD = 0.08;
   let reasonDarkContribution = 0;
   let cardsDarkContribution = 0;
+  let workTransitionDarkContribution = 0;
   let workDetailDarkContribution = 0;
 
   // A direct black<->white swap (.header--inverted, see CSS) once the
@@ -343,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // against the darkening background for a long stretch instead of
   // becoming legible (white) as soon as darkening starts.
   const applyCombinedDarkState = () => {
-    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workDetailDarkContribution);
+    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution);
     if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
     if (headerEl) headerEl.classList.toggle('header--inverted', combined > HEADER_DARK_THRESHOLD);
     return combined;
@@ -488,6 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
       clearTimeout(scrollLockTimer);
       if (!scrollLockActive) {
         scrollLockActive = true;
+        isScrollLocked = true;
         lockedScrollY = window.scrollY;
         window.addEventListener('wheel', preventScroll, { passive: false });
         window.addEventListener('touchmove', preventScroll, { passive: false });
@@ -496,6 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       scrollLockTimer = setTimeout(() => {
         scrollLockActive = false;
+        isScrollLocked = false;
         window.removeEventListener('wheel', preventScroll);
         window.removeEventListener('touchmove', preventScroll);
         window.removeEventListener('keydown', preventScrollKey);
@@ -730,40 +748,216 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /* Work transition: "WORK selected projects" title screen between
+     cards-reveal and the work-detail cover (see CSS for the full writeup
+     of the two-layer clip-path technique this borrows from
+     SCROLL-INTERACTIONS.md's Color-Invert Wipe). Same pinned-dwell +
+     live-progress pattern as every section above -- entry/exit/dwell all
+     read fresh off getBoundingClientRect() every scroll frame, no GSAP. */
+  const workTransitionEl = document.querySelector('.work-transition');
+
+  if (workTransitionEl) {
+    const stickyEl = workTransitionEl.querySelector('.work-transition__sticky');
+    const scrollerBaseEl = document.getElementById('workTransitionScrollerBase');
+    const scrollerWipeEl = document.getElementById('workTransitionScrollerWipe');
+    const wipeEl = document.getElementById('workTransitionWipe');
+
+    // The wipe's reveal window sits centered on the dwell's own middle
+    // third, not near the end -- "가로로 흐르다가 중간에 반전" means the
+    // title should already be well underway scrolling by the time the
+    // invert starts, and still have room to keep scrolling after it ends.
+    const WIPE_START = 0.4;
+    const WIPE_END = 0.6;
+
+    // SCROLL-INTERACTIONS.md's "A. Smoke Scroll": characters blur/fade/
+    // drift up as they near the left edge, instead of being hard-clipped
+    // by overflow: hidden. Both the base and wipe copies get their own
+    // set of char spans (kept in sync since both scrollers always share
+    // the same translateX), each pre-measured once via offsetLeft/Width
+    // -- a layout property transforms don't affect -- so applying the
+    // fade every scroll frame is a pure style write (no per-frame
+    // getBoundingClientRect reads): viewport-x = static center + the
+    // frame's own translateX.
+    const FOG_START = 260; // px from the left edge where the fade begins
+    const FOG_END = 20; // px from the left edge where it's fully gone (just shy of the hard clip at 0)
+
+    const titleBaseEl = scrollerBaseEl.querySelector('.work-transition__title');
+    const titleWipeEl = scrollerWipeEl.querySelector('.work-transition__title');
+    wrapChars(titleBaseEl, 'fog-char');
+    wrapChars(titleWipeEl, 'fog-char');
+    const fogCharsBase = Array.from(titleBaseEl.querySelectorAll('.fog-char')).map((el) => ({ el, center: 0 }));
+    const fogCharsWipe = Array.from(titleWipeEl.querySelectorAll('.fog-char')).map((el) => ({ el, center: 0 }));
+
+    const measureFogChars = () => {
+      [...fogCharsBase, ...fogCharsWipe].forEach((c) => {
+        c.center = c.el.offsetLeft + c.el.offsetWidth / 2;
+      });
+    };
+    measureFogChars();
+
+    const applyFogChars = (chars, x) => {
+      chars.forEach((c) => {
+        const viewportX = c.center + x;
+        const progress = Math.min(1, Math.max(0, (FOG_START - viewportX) / (FOG_START - FOG_END)));
+        if (progress <= 0) {
+          c.el.style.opacity = '';
+          c.el.style.filter = '';
+          c.el.style.transform = '';
+        } else {
+          c.el.style.opacity = String(1 - progress);
+          c.el.style.filter = `blur(${progress * 10}px)`;
+          c.el.style.transform = `translateY(${-progress * 28}px)`;
+        }
+      });
+    };
+
+    const getWorkTransitionEntryProgress = () => {
+      const rect = workTransitionEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, (vh - rect.top) / vh));
+    };
+
+    const getWorkTransitionExitProgress = () => {
+      const rect = workTransitionEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, rect.bottom / vh));
+    };
+
+    const getWorkTransitionDwellProgress = () => {
+      const rect = workTransitionEl.getBoundingClientRect();
+      const dwellDist = workTransitionEl.offsetHeight - window.innerHeight;
+      return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
+    };
+
+    const updateWorkTransition = () => {
+      // Mobile fallback (see CSS): static stacked end-state, no pin/scrub.
+      // Also clears any fog-char styles left over from a desktop-width
+      // scroll before the viewport was resized down.
+      if (window.innerWidth <= 768) {
+        workTransitionDarkContribution = 0;
+        applyCombinedDarkState();
+        applyFogChars(fogCharsBase, 0);
+        applyFogChars(fogCharsWipe, 0);
+        return;
+      }
+
+      const entry = getWorkTransitionEntryProgress();
+      const exit = getWorkTransitionExitProgress();
+      const dwellProgress = entry >= 1 ? getWorkTransitionDwellProgress() : 0;
+
+      // Both scroller copies (base + wipe) move by the exact same amount
+      // every frame -- that's what makes the wipe read as one continuous
+      // title inverting color rather than two independently-scrolling
+      // texts sliding past each other.
+      const viewportWidth = stickyEl.clientWidth;
+      const amountToScroll = Math.max(0, scrollerBaseEl.scrollWidth - viewportWidth);
+      const x = -amountToScroll * dwellProgress;
+      const xPx = `${x}px`;
+      scrollerBaseEl.style.transform = `translateX(${xPx})`;
+      scrollerWipeEl.style.transform = `translateX(${xPx})`;
+      applyFogChars(fogCharsBase, x);
+      applyFogChars(fogCharsWipe, x);
+
+      // clip-path grows left-to-right from the right edge: 100% (hidden)
+      // down to 0% (full width) as wipeProgress goes 0 -> 1.
+      const wipeProgress = Math.min(1, Math.max(0, (dwellProgress - WIPE_START) / (WIPE_END - WIPE_START)));
+      const revealFrom = 100 - wipeProgress * 100;
+      wipeEl.style.clipPath = `polygon(${revealFrom}% 0%, 100% 0%, 100% 100%, ${revealFrom}% 100%)`;
+
+      // Dark contribution fades out as the wipe completes (screen turns
+      // white), same entry/exit-gated pattern as reason-quote/cards-reveal
+      // above so the header only inverts back while this section is
+      // actually the one on screen.
+      workTransitionDarkContribution = Math.min(entry, exit) * (1 - wipeProgress);
+      applyCombinedDarkState();
+    };
+
+    let workTransitionTicking = false;
+    const onWorkTransitionScroll = () => {
+      if (!workTransitionTicking) {
+        workTransitionTicking = true;
+        requestAnimationFrame(() => {
+          updateWorkTransition();
+          workTransitionTicking = false;
+        });
+      }
+    };
+
+    let workTransitionResizeTimer;
+    const onWorkTransitionResize = () => {
+      measureFogChars();
+      updateWorkTransition();
+      clearTimeout(workTransitionResizeTimer);
+      workTransitionResizeTimer = setTimeout(() => {
+        measureFogChars();
+        updateWorkTransition();
+      }, 200);
+    };
+
+    updateWorkTransition();
+    window.addEventListener('scroll', onWorkTransitionScroll, { passive: true });
+    window.addEventListener('resize', onWorkTransitionResize);
+  }
+
   /* Work-detail: the cover (project 01/03) stays pinned past its own 100vh
-     of rest. .work-detail__track holds the cover and the next scene as two
-     side-by-side panels -- a real two-frame filmstrip -- and once pinned,
+     of rest. .work-detail__track holds the cover plus every scene after it
+     as side-by-side panels -- a real filmstrip, .work-detail__panel's
+     flex:0 0 100% already supports any panel count -- and once pinned,
      scroll first just pauses at the cover (HOLD1_END), then slides that
-     track left to carry the next scene into view (SLIDE_END). The
-     background crossfades white -> black on its own, in sync with the
-     slide but as an independent layer (#scrollDarkOverlay, same technique
-     reason-quote/cards-reveal use) -- not something carried by the sliding
-     content itself. Once docked (slide fully complete), further scroll
-     fills .work-scenes__desc-en gray -> white character by character (same
+     track left to carry each scene into view in turn (SLIDE1_END,
+     SLIDE2_END, ...). The background crossfades white -> black on its own,
+     in sync with the first slide but as an independent layer
+     (#scrollDarkOverlay, same technique reason-quote/cards-reveal use) --
+     not something carried by the sliding content itself, and it stays
+     black (not re-crossfading) through every scene after that first one.
+     Once each scene is docked, further scroll fills its own
+     .work-scenes__desc-en gray -> white character by character (same
      wrapChars/fillChars technique as .intro-reasons__subtitle), then holds
-     before releasing. Chaining a second project's cover after this one
-     later reuses the same pattern: another panel appended to the track,
-     and .work-detail's height grows to fit. */
+     before either the next slide or (on the last scene) releasing.
+     STAGES below lists each stage's *end* fraction of the post-dock dwell,
+     in order -- adding an eighth panel later means appending its own
+     slide/fill pair here, adding its .work-detail__panel + .work-scenes__
+     stage in the HTML the same way as scene 6, and growing .work-detail's
+     CSS height to match the new total. */
   const workDetailEl = document.querySelector('.work-detail');
 
   if (workDetailEl) {
     const trackEl = document.getElementById('workDetailTrack');
-    const scenesDescEnEl = document.querySelector('.work-scenes__desc-en');
+    const sceneDescEnEls = Array.from(document.querySelectorAll('.work-scenes__desc-en'));
     const gridLinesEl = document.querySelector('.work-detail__grid-lines');
-    const sceneVideoEl = document.querySelector('.work-scenes__device-media');
+    const sceneVideoEls = Array.from(document.querySelectorAll('.work-scenes__device-media'));
 
-    let scenesFillChars = [];
-    if (scenesDescEnEl) {
-      wrapChars(scenesDescEnEl);
-      scenesFillChars = Array.from(scenesDescEnEl.querySelectorAll('.fill-char'));
-    }
+    // Stage boundaries as fractions of the post-dock dwell, in order:
+    // pause at the cover -> slide to scene 1 -> fill scene 1's desc-en ->
+    // brief hold -> slide to scene 2 -> fill scene 2's desc-en -> final
+    // hold before releasing. Each slide's own [start, end] pair is listed
+    // explicitly (not chained off the previous stage) since a slide does
+    // NOT begin the instant the previous stage ends -- there's a fill and
+    // a hold in between that must finish first.
+    const SLIDE_STARTS = [50 / 1780, 320 / 1780, 590 / 1780, 860 / 1780, 1130 / 1780, 1400 / 1780]; // scene 1-6
+    const SLIDE_ENDS = [140 / 1780, 410 / 1780, 680 / 1780, 950 / 1780, 1220 / 1780, 1490 / 1780]; // scene 1-6
+    const FILL_ENDS = [280 / 1780, 550 / 1780, 820 / 1780, 1090 / 1780, 1360 / 1780, 1630 / 1780]; // scene 1-6
 
-    // preload="none" means nothing downloads until .play()/.load() is
-    // actually called -- these track whether that's happened yet so the
-    // ~30MB clip only ever starts fetching once the user has scrolled to
-    // this section, and stops playing (without re-fetching) once they
-    // scroll away.
-    let sceneVideoStarted = false;
+    const scenes = sceneDescEnEls.map((descEnEl, i) => {
+      wrapChars(descEnEl);
+      return {
+        fillChars: Array.from(descEnEl.querySelectorAll('.fill-char')),
+        slideEnd: SLIDE_ENDS[i],
+        fillEnd: FILL_ENDS[i],
+        // This scene's video is worth having ready from a bit before its
+        // own slide-in completes (giving it the tail of the slide plus
+        // fill/hold as a loading buffer) until the next scene's slide-in
+        // begins (or, for the last scene, through the rest of the dwell).
+        // The very first scene instead starts as soon as the section is
+        // pinned at all, so it's already playing by the time the first
+        // slide reveals it -- there's no earlier "previous scene" stage
+        // to wait out.
+        activeFrom: i === 0 ? 0 : FILL_ENDS[i - 1],
+        activeTo: i < SLIDE_STARTS.length - 1 ? SLIDE_STARTS[i + 1] : Infinity,
+        video: sceneVideoEls[i] || null,
+        videoStarted: false,
+      };
+    });
 
     const getWorkDetailEntryProgress = () => {
       const rect = workDetailEl.getBoundingClientRect();
@@ -783,14 +977,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
     };
 
-    // Within the post-dock dwell: 0-15% is a plain pause at the cover
-    // (nothing moves yet), 15-45% slides the track over to the next scene
-    // (and darkens the background), 45-90% fills desc-en -- deliberately
-    // the widest span so the fill reads as unhurried -- and the rest is a
-    // plain hold before the section releases.
-    const HOLD1_END_FRACTION = 0.15;
-    const SLIDE_END_FRACTION = 0.45;
-    const FILL_END_FRACTION = 0.9;
+    const stage = (start, end, p) => Math.min(1, Math.max(0, (p - start) / (end - start)));
 
     const updateWorkDetail = () => {
       // Mobile fallback (see CSS) drops the pin/slide for a plain static
@@ -801,12 +988,14 @@ document.addEventListener('DOMContentLoaded', () => {
         workDetailDarkContribution = 0;
         if (gridLinesEl) gridLinesEl.style.opacity = String(1 - applyCombinedDarkState());
         if (trackEl) trackEl.style.transform = 'none';
-        // Mobile shows the scene as a plain static block with no scroll
-        // gating -- just start it once, the first time this runs.
-        if (sceneVideoEl && !sceneVideoStarted) {
-          sceneVideoStarted = true;
-          sceneVideoEl.play().catch(() => {});
-        }
+        // Mobile shows every scene as a plain static stack with no scroll
+        // gating -- just start each video once, the first time this runs.
+        scenes.forEach((scene) => {
+          if (scene.video && !scene.videoStarted) {
+            scene.videoStarted = true;
+            scene.video.play().catch(() => {});
+          }
+        });
         return;
       }
 
@@ -814,29 +1003,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const exit = getWorkDetailExitProgress();
       const dwellProgress = entry >= 1 ? getWorkDetailDwellProgress() : 0;
 
-      const slideProgress = Math.min(1, Math.max(0,
-        (dwellProgress - HOLD1_END_FRACTION) / (SLIDE_END_FRACTION - HOLD1_END_FRACTION)));
-      workDetailDarkContribution = Math.min(entry >= 1 ? slideProgress : 0, exit);
+      // Each slide is its own 0->1 ramp over its explicit [start, end]
+      // window (see SLIDE_STARTS/SLIDE_ENDS above -- NOT back-to-back with
+      // the previous slide, since a fill and a hold sit in the gap
+      // between them); summing them gives the track's total travel in
+      // whole panel-widths (0 = cover, 1 = scene 1, 2 = scene 2, ...).
+      // Before its own window a ramp is 0, after it it's clamped at 1, so
+      // this stays flat during every fill/hold and monotonic overall.
+      let totalSlide = 0;
+      SLIDE_STARTS.forEach((start, i) => {
+        totalSlide += stage(start, SLIDE_ENDS[i], dwellProgress);
+      });
+
+      // Darkness ramps up with the *first* slide (cover is white, every
+      // scene after it is black) and then just stays maxed -- no
+      // re-crossfading between later, already-black scenes.
+      const darkProgress = Math.min(1, totalSlide);
+      workDetailDarkContribution = Math.min(entry >= 1 ? darkProgress : 0, exit);
       const combinedDark = applyCombinedDarkState();
 
-      if (sceneVideoEl) {
-        if (entry >= 1 && !sceneVideoStarted) {
-          sceneVideoStarted = true;
-          // Always restart from the top -- this clip is a scrolling tour of
-          // the whole site, not a clean loop, so resuming mid-clip (e.g.
-          // after the user scrolled away and back) could land on any of
-          // its scrolled-past, non-full-bleed moments instead of the
-          // full-screen opening shot.
-          sceneVideoEl.currentTime = 0;
-          sceneVideoEl.play().catch(() => {});
-        } else if (entry < 1 && sceneVideoStarted) {
-          sceneVideoStarted = false;
-          sceneVideoEl.pause();
-        }
-      }
-
       if (trackEl) {
-        trackEl.style.transform = `translateX(${-slideProgress * 100}%)`;
+        trackEl.style.transform = `translateX(${-totalSlide * 100}%)`;
       }
 
       // The grid lines are tuned to sit almost invisibly on the white
@@ -851,19 +1038,42 @@ document.addEventListener('DOMContentLoaded', () => {
         gridLinesEl.style.opacity = String(1 - combinedDark);
       }
 
-      if (scenesFillChars.length) {
-        const fillProgress = Math.min(1, Math.max(0,
-          (dwellProgress - SLIDE_END_FRACTION) / (FILL_END_FRACTION - SLIDE_END_FRACTION)));
-        const startRGB = [0x45, 0x45, 0x45];
-        const n = scenesFillChars.length;
-        scenesFillChars.forEach((span, i) => {
-          const t = Math.min(1, Math.max(0, fillProgress * n - i));
-          const r = Math.round(startRGB[0] + (255 - startRGB[0]) * t);
-          const g = Math.round(startRGB[1] + (255 - startRGB[1]) * t);
-          const b = Math.round(startRGB[2] + (255 - startRGB[2]) * t);
-          span.style.color = `rgb(${r}, ${g}, ${b})`;
-        });
-      }
+      scenes.forEach((scene) => {
+        if (scene.fillChars.length) {
+          const fillProgress = stage(scene.slideEnd, scene.fillEnd, dwellProgress);
+          const startRGB = [0x45, 0x45, 0x45];
+          const n = scene.fillChars.length;
+          scene.fillChars.forEach((span, i) => {
+            const t = Math.min(1, Math.max(0, fillProgress * n - i));
+            const r = Math.round(startRGB[0] + (255 - startRGB[0]) * t);
+            const g = Math.round(startRGB[1] + (255 - startRGB[1]) * t);
+            const b = Math.round(startRGB[2] + (255 - startRGB[2]) * t);
+            span.style.color = `rgb(${r}, ${g}, ${b})`;
+          });
+        }
+
+        // preload="none" means nothing downloads until .play()/.load() is
+        // actually called -- videoStarted tracks whether that's happened
+        // yet so each ~20-30MB clip only starts fetching once its own
+        // scene is actually the one in (or about to be in) view, and
+        // pauses (without re-fetching) once scrolled away from.
+        if (scene.video) {
+          const isActive = entry >= 1 && dwellProgress >= scene.activeFrom && dwellProgress < scene.activeTo;
+          if (isActive && !scene.videoStarted) {
+            scene.videoStarted = true;
+            // Always restart from the top -- these clips are scrolling
+            // tours of the whole site, not clean loops, so resuming
+            // mid-clip (e.g. after the user scrolled away and back) could
+            // land on any of their scrolled-past, non-full-bleed moments
+            // instead of the full-screen opening shot.
+            scene.video.currentTime = 0;
+            scene.video.play().catch(() => {});
+          } else if (!isActive && scene.videoStarted) {
+            scene.videoStarted = false;
+            scene.video.pause();
+          }
+        }
+      });
     };
 
     let workDetailTicking = false;
