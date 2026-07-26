@@ -332,6 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const HEADER_DARK_THRESHOLD = 0.08;
   let reasonDarkContribution = 0;
   let cardsDarkContribution = 0;
+  let workDetailDarkContribution = 0;
 
   // A direct black<->white swap (.header--inverted, see CSS) once the
   // overlay is dark enough -- not a per-frame RGB blend. Blending toward
@@ -342,9 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // against the darkening background for a long stretch instead of
   // becoming legible (white) as soon as darkening starts.
   const applyCombinedDarkState = () => {
-    const combined = Math.max(reasonDarkContribution, cardsDarkContribution);
+    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workDetailDarkContribution);
     if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
     if (headerEl) headerEl.classList.toggle('header--inverted', combined > HEADER_DARK_THRESHOLD);
+    return combined;
   };
 
   /* Reason-quote: personal statement that scrolls in right after
@@ -458,6 +460,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cardSmoothstep = (t) => t * t * (3 - 2 * t);
 
+    // Scroll lock while a card flip/unflip is mid-transition -- freezes the
+    // page outright (rather than the earlier approach of just holding the
+    // real card visible for a timed window) so `entry`/dwellProgress can't
+    // move at all until the 3D flip has actually finished playing, no matter
+    // how hard or fast the user scrolls. wheel/touchmove/most scroll-key
+    // presses are prevented outright (no jump to correct, since the scroll
+    // never happens); the scroll listener is a fallback for inputs those
+    // can't catch (scrollbar-thumb drag, programmatic scroll).
+    const SCROLL_LOCK_MS = 1200; // 0.9s flip transition + up to 0.24s stagger (3rd card) + buffer
+    const SCROLL_LOCK_KEYS = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '];
+    let scrollLockActive = false;
+    let scrollLockTimer = null;
+    let lockedScrollY = 0;
+
+    const preventScroll = (e) => e.preventDefault();
+    const preventScrollKey = (e) => {
+      if (SCROLL_LOCK_KEYS.includes(e.key)) e.preventDefault();
+    };
+    const correctLockedScroll = () => {
+      if (scrollLockActive && window.scrollY !== lockedScrollY) {
+        window.scrollTo(0, lockedScrollY);
+      }
+    };
+
+    const engageScrollLock = () => {
+      clearTimeout(scrollLockTimer);
+      if (!scrollLockActive) {
+        scrollLockActive = true;
+        lockedScrollY = window.scrollY;
+        window.addEventListener('wheel', preventScroll, { passive: false });
+        window.addEventListener('touchmove', preventScroll, { passive: false });
+        window.addEventListener('keydown', preventScrollKey);
+        window.addEventListener('scroll', correctLockedScroll);
+      }
+      scrollLockTimer = setTimeout(() => {
+        scrollLockActive = false;
+        window.removeEventListener('wheel', preventScroll);
+        window.removeEventListener('touchmove', preventScroll);
+        window.removeEventListener('keydown', preventScrollKey);
+        window.removeEventListener('scroll', correctLockedScroll);
+      }, SCROLL_LOCK_MS);
+    };
+
     const cardPairs = [
       { chip: document.getElementById('chipMusic'), card: document.getElementById('cardsRevealCard1'), flying: document.getElementById('flyingCard1') },
       { chip: document.getElementById('chipDesign'), card: document.getElementById('cardsRevealCard2'), flying: document.getElementById('flyingCard2') },
@@ -555,6 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const FLIP_TRIGGER_VH = 75;
 
     let cardsDocked = false;
+    let cardsFlipped = false;
 
     const updateCardsReveal = () => {
       // Mobile fallback (see CSS) shows the three cards already stacked
@@ -577,6 +623,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const ease = cardSmoothstep(entry);
 
+      // Flip state is computed up front (rather than after the pairs loop,
+      // as before) so a just-started flip/unflip can engage the scroll lock
+      // before the pairs loop below reads `entry` -- once locked, `entry`
+      // can't move again until the lock releases (see engageScrollLock),
+      // so the loop's plain entry>=1 / entry<=0 / else branching always sees
+      // a settled state and never cuts to the flying clone mid-flip.
+      const dwellProgress = entry >= 1 ? getCardsDwellProgress() : 0;
+      const dwellDist = cardsRevealEl.offsetHeight - window.innerHeight;
+      const vh = window.innerHeight / 100;
+      const flipThreshold = dwellDist > 0 ? (FLIP_TRIGGER_VH * vh) / dwellDist : 1;
+      const nowFlipped = entry >= 1 && dwellProgress >= flipThreshold;
+      if (nowFlipped !== cardsFlipped) {
+        engageScrollLock();
+      }
+      cardsFlipped = nowFlipped;
+      cardsRevealEl.classList.toggle('is-flipped', nowFlipped);
+
       cardPairs.forEach((pair) => {
         if (!pair.start || !pair.end) return;
 
@@ -595,8 +658,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const top = pair.start.top + (pair.end.top - pair.start.top) * ease;
           const left = pair.start.left + (pair.end.left - pair.start.left) * ease;
-          const width = pair.start.width + (pair.end.width - pair.start.width) * ease;
-          const height = pair.start.height + (pair.end.height - pair.start.height) * ease;
+
+          // Interpolating width/height independently (old approach) warps the
+          // box through every intermediate aspect ratio between the chip's
+          // landscape shape and the card's portrait shape for the *entire*
+          // flight -- most visible right when the box is largest, which reads
+          // as the photo squishing as it grows. Instead, resolve the aspect
+          // ratio early (while the box is still small, over the first
+          // SHAPE_EASE_FRACTION of the flight via shapeT below) via an
+          // area-preserving blend, then let the remaining growth scale that
+          // already-correct shape up uniformly, so no distortion is visible
+          // once the card is prominent on screen.
+          const SHAPE_EASE_FRACTION = 0.35;
+          const shapeT = Math.min(1, ease / SHAPE_EASE_FRACTION);
+          const startAspect = pair.start.width / pair.start.height;
+          const endAspect = pair.end.width / pair.end.height;
+          const aspect = startAspect + (endAspect - startAspect) * shapeT;
+          const startArea = pair.start.width * pair.start.height;
+          const endArea = pair.end.width * pair.end.height;
+          const area = startArea + (endArea - startArea) * ease;
+          const width = Math.sqrt(area * aspect);
+          const height = Math.sqrt(area / aspect);
           const radius = pair.startRadius + (pair.endRadius - pair.startRadius) * ease;
 
           pair.flying.style.top = `${top}px`;
@@ -614,12 +696,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cardsDocked = false;
         cardsRevealEl.classList.remove('is-docked');
       }
-
-      const dwellProgress = entry >= 1 ? getCardsDwellProgress() : 0;
-      const dwellDist = cardsRevealEl.offsetHeight - window.innerHeight;
-      const vh = window.innerHeight / 100;
-      const flipThreshold = dwellDist > 0 ? (FLIP_TRIGGER_VH * vh) / dwellDist : 1;
-      cardsRevealEl.classList.toggle('is-flipped', entry >= 1 && dwellProgress >= flipThreshold);
     };
 
     let cardsTicking = false;
@@ -652,5 +728,158 @@ document.addEventListener('DOMContentLoaded', () => {
       measureCardFlight();
       updateCardsReveal();
     });
+  }
+
+  /* Work-detail: the cover (project 01/03) stays pinned past its own 100vh
+     of rest. .work-detail__track holds the cover and the next scene as two
+     side-by-side panels -- a real two-frame filmstrip -- and once pinned,
+     scroll first just pauses at the cover (HOLD1_END), then slides that
+     track left to carry the next scene into view (SLIDE_END). The
+     background crossfades white -> black on its own, in sync with the
+     slide but as an independent layer (#scrollDarkOverlay, same technique
+     reason-quote/cards-reveal use) -- not something carried by the sliding
+     content itself. Once docked (slide fully complete), further scroll
+     fills .work-scenes__desc-en gray -> white character by character (same
+     wrapChars/fillChars technique as .intro-reasons__subtitle), then holds
+     before releasing. Chaining a second project's cover after this one
+     later reuses the same pattern: another panel appended to the track,
+     and .work-detail's height grows to fit. */
+  const workDetailEl = document.querySelector('.work-detail');
+
+  if (workDetailEl) {
+    const trackEl = document.getElementById('workDetailTrack');
+    const scenesDescEnEl = document.querySelector('.work-scenes__desc-en');
+    const gridLinesEl = document.querySelector('.work-detail__grid-lines');
+    const sceneVideoEl = document.querySelector('.work-scenes__device-media');
+
+    let scenesFillChars = [];
+    if (scenesDescEnEl) {
+      wrapChars(scenesDescEnEl);
+      scenesFillChars = Array.from(scenesDescEnEl.querySelectorAll('.fill-char'));
+    }
+
+    // preload="none" means nothing downloads until .play()/.load() is
+    // actually called -- these track whether that's happened yet so the
+    // ~30MB clip only ever starts fetching once the user has scrolled to
+    // this section, and stops playing (without re-fetching) once they
+    // scroll away.
+    let sceneVideoStarted = false;
+
+    const getWorkDetailEntryProgress = () => {
+      const rect = workDetailEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, (vh - rect.top) / vh));
+    };
+
+    const getWorkDetailExitProgress = () => {
+      const rect = workDetailEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, rect.bottom / vh));
+    };
+
+    const getWorkDetailDwellProgress = () => {
+      const rect = workDetailEl.getBoundingClientRect();
+      const dwellDist = workDetailEl.offsetHeight - window.innerHeight;
+      return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
+    };
+
+    // Within the post-dock dwell: 0-15% is a plain pause at the cover
+    // (nothing moves yet), 15-45% slides the track over to the next scene
+    // (and darkens the background), 45-90% fills desc-en -- deliberately
+    // the widest span so the fill reads as unhurried -- and the rest is a
+    // plain hold before the section releases.
+    const HOLD1_END_FRACTION = 0.15;
+    const SLIDE_END_FRACTION = 0.45;
+    const FILL_END_FRACTION = 0.9;
+
+    const updateWorkDetail = () => {
+      // Mobile fallback (see CSS) drops the pin/slide for a plain static
+      // stack already showing the filled end state -- skip the
+      // dark-overlay/transform/fill math entirely, same pattern as
+      // reason-quote/cards-reveal's own mobile guards.
+      if (window.innerWidth <= 768) {
+        workDetailDarkContribution = 0;
+        if (gridLinesEl) gridLinesEl.style.opacity = String(1 - applyCombinedDarkState());
+        if (trackEl) trackEl.style.transform = 'none';
+        // Mobile shows the scene as a plain static block with no scroll
+        // gating -- just start it once, the first time this runs.
+        if (sceneVideoEl && !sceneVideoStarted) {
+          sceneVideoStarted = true;
+          sceneVideoEl.play().catch(() => {});
+        }
+        return;
+      }
+
+      const entry = getWorkDetailEntryProgress();
+      const exit = getWorkDetailExitProgress();
+      const dwellProgress = entry >= 1 ? getWorkDetailDwellProgress() : 0;
+
+      const slideProgress = Math.min(1, Math.max(0,
+        (dwellProgress - HOLD1_END_FRACTION) / (SLIDE_END_FRACTION - HOLD1_END_FRACTION)));
+      workDetailDarkContribution = Math.min(entry >= 1 ? slideProgress : 0, exit);
+      const combinedDark = applyCombinedDarkState();
+
+      if (sceneVideoEl) {
+        if (entry >= 1 && !sceneVideoStarted) {
+          sceneVideoStarted = true;
+          // Always restart from the top -- this clip is a scrolling tour of
+          // the whole site, not a clean loop, so resuming mid-clip (e.g.
+          // after the user scrolled away and back) could land on any of
+          // its scrolled-past, non-full-bleed moments instead of the
+          // full-screen opening shot.
+          sceneVideoEl.currentTime = 0;
+          sceneVideoEl.play().catch(() => {});
+        } else if (entry < 1 && sceneVideoStarted) {
+          sceneVideoStarted = false;
+          sceneVideoEl.pause();
+        }
+      }
+
+      if (trackEl) {
+        trackEl.style.transform = `translateX(${-slideProgress * 100}%)`;
+      }
+
+      // The grid lines are tuned to sit almost invisibly on the white
+      // cover -- against the overlay's black they'd read as bright, eye
+      // catching lines instead. Fading them against the *combined* overlay
+      // (not just this section's own workDetailDarkContribution) covers
+      // both directions: work-detail's own slide-driven darkening, and the
+      // incoming case where cards-reveal's dark overlay is still fading
+      // out while the cover first scrolls into view -- either way, the
+      // lines stay just as invisible as they are at rest on white.
+      if (gridLinesEl) {
+        gridLinesEl.style.opacity = String(1 - combinedDark);
+      }
+
+      if (scenesFillChars.length) {
+        const fillProgress = Math.min(1, Math.max(0,
+          (dwellProgress - SLIDE_END_FRACTION) / (FILL_END_FRACTION - SLIDE_END_FRACTION)));
+        const startRGB = [0x45, 0x45, 0x45];
+        const n = scenesFillChars.length;
+        scenesFillChars.forEach((span, i) => {
+          const t = Math.min(1, Math.max(0, fillProgress * n - i));
+          const r = Math.round(startRGB[0] + (255 - startRGB[0]) * t);
+          const g = Math.round(startRGB[1] + (255 - startRGB[1]) * t);
+          const b = Math.round(startRGB[2] + (255 - startRGB[2]) * t);
+          span.style.color = `rgb(${r}, ${g}, ${b})`;
+        });
+      }
+    };
+
+    let workDetailTicking = false;
+    const onWorkDetailScroll = () => {
+      if (!workDetailTicking) {
+        workDetailTicking = true;
+        requestAnimationFrame(() => {
+          updateWorkDetail();
+          workDetailTicking = false;
+        });
+      }
+    };
+
+    updateWorkDetail();
+    window.addEventListener('scroll', onWorkDetailScroll, { passive: true });
+    window.addEventListener('resize', updateWorkDetail);
+    window.addEventListener('load', updateWorkDetail);
   }
 });

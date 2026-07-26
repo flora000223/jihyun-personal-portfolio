@@ -186,7 +186,137 @@
       </div>
     </section>
 
-    <section class="section" id="work"><p class="section__placeholder">WORK — 준비중</p></section>
+    <section class="work-detail" id="work">
+      <div class="work-detail__sticky">
+      <div class="work-detail__track" id="workDetailTrack">
+      <div class="work-detail__panel">
+      <div class="work-detail__stage">
+        <img class="work-detail__grid-lines" src="images/work-grid-lines.svg" alt="" aria-hidden="true">
+
+        <div class="work-detail__device work-detail__device--imac">
+          <img class="work-detail__device-bezel" src="images/work-ilkw-imac.png" alt="">
+          <div class="work-detail__device-screen work-detail__device-screen--imac">
+            <img src="images/work-ilkw-imac-screen.png" alt="ILKW 웹사이트 메인 화면 스크린샷">
+          </div>
+        </div>
+
+        <div class="work-detail__device work-detail__device--ipad">
+          <div class="work-detail__device-bezel-wrap">
+            <img class="work-detail__device-bezel" src="images/work-ilkw-ipad-bezel.png" alt="">
+          </div>
+          <div class="work-detail__device-screen work-detail__device-screen--ipad">
+            <img src="images/work-ilkw-ipad-screen.png" alt="ILKW 웹사이트 서브 화면 스크린샷">
+          </div>
+        </div>
+
+        <div class="work-detail__device work-detail__device--iphone">
+          <div class="work-detail__device-bezel-wrap">
+            <img class="work-detail__device-bezel" src="images/work-ilkw-iphone-bezel.png" alt="">
+          </div>
+          <div class="work-detail__device-screen work-detail__device-screen--iphone">
+            <img src="images/work-ilkw-iphone-screen.png" alt="ILKW 웹사이트 모바일 화면 스크린샷">
+          </div>
+        </div>
+
+        <div class="work-detail__info">
+          <div class="work-detail__head">
+            <p class="work-detail__index"><span class="work-detail__index-current">01</span><span class="work-detail__index-total">/ 03</span></p>
+
+            <div class="work-detail__heading">
+              <p class="work-detail__eyebrow">일광전구 웹사이트 리뉴얼 / 팀 프로젝트 · 6인</p>
+              <p class="work-detail__title"><span class="work-detail__title-en">ILKW</span> <span class="work-detail__title-em">web</span></p>
+
+              <div class="work-detail__links">
+                <a class="work-detail__link" href="#">
+                  <span>WEBSITE</span>
+                  <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
+                </a>
+                <a class="work-detail__link" href="#">
+                  <span>PROPOSAL</span>
+                  <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="work-detail__meta">
+            <div class="work-detail__meta-group work-detail__meta-group--duration">
+              <p class="work-detail__meta-label">DURATION</p>
+              <p class="work-detail__meta-value">2026 . 06. ~ 2026. 07.</p>
+            </div>
+
+            <div class="work-detail__meta-group">
+              <p class="work-detail__meta-label">PROJECT BRIEF</p>
+              <div class="work-detail__brief">
+                <p><strong>일광전구</strong>가 가진 역사와 감성을 효과적으로 전달하기 위해 기획한 프로젝트입니다.</p>
+                <p>브랜드의 <strong>헤리티지</strong>를 <strong>스토리텔링</strong>과 <strong>인터랙션</strong>으로 전달하는 방향으로 웹사이트를 <strong>리뉴얼</strong>했습니다.</p>
+              </div>
+            </div>
+
+            <div class="work-detail__meta-group">
+              <p class="work-detail__meta-label">WHAT I CONTRIBUTED</p>
+              <div class="work-detail__contributed">
+                <div class="work-detail__contributed-col">
+                  <p>· 브랜드 분석 및 UX 리서치</p>
+                  <p>· 브랜드 스토리텔링 구조 기획</p>
+                  <p>· 콘텐츠 구조 및 정보 설계</p>
+                </div>
+                <div class="work-detail__contributed-col">
+                  <p>· UI 디자인</p>
+                  <p>· React 기반 화면 구현</p>
+                  <p>· 발표자료 제작</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="work-detail__progress">
+            <p class="work-detail__progress-item"><strong>기획</strong><span>80%</span></p>
+            <p class="work-detail__progress-item"><strong>디자인</strong><span>90%</span></p>
+            <p class="work-detail__progress-item"><strong>개발</strong><span>80%</span></p>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- Next scene sits directly beside the cover in the same track, rather
+           than overlaying on top of it -- see .work-detail__track and
+           script.js's updateWorkDetail. -->
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage">
+          <p class="work-scenes__eyebrow">TEAM PROJECT 1</p>
+
+          <div class="work-scenes__device">
+            <div class="work-scenes__device-screen">
+              <!-- preload="none": this scene is off-screen until the user scrolls into
+                   .work-detail's dwell, so script.js only tells the video to load/play
+                   once it's actually about to be seen (see updateWorkDetail). -->
+              <video class="work-scenes__device-media" poster="images/work-typo-imac27-poster.png" src="images/work-typo-imac27-video.mp4" muted loop playsinline preload="none"></video>
+            </div>
+            <img class="work-scenes__device-bezel" src="images/work-typo-imac27.png" alt="">
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-en">TYPOGRAPHY </span><span class="work-scenes__title-em">interaction</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Through expressive typography and interactive visuals,</p>
+                <p>we introduce Ilkwang Lighting&#39;s brand story,</p>
+                <p>highlighting its heritage and identity.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>감각적인 타이포그래피와 인터랙티브한 비주얼을 통해 일광전구의 브랜드 스토리를 소개하고,</p>
+                <p>브랜드의 헤리티지와 정체성을 강조했습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
+    </section>
+
     <section class="section" id="skill"><p class="section__placeholder">SKILL — 준비중</p></section>
     <section class="section" id="about"><p class="section__placeholder">ABOUT — 준비중</p></section>
     <section class="section" id="contact"><p class="section__placeholder">CONTACT — 준비중</p></section>
