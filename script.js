@@ -1,4 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // --u-fixed used to be a pure-CSS min(1vw, 19.2px), while --u (used by
+  // every container-type: inline-size section, including the work-transition
+  // wipe's own local grid copy) is min(1cqw, 19.2px) -- 1cqw there resolves
+  // against that section's own rendered content-box width. On a real desktop
+  // browser with a classic (space-reserving) scrollbar, `vw` includes the
+  // scrollbar's width while a container's own width does not, so the two
+  // units silently diverge by a few px -- enough to visibly offset the
+  // global fixed grid's outer lines from the wipe-local grid's lines (the
+  // exact center line still lines up by symmetry, which is why only the
+  // outer/off-center lines looked misaligned). Measuring the same
+  // clientWidth basis the containers use and driving --u-fixed from that in
+  // JS keeps both grids pixel-identical regardless of scrollbar behavior.
+  const syncUFixed = () => {
+    const u = Math.min(document.documentElement.clientWidth / 100, 19.2);
+    document.documentElement.style.setProperty('--u-fixed', `${u}px`);
+  };
+  syncUFixed();
+  window.addEventListener('resize', syncUFixed);
+
   // Shared with the cards-reveal scroll lock further down: while a card
   // flip is holding the page in place, a bit of scroll can still leak
   // through (the lock's own 'scroll' listener then snaps it back) --
@@ -56,7 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const top = sec.getBoundingClientRect().top + window.scrollY;
       if (top <= line) current = sec;
     });
-    if (current) setActiveNav(current.id);
+    // The work-cover2/work-cover3 static poster sections (see index.html)
+    // have their own ids for scroll-target/testing purposes, but should
+    // still count as "work" for nav highlighting -- data-nav-id overrides
+    // id for that mapping without the sections needing to actually be id="work".
+    if (current) setActiveNav(current.dataset.navId || current.id);
   };
 
   if (sectionEls.length) {
@@ -77,17 +100,58 @@ document.addEventListener('DOMContentLoaded', () => {
   const hero = document.getElementById('intro');
   let lastScrollY = window.scrollY;
 
+  // Clicking a nav link (e.g. WORK) jumps the page via the browser's native
+  // #anchor handling. When that jump lands above the current scroll
+  // position, it's indistinguishable from a manual "scroll up" to the
+  // handler below, which would hide the header right as it lands. Force
+  // the header visible for the duration of the jump, and only hand control
+  // back to the normal scroll-direction logic once the position has held
+  // steady for a few frames (covers both an instant jump and any future
+  // smooth-scroll animation).
+  let isNavJumping = false;
+
+  const waitForJumpToSettle = () => {
+    let prevY = window.scrollY;
+    let stableFrames = 0;
+    const check = () => {
+      const y = window.scrollY;
+      if (y === prevY) {
+        stableFrames += 1;
+      } else {
+        stableFrames = 0;
+        prevY = y;
+      }
+      if (stableFrames >= 3) {
+        isNavJumping = false;
+        lastScrollY = window.scrollY;
+        return;
+      }
+      requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
+  };
+
+  navLinks.forEach((link) => {
+    link.addEventListener('click', () => {
+      isNavJumping = true;
+      header.classList.remove('header--hidden');
+      waitForJumpToSettle();
+    });
+  });
+
   window.addEventListener('scroll', () => {
     if (isScrollLocked) return;
 
     const currentScrollY = window.scrollY;
 
-    if (currentScrollY <= hero.offsetHeight) {
+    if (isNavJumping) {
+      header.classList.remove('header--hidden');
+    } else if (currentScrollY <= hero.offsetHeight) {
       header.classList.remove('header--hidden');
     } else if (currentScrollY > lastScrollY) {
-      header.classList.remove('header--hidden');
-    } else if (currentScrollY < lastScrollY) {
       header.classList.add('header--hidden');
+    } else if (currentScrollY < lastScrollY) {
+      header.classList.remove('header--hidden');
     }
 
     lastScrollY = currentScrollY;
@@ -115,6 +179,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (node.nodeType === Node.TEXT_NODE) {
         const frag = document.createDocumentFragment();
         Array.from(node.textContent).forEach((ch) => {
+          // Whitespace stays a plain text node instead of its own
+          // display:inline-block span: a span whose *entire* content is
+          // one collapsible space is -- per the whitespace-collapsing
+          // rules -- both the first and last thing in its own inline
+          // formatting context, so browsers collapse it to zero width
+          // and every word runs together. Plain text between the
+          // char-spans isn't its own formatting context, so the space
+          // renders normally (and doesn't need the fade/blur anyway).
+          if (/\s/.test(ch)) {
+            frag.appendChild(document.createTextNode(ch));
+            return;
+          }
           const span = document.createElement('span');
           span.className = className;
           span.textContent = ch;
@@ -349,6 +425,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let cardsDarkContribution = 0;
   let workTransitionDarkContribution = 0;
   let workDetailDarkContribution = 0;
+  let skillTransitionDarkContribution = 0;
+  let skillContentDarkContribution = 0;
+  let aboutTransitionDarkContribution = 0;
 
   // A direct black<->white swap (.header--inverted, see CSS) once the
   // overlay is dark enough -- not a per-frame RGB blend. Blending toward
@@ -359,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // against the darkening background for a long stretch instead of
   // becoming legible (white) as soon as darkening starts.
   const applyCombinedDarkState = () => {
-    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution);
+    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution);
     if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
     if (headerEl) headerEl.classList.toggle('header--inverted', combined > HEADER_DARK_THRESHOLD);
     return combined;
@@ -757,7 +836,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const workTransitionEl = document.querySelector('.work-transition');
 
   if (workTransitionEl) {
-    const stickyEl = workTransitionEl.querySelector('.work-transition__sticky');
     const scrollerBaseEl = document.getElementById('workTransitionScrollerBase');
     const scrollerWipeEl = document.getElementById('workTransitionScrollerWipe');
     const wipeEl = document.getElementById('workTransitionWipe');
@@ -778,8 +856,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // fade every scroll frame is a pure style write (no per-frame
     // getBoundingClientRect reads): viewport-x = static center + the
     // frame's own translateX.
-    const FOG_START = 260; // px from the left edge where the fade begins
-    const FOG_END = 20; // px from the left edge where it's fully gone (just shy of the hard clip at 0)
+    // FOG_START stays low (just under where "WORK" itself starts at rest)
+    // so nothing pre-fades before any scrolling happens. FOG_END was pulled
+    // in further (300 -> 150, a ~330px runway instead of 180px) and the
+    // progress curve below is eased rather than linear -- feedback was that
+    // the dissolve read as a fast "snap" instead of a gentle smoke-like
+    // fade. FOG_MAX_BLUR pushed up again per "more blur is fine".
+    const FOG_START = 480; // px from the left edge where the fade begins
+    const FOG_END = 150; // px from the left edge where it's essentially gone
+    const FOG_MAX_BLUR = 65; // px of blur at full dissolve
+    const FOG_RISE = 200; // px drifted upward at full dissolve
+
+    // Eases the 0-1 dissolve progress instead of a straight linear ramp, so
+    // it reads as gradually thickening/thinning smoke rather than a hard
+    // linear wipe -- same curve used for both the position-driven fade below
+    // and the settle-fade in updateWorkTransition.
+    const smoothstep = (t) => t * t * (3 - 2 * t);
 
     const titleBaseEl = scrollerBaseEl.querySelector('.work-transition__title');
     const titleWipeEl = scrollerWipeEl.querySelector('.work-transition__title');
@@ -794,19 +886,68 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
     measureFogChars();
+    // If the custom webfont ('Neue Montreal' etc.) is still loading at this
+    // point, these centers are measured against the fallback font's (usually
+    // narrower) glyph widths. Once the real font swaps in, layout reflows
+    // but nothing re-measures until the next resize -- so every char's
+    // "static" center stays off by a growing amount toward the end of the
+    // string, which was pushing all of "projects" past centerX and making
+    // them clamp to the same staggerDelay (one chunk fading together
+    // instead of one at a time). Re-measuring once fonts actually settle
+    // fixes that permanently for the rest of the session.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(measureFogChars);
+    }
 
-    const applyFogChars = (chars, x) => {
+    // Once translateX freezes (phase 2 in updateWorkTransition), the whole
+    // still-visible cluster used to fade as one flat block -- every char
+    // sharing the same settleProgress. The stagger below instead delays each
+    // char's settle-fade by how far its *frozen* position sits from center:
+    // a char already left of the window starts dissolving the instant phase
+    // 2 begins (delay 0), while a char sitting right at center (the last
+    // one) is held back until near the very end -- so the cluster dissolves
+    // left-to-right, one at a time, not in one puff.
+    //
+    // Each char's own fade uses the same fixed FADE_DURATION (a slice of
+    // settleProgress), only the start time (staggerDelay) shifts per char --
+    // that keeps every char's dissolve speed identical (same as before) and
+    // only changes when it starts. The earlier version instead divided by
+    // (1 - staggerDelay), which made chars nearer center fade *faster* than
+    // earlier ones and, combined with delays capped at 0.6, packed most
+    // chars' fade windows so close together they visibly overlapped almost
+    // entirely -- reading as "falling together" instead of one-by-one, even
+    // though their still-frame opacities technically differed. Spreading
+    // delays across the full 0..(1 - FADE_DURATION) range with a fixed
+    // duration keeps every char's own pace the same while making adjacent
+    // chars' start times clearly separated.
+    const FADE_DURATION = 0.45;
+
+    // extraFade0 is the settle-phase's own (unstaggered) 0-1 progress from
+    // updateWorkTransition's phase 2; combined with Math.max so it can only
+    // ever push a char further toward invisible, never undo the
+    // position-based fade that already ran during phase 1.
+    const applyFogChars = (chars, x, settleProgress = 0, centerX = 0) => {
+      const staggerSpanPx = Math.max(1, centerX - FOG_END);
       chars.forEach((c) => {
         const viewportX = c.center + x;
-        const progress = Math.min(1, Math.max(0, (FOG_START - viewportX) / (FOG_START - FOG_END)));
+        const linear = Math.min(1, Math.max(0, (FOG_START - viewportX) / (FOG_START - FOG_END)));
+        const positional = smoothstep(linear);
+        let extra = 0;
+        if (settleProgress > 0) {
+          const normalizedPos = Math.min(1, Math.max(0, (viewportX - (centerX - staggerSpanPx)) / staggerSpanPx));
+          const staggerDelay = normalizedPos * (1 - FADE_DURATION);
+          const staggeredT = Math.min(1, Math.max(0, (settleProgress - staggerDelay) / FADE_DURATION));
+          extra = smoothstep(staggeredT);
+        }
+        const progress = Math.max(positional, extra);
         if (progress <= 0) {
           c.el.style.opacity = '';
           c.el.style.filter = '';
           c.el.style.transform = '';
         } else {
           c.el.style.opacity = String(1 - progress);
-          c.el.style.filter = `blur(${progress * 10}px)`;
-          c.el.style.transform = `translateY(${-progress * 28}px)`;
+          c.el.style.filter = `blur(${progress * FOG_MAX_BLUR}px)`;
+          c.el.style.transform = `translateY(${-progress * FOG_RISE}px)`;
         }
       });
     };
@@ -849,14 +990,49 @@ document.addEventListener('DOMContentLoaded', () => {
       // every frame -- that's what makes the wipe read as one continuous
       // title inverting color rather than two independently-scrolling
       // texts sliding past each other.
-      const viewportWidth = stickyEl.clientWidth;
-      const amountToScroll = Math.max(0, scrollerBaseEl.scrollWidth - viewportWidth);
-      const x = -amountToScroll * dwellProgress;
+      //
+      // Scroll distance is measured off the title's own right edge
+      // (offsetLeft/offsetWidth, unaffected by the transform), not
+      // scrollWidth - viewportWidth: that old formula only scrolled far
+      // enough for the content's trailing padding to reach the viewport's
+      // right edge, so on any normal-width screen "projects" stalled out
+      // well short of FOG_START and never dissolved -- it just sat parked
+      // near the right side of the screen at the end of the dwell.
+      //
+      // Two phases, not one continuous scroll: the reference (see
+      // frame_036 of the captured riadmammadov.com video) shows the last
+      // glyph stall right around screen-center and blur away in place --
+      // it never keeps sliding toward the edge. So the first
+      // SCROLL_PHASE_END share of the dwell translates the title left
+      // until the last character's right edge reaches horizontal center;
+      // the remaining share freezes translateX there and drives a
+      // position-independent "settle" fade (below) that finishes
+      // dissolving whatever's still visible, so the pin releases into
+      // work-detail right as that settle completes instead of the text
+      // continuing to travel left.
+      const centerX = workTransitionEl.getBoundingClientRect().width / 2;
+      const contentEnd = titleBaseEl.offsetLeft + titleBaseEl.offsetWidth;
+      const scrollToCenter = Math.max(0, contentEnd - centerX);
+
+      // Was 0.85 (settle got only the last 15% of the dwell): on a normal-
+      // speed scroll flick that's so little real scroll distance that the
+      // per-char stagger above (already spread across 0..1 of settleProgress)
+      // collapses into 1-2 rendered frames, reading as "projects" vanishing
+      // in one chunk instead of letter-by-letter. Giving settle more of the
+      // dwell spreads the same stagger over more real scroll input/frames.
+      const SCROLL_PHASE_END = 0.65;
+      const scrollPhaseProgress = Math.min(1, dwellProgress / SCROLL_PHASE_END);
+      const x = -scrollToCenter * scrollPhaseProgress;
+      // Raw (unstaggered, uneased) 0-1 progress through phase 2 -- each
+      // char in applyFogChars derives its own staggered/eased version of
+      // this from its frozen distance to centerX.
+      const settleProgress = Math.min(1, Math.max(0, (dwellProgress - SCROLL_PHASE_END) / (1 - SCROLL_PHASE_END)));
+
       const xPx = `${x}px`;
       scrollerBaseEl.style.transform = `translateX(${xPx})`;
       scrollerWipeEl.style.transform = `translateX(${xPx})`;
-      applyFogChars(fogCharsBase, x);
-      applyFogChars(fogCharsWipe, x);
+      applyFogChars(fogCharsBase, x, settleProgress, centerX);
+      applyFogChars(fogCharsWipe, x, settleProgress, centerX);
 
       // clip-path grows left-to-right from the right edge: 100% (hidden)
       // down to 0% (full width) as wipeProgress goes 0 -> 1.
@@ -899,6 +1075,950 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', onWorkTransitionResize);
   }
 
+  // Skill-transition: 1:1 mirror of the work-transition block above (same
+  // scroll-in title, per-char fog dissolve, mid-dwell clip-path wipe) --
+  // only the light/dark roles invert. Base starts white/black text and the
+  // wipe reveals black/white text, so unlike work-transition (dark
+  // contribution fades OUT as the wipe completes) this one fades dark
+  // contribution IN as the wipe completes, since the dark state only
+  // exists *after* the reveal here.
+  const skillTransitionEl = document.querySelector('.skill-transition');
+
+  if (skillTransitionEl) {
+    const skillScrollerBaseEl = document.getElementById('skillTransitionScrollerBase');
+    const skillScrollerWipeEl = document.getElementById('skillTransitionScrollerWipe');
+    const skillWipeEl = document.getElementById('skillTransitionWipe');
+
+    // Local copy of work-transition's own smoothstep -- that one is scoped
+    // inside the `if (workTransitionEl)` block above, out of reach here.
+    const smoothstep = (t) => t * t * (3 - 2 * t);
+
+    const SKILL_WIPE_START = 0.4;
+    const SKILL_WIPE_END = 0.6;
+
+    // Lower than work-transition's 480: "SKILL " is narrower than "WORK ",
+    // so its first char sits further left at rest -- 480 would still catch
+    // it in the blur window before any scrolling happens. 430 sits just
+    // under where "S" actually starts at rest, same margin work-transition
+    // keeps for "W".
+    const SKILL_FOG_START = 400;
+    const SKILL_FOG_END = 150;
+    const SKILL_FOG_MAX_BLUR = 65;
+    const SKILL_FOG_RISE = 200;
+
+    const skillTitleBaseEl = skillScrollerBaseEl.querySelector('.skill-transition__title');
+    const skillTitleWipeEl = skillScrollerWipeEl.querySelector('.skill-transition__title');
+    wrapChars(skillTitleBaseEl, 'fog-char');
+    wrapChars(skillTitleWipeEl, 'fog-char');
+    const skillFogCharsBase = Array.from(skillTitleBaseEl.querySelectorAll('.fog-char')).map((el) => ({ el, center: 0 }));
+    const skillFogCharsWipe = Array.from(skillTitleWipeEl.querySelectorAll('.fog-char')).map((el) => ({ el, center: 0 }));
+
+    const measureSkillFogChars = () => {
+      [...skillFogCharsBase, ...skillFogCharsWipe].forEach((c) => {
+        c.center = c.el.offsetLeft + c.el.offsetWidth / 2;
+      });
+    };
+    measureSkillFogChars();
+    // See the matching comment in the work-transition block above -- webfont
+    // swap-in after the initial measure was leaving these centers stale.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(measureSkillFogChars);
+    }
+
+    const SKILL_FADE_DURATION = 0.45;
+
+    const applySkillFogChars = (chars, x, settleProgress = 0, centerX = 0) => {
+      const staggerSpanPx = Math.max(1, centerX - SKILL_FOG_END);
+      chars.forEach((c) => {
+        const viewportX = c.center + x;
+        const linear = Math.min(1, Math.max(0, (SKILL_FOG_START - viewportX) / (SKILL_FOG_START - SKILL_FOG_END)));
+        const positional = smoothstep(linear);
+        let extra = 0;
+        if (settleProgress > 0) {
+          const normalizedPos = Math.min(1, Math.max(0, (viewportX - (centerX - staggerSpanPx)) / staggerSpanPx));
+          const staggerDelay = normalizedPos * (1 - SKILL_FADE_DURATION);
+          const staggeredT = Math.min(1, Math.max(0, (settleProgress - staggerDelay) / SKILL_FADE_DURATION));
+          extra = smoothstep(staggeredT);
+        }
+        const progress = Math.max(positional, extra);
+        if (progress <= 0) {
+          c.el.style.opacity = '';
+          c.el.style.filter = '';
+          c.el.style.transform = '';
+        } else {
+          c.el.style.opacity = String(1 - progress);
+          c.el.style.filter = `blur(${progress * SKILL_FOG_MAX_BLUR}px)`;
+          c.el.style.transform = `translateY(${-progress * SKILL_FOG_RISE}px)`;
+        }
+      });
+    };
+
+    const getSkillTransitionEntryProgress = () => {
+      const rect = skillTransitionEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, (vh - rect.top) / vh));
+    };
+
+    const getSkillTransitionExitProgress = () => {
+      const rect = skillTransitionEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, rect.bottom / vh));
+    };
+
+    const getSkillTransitionDwellProgress = () => {
+      const rect = skillTransitionEl.getBoundingClientRect();
+      const dwellDist = skillTransitionEl.offsetHeight - window.innerHeight;
+      return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
+    };
+
+    const updateSkillTransition = () => {
+      if (window.innerWidth <= 768) {
+        skillTransitionDarkContribution = 0;
+        applyCombinedDarkState();
+        applySkillFogChars(skillFogCharsBase, 0);
+        applySkillFogChars(skillFogCharsWipe, 0);
+        return;
+      }
+
+      const entry = getSkillTransitionEntryProgress();
+      const exit = getSkillTransitionExitProgress();
+      const dwellProgress = entry >= 1 ? getSkillTransitionDwellProgress() : 0;
+
+      const centerX = skillTransitionEl.getBoundingClientRect().width / 2;
+      const contentEnd = skillTitleBaseEl.offsetLeft + skillTitleBaseEl.offsetWidth;
+      const scrollToCenter = Math.max(0, contentEnd - centerX);
+
+      // See SCROLL_PHASE_END in updateWorkTransition -- widened from 0.85 so
+      // the per-char settle stagger has enough real scroll distance to read
+      // as one-at-a-time instead of "skills" collapsing into a single chunk.
+      const SKILL_SCROLL_PHASE_END = 0.65;
+      const scrollPhaseProgress = Math.min(1, dwellProgress / SKILL_SCROLL_PHASE_END);
+      const x = -scrollToCenter * scrollPhaseProgress;
+      const settleProgress = Math.min(1, Math.max(0, (dwellProgress - SKILL_SCROLL_PHASE_END) / (1 - SKILL_SCROLL_PHASE_END)));
+
+      const xPx = `${x}px`;
+      skillScrollerBaseEl.style.transform = `translateX(${xPx})`;
+      skillScrollerWipeEl.style.transform = `translateX(${xPx})`;
+      applySkillFogChars(skillFogCharsBase, x, settleProgress, centerX);
+      applySkillFogChars(skillFogCharsWipe, x, settleProgress, centerX);
+
+      const wipeProgress = Math.min(1, Math.max(0, (dwellProgress - SKILL_WIPE_START) / (SKILL_WIPE_END - SKILL_WIPE_START)));
+      const revealFrom = 100 - wipeProgress * 100;
+      skillWipeEl.style.clipPath = `polygon(${revealFrom}% 0%, 100% 0%, 100% 100%, ${revealFrom}% 100%)`;
+
+      // Flipped vs. work-transition: dark contribution grows WITH
+      // wipeProgress instead of shrinking, since the black state is the
+      // *end* state here, not the start.
+      skillTransitionDarkContribution = Math.min(entry, exit) * wipeProgress;
+      applyCombinedDarkState();
+    };
+
+    let skillTransitionTicking = false;
+    const onSkillTransitionScroll = () => {
+      if (!skillTransitionTicking) {
+        skillTransitionTicking = true;
+        requestAnimationFrame(() => {
+          updateSkillTransition();
+          skillTransitionTicking = false;
+        });
+      }
+    };
+
+    let skillTransitionResizeTimer;
+    const onSkillTransitionResize = () => {
+      measureSkillFogChars();
+      updateSkillTransition();
+      clearTimeout(skillTransitionResizeTimer);
+      skillTransitionResizeTimer = setTimeout(() => {
+        measureSkillFogChars();
+        updateSkillTransition();
+      }, 200);
+    };
+
+    updateSkillTransition();
+    window.addEventListener('scroll', onSkillTransitionScroll, { passive: true });
+    window.addEventListener('resize', onSkillTransitionResize);
+  }
+
+  /* Skill-content: solid black section right after the skill-transition
+     wipe. skillTransitionDarkContribution (above) only covers the wipe
+     itself and fades back to 0 as soon as its bottom edge clears the
+     header -- exactly when this section takes over -- so without a
+     contribution of its own here the header would flip back to
+     non-inverted for the rest of the scroll through this section,
+     leaving the black "SKILL" active nav link invisible against its
+     black background. Same plain entry/exit crossfade as reason-quote;
+     no dwell/wipe math needed since it's uniformly black throughout. */
+  const skillContentEl = document.querySelector('.skill-content');
+
+  if (skillContentEl) {
+    const getSkillContentEntryProgress = () => {
+      const rect = skillContentEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, (vh - rect.top) / vh));
+    };
+
+    const getSkillContentExitProgress = () => {
+      const rect = skillContentEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, rect.bottom / vh));
+    };
+
+    const updateSkillContentDark = () => {
+      const entry = getSkillContentEntryProgress();
+      const exit = getSkillContentExitProgress();
+      skillContentDarkContribution = Math.min(entry, exit);
+      applyCombinedDarkState();
+    };
+
+    let skillContentTicking = false;
+    const onSkillContentScroll = () => {
+      if (!skillContentTicking) {
+        skillContentTicking = true;
+        requestAnimationFrame(() => {
+          updateSkillContentDark();
+          skillContentTicking = false;
+        });
+      }
+    };
+
+    updateSkillContentDark();
+    window.addEventListener('scroll', onSkillContentScroll, { passive: true });
+    window.addEventListener('resize', updateSkillContentDark);
+  }
+
+  /* About transition: "ABOUT more about me" title screen right after
+     skill-content, before the ABOUT section proper. 1:1 mirror of the
+     work-transition block above -- same scroll-in title, per-char fog
+     dissolve, mid-dwell clip-path wipe -- and the same black-to-white
+     direction (dark contribution starts high and fades OUT as the wipe
+     completes), not skill-transition's white-to-black. */
+  const aboutTransitionEl = document.querySelector('.about-transition');
+
+  if (aboutTransitionEl) {
+    const aboutScrollerBaseEl = document.getElementById('aboutTransitionScrollerBase');
+    const aboutScrollerWipeEl = document.getElementById('aboutTransitionScrollerWipe');
+    const aboutWipeEl = document.getElementById('aboutTransitionWipe');
+
+    // Local copy of work-transition's own smoothstep -- that one is scoped
+    // inside the `if (workTransitionEl)` block above, out of reach here.
+    const smoothstep = (t) => t * t * (3 - 2 * t);
+
+    const ABOUT_WIPE_START = 0.4;
+    const ABOUT_WIPE_END = 0.6;
+
+    // "A"'s rest-state center sits at ~414px (narrower than "W"'s ~454px),
+    // so work-transition's 480 start left it already ~10% dissolved before
+    // any scrolling -- same issue SKILL_FOG_START's 400 was tuned to avoid
+    // for "S". 380 sits just under where "A" starts at rest so the fade
+    // zone doesn't reach it until scroll actually pushes it left.
+    const ABOUT_FOG_START = 380;
+    const ABOUT_FOG_END = 150;
+    const ABOUT_FOG_MAX_BLUR = 65;
+    const ABOUT_FOG_RISE = 200;
+
+    const aboutTitleBaseEl = aboutScrollerBaseEl.querySelector('.about-transition__title');
+    const aboutTitleWipeEl = aboutScrollerWipeEl.querySelector('.about-transition__title');
+    wrapChars(aboutTitleBaseEl, 'fog-char');
+    wrapChars(aboutTitleWipeEl, 'fog-char');
+    const aboutFogCharsBase = Array.from(aboutTitleBaseEl.querySelectorAll('.fog-char')).map((el) => ({ el, center: 0 }));
+    const aboutFogCharsWipe = Array.from(aboutTitleWipeEl.querySelectorAll('.fog-char')).map((el) => ({ el, center: 0 }));
+
+    const measureAboutFogChars = () => {
+      [...aboutFogCharsBase, ...aboutFogCharsWipe].forEach((c) => {
+        c.center = c.el.offsetLeft + c.el.offsetWidth / 2;
+      });
+    };
+    measureAboutFogChars();
+    // See the matching comment in the work-transition block above -- webfont
+    // swap-in after the initial measure was leaving these centers stale.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(measureAboutFogChars);
+    }
+
+    const ABOUT_FADE_DURATION = 0.45;
+
+    const applyAboutFogChars = (chars, x, settleProgress = 0, centerX = 0) => {
+      const staggerSpanPx = Math.max(1, centerX - ABOUT_FOG_END);
+      chars.forEach((c) => {
+        const viewportX = c.center + x;
+        const linear = Math.min(1, Math.max(0, (ABOUT_FOG_START - viewportX) / (ABOUT_FOG_START - ABOUT_FOG_END)));
+        const positional = smoothstep(linear);
+        let extra = 0;
+        if (settleProgress > 0) {
+          const normalizedPos = Math.min(1, Math.max(0, (viewportX - (centerX - staggerSpanPx)) / staggerSpanPx));
+          const staggerDelay = normalizedPos * (1 - ABOUT_FADE_DURATION);
+          const staggeredT = Math.min(1, Math.max(0, (settleProgress - staggerDelay) / ABOUT_FADE_DURATION));
+          extra = smoothstep(staggeredT);
+        }
+        const progress = Math.max(positional, extra);
+        if (progress <= 0) {
+          c.el.style.opacity = '';
+          c.el.style.filter = '';
+          c.el.style.transform = '';
+        } else {
+          c.el.style.opacity = String(1 - progress);
+          c.el.style.filter = `blur(${progress * ABOUT_FOG_MAX_BLUR}px)`;
+          c.el.style.transform = `translateY(${-progress * ABOUT_FOG_RISE}px)`;
+        }
+      });
+    };
+
+    const getAboutTransitionEntryProgress = () => {
+      const rect = aboutTransitionEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, (vh - rect.top) / vh));
+    };
+
+    const getAboutTransitionExitProgress = () => {
+      const rect = aboutTransitionEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      return Math.min(1, Math.max(0, rect.bottom / vh));
+    };
+
+    const getAboutTransitionDwellProgress = () => {
+      const rect = aboutTransitionEl.getBoundingClientRect();
+      const dwellDist = aboutTransitionEl.offsetHeight - window.innerHeight;
+      return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
+    };
+
+    const updateAboutTransition = () => {
+      if (window.innerWidth <= 768) {
+        aboutTransitionDarkContribution = 0;
+        applyCombinedDarkState();
+        applyAboutFogChars(aboutFogCharsBase, 0);
+        applyAboutFogChars(aboutFogCharsWipe, 0);
+        return;
+      }
+
+      const entry = getAboutTransitionEntryProgress();
+      const exit = getAboutTransitionExitProgress();
+      const dwellProgress = entry >= 1 ? getAboutTransitionDwellProgress() : 0;
+
+      const centerX = aboutTransitionEl.getBoundingClientRect().width / 2;
+      const contentEnd = aboutTitleBaseEl.offsetLeft + aboutTitleBaseEl.offsetWidth;
+      const scrollToCenter = Math.max(0, contentEnd - centerX);
+
+      // See SCROLL_PHASE_END in updateWorkTransition -- 0.65 gives the
+      // per-char settle stagger enough real scroll distance to read as
+      // one-at-a-time instead of "more about me" collapsing into a chunk.
+      const ABOUT_SCROLL_PHASE_END = 0.65;
+      const scrollPhaseProgress = Math.min(1, dwellProgress / ABOUT_SCROLL_PHASE_END);
+      const x = -scrollToCenter * scrollPhaseProgress;
+      const settleProgress = Math.min(1, Math.max(0, (dwellProgress - ABOUT_SCROLL_PHASE_END) / (1 - ABOUT_SCROLL_PHASE_END)));
+
+      const xPx = `${x}px`;
+      aboutScrollerBaseEl.style.transform = `translateX(${xPx})`;
+      aboutScrollerWipeEl.style.transform = `translateX(${xPx})`;
+      applyAboutFogChars(aboutFogCharsBase, x, settleProgress, centerX);
+      applyAboutFogChars(aboutFogCharsWipe, x, settleProgress, centerX);
+
+      const wipeProgress = Math.min(1, Math.max(0, (dwellProgress - ABOUT_WIPE_START) / (ABOUT_WIPE_END - ABOUT_WIPE_START)));
+      const revealFrom = 100 - wipeProgress * 100;
+      aboutWipeEl.style.clipPath = `polygon(${revealFrom}% 0%, 100% 0%, 100% 100%, ${revealFrom}% 100%)`;
+
+      // Same as work-transition: dark contribution fades OUT as the wipe
+      // completes (screen turns white), since black is the *start* state
+      // here, not the end.
+      aboutTransitionDarkContribution = Math.min(entry, exit) * (1 - wipeProgress);
+      applyCombinedDarkState();
+    };
+
+    let aboutTransitionTicking = false;
+    const onAboutTransitionScroll = () => {
+      if (!aboutTransitionTicking) {
+        aboutTransitionTicking = true;
+        requestAnimationFrame(() => {
+          updateAboutTransition();
+          aboutTransitionTicking = false;
+        });
+      }
+    };
+
+    let aboutTransitionResizeTimer;
+    const onAboutTransitionResize = () => {
+      measureAboutFogChars();
+      updateAboutTransition();
+      clearTimeout(aboutTransitionResizeTimer);
+      aboutTransitionResizeTimer = setTimeout(() => {
+        measureAboutFogChars();
+        updateAboutTransition();
+      }, 200);
+    };
+
+    updateAboutTransition();
+    window.addEventListener('scroll', onAboutTransitionScroll, { passive: true });
+    window.addEventListener('resize', onAboutTransitionResize);
+  }
+
+  /* Gallery interaction ("WHAT shapes ME"): ported from the standalone
+     gallery-interaction-clone project (see GALLERY_INTERACTION_GUIDE.md) --
+     a WebGL canvas of 24 photo cards that morphs scatter -> line -> ring ->
+     orbiting arc as the user scrolls. The clone drove this off
+     window.scrollY / document scrollHeight (whole page); here progress is
+     rescoped to this section's own sticky-pinned scroll range, mirroring
+     the about-transition dwell-progress pattern above. Header/scroll-rail/
+     footer from the clone are dropped -- the portfolio has its own. */
+  const galleryInteractionEl = document.querySelector('.gallery-interaction');
+
+  if (galleryInteractionEl) {
+    const subTextItems = [
+      {
+        title: 'PHOTOGRAPHY',
+        lines: [
+          '사진의 프레임 안에서 구도와 색감을 익히며,',
+          '일상의 따뜻한 순간과 감정을 바라보는 시선도 함께 넓혀왔습니다.',
+        ],
+      },
+      {
+        title: 'TRAVEL',
+        lines: ['다양한 환경을 경험하며', '더 넓은 시각으로 세상을 바라갑니다.'],
+      },
+      {
+        title: 'EXHIBITION',
+        lines: [
+          '전시를 통해 다양한 시각과 표현 방식을 접하며',
+          '디자인의 영감을 넓혀갑니다.',
+        ],
+      },
+      {
+        title: 'CONCERT',
+        lines: ['무대가 전하는 감정과 에너지를 경험하며', '몰입의 가치를 느낍니다.'],
+      },
+      {
+        title: 'MUSIC',
+        lines: [
+          '전공을 마친 지금도 음악은',
+          '제 일상 속에서 감각과 영감을 이어주는 소중한 존재입니다.',
+        ],
+      },
+    ];
+    const subTextChangePoints = [0.795, 0.82, 0.84, 0.87, 0.9];
+
+    const CARD_COUNT = 24;
+    const imageOrder = [
+      6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+      18, 19, 20, 21, 22, 23, 24, 1, 2, 3, 4, 5,
+    ];
+    const targetImageIndex = imageOrder.indexOf(22);
+    // -0.5 shifts the whole ring by half a card-step so a *gap* between two
+    // cards sits on the vertical centerline at rest, matching how the line
+    // formation already centers (even card count -> the middle two cards'
+    // shared edge, not a card center, lands on centerX). Without it, one
+    // card's center sits exactly on the centerline instead. Must match the
+    // same constant used in `ringAngle` below so the orbit math (which
+    // relies on the two canceling out) still docks the target image dead
+    // center at the end.
+    const targetImageAngle = ((targetImageIndex - (CARD_COUNT * 0.75 - 0.5)) * Math.PI * 2) / CARD_COUNT;
+    const targetOrbitRotation = -Math.PI * 2 + (-Math.PI / 2 - targetImageAngle);
+    const orbitScrollStart = 0.66;
+    const orbitScrollEnd = 1;
+    // Scatter/line/ring (progress 0-0.64) scrolls faster now; the zoom-in
+    // + arc/orbit phase (0.64-1, where the ring enlarges and settles into
+    // an arc) keeps its original scroll speed. The section's own CSS
+    // height was shortened to match (see .gallery-interaction), so
+    // scrollFraction (raw scroll / new shorter range) needs remapping
+    // into `progress` piecewise instead of the old 1:1 linear mapping,
+    // otherwise the zoom/orbit phase would speed up too.
+    const zoomPhaseStart = 0.64;
+    const earlyPhaseSpeedup = 1.25;
+    const earlyScrollFraction = (zoomPhaseStart / earlyPhaseSpeedup)
+      / (zoomPhaseStart / earlyPhaseSpeedup + (1 - zoomPhaseStart));
+    const cardImageSources = imageOrder.map((n) => `images/card-${String(n).padStart(2, '0')}.jpg`);
+
+    const scatter = [
+      [-0.438, 0.059], [-0.401, -0.393], [-0.362, -0.165], [-0.325, -0.275],
+      [-0.287, -0.165], [-0.248, -0.393], [-0.21, 0.059], [-0.172, 0.172],
+      [-0.134, 0.059], [-0.096, -0.275], [-0.057, 0.172], [-0.02, 0.172],
+      [0.019, 0.285], [0.057, -0.056], [0.095, -0.275], [0.133, 0.285],
+      [0.172, -0.056], [0.21, -0.393], [0.247, 0.397], [0.286, -0.056],
+      [0.324, -0.165], [0.363, 0.059], [0.4, -0.165], [0.439, -0.275],
+    ];
+
+    const revealSequence = [5, 2, 0, 17, 4, 11, 8, 14, 20, 6, 1, 9, 16, 13, 3, 22, 10, 19, 7, 21, 15, 12, 23, 18];
+    const revealRank = Array(CARD_COUNT);
+    revealSequence.forEach((cardIndex, rank) => {
+      revealRank[cardIndex] = rank;
+    });
+
+    const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+    const lerp = (from, to, t) => from + (to - from) * t;
+    const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const range = (value, start, end) => easeInOut(clamp((value - start) / (end - start)));
+    const normalizeDegrees = (degrees) => (((degrees + 180) % 360 + 360) % 360) - 180;
+    const lerpAngleDegrees = (from, to, t) => from + normalizeDegrees(to - from) * t;
+    const toRadians = (degrees) => (degrees * Math.PI) / 180;
+
+    const gallery = galleryInteractionEl.querySelector('.gallery-interaction__gallery');
+    const galleryStage = galleryInteractionEl.querySelector('.gallery-interaction__stage');
+    const visionTitle = galleryInteractionEl.querySelector('.gallery-interaction__vision-title');
+    const visionDescription = galleryInteractionEl.querySelector('.gallery-interaction__vision-description');
+    const ringHint = galleryInteractionEl.querySelector('.gallery-interaction__ring-hint');
+    const ringLabel = galleryInteractionEl.querySelector('.gallery-interaction__ring-label');
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'gallery-interaction__webgl-canvas';
+    gallery.append(canvas);
+
+    const gl = canvas.getContext('webgl', {
+      alpha: true,
+      antialias: true,
+      depth: false,
+      premultipliedAlpha: false,
+    });
+
+    if (gl) {
+      const vertexShaderSource = `
+        attribute vec2 a_position;
+        attribute vec2 a_uv;
+        varying vec2 v_uv;
+        void main() {
+          v_uv = a_uv;
+          gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+      `;
+
+      const fragmentShaderSource = `
+        precision mediump float;
+        varying vec2 v_uv;
+        uniform vec4 u_color;
+        uniform sampler2D u_texture;
+        uniform vec2 u_size;
+        uniform float u_radius;
+        uniform float u_alpha;
+        uniform float u_hasTexture;
+        uniform float u_imageAspect;
+        uniform float u_cardAspect;
+
+        float roundedRect(vec2 uv, vec2 size, float radius) {
+          vec2 halfSize = size * 0.5;
+          vec2 p = abs((uv - 0.5) * size) - (halfSize - vec2(radius));
+          return length(max(p, 0.0)) + min(max(p.x, p.y), 0.0) - radius;
+        }
+
+        void main() {
+          float d = roundedRect(v_uv, u_size, u_radius);
+          if (d > 0.0) discard;
+          float edge = 1.0 - smoothstep(-1.5, 0.0, d);
+          vec2 sampleUv = v_uv;
+          if (u_imageAspect > u_cardAspect) {
+            float visibleWidth = u_cardAspect / u_imageAspect;
+            sampleUv.x = (v_uv.x - 0.5) * visibleWidth + 0.5;
+          } else {
+            float visibleHeight = u_imageAspect / u_cardAspect;
+            sampleUv.y = (v_uv.y - 0.5) * visibleHeight + 0.5;
+          }
+          vec4 imageColor = texture2D(u_texture, sampleUv);
+          vec3 fallback = u_color.rgb + vec3((1.0 - v_uv.y) * 0.045);
+          vec3 color = mix(fallback, imageColor.rgb, u_hasTexture);
+          float alpha = mix(u_color.a, imageColor.a, u_hasTexture);
+          gl_FragColor = vec4(color, alpha * u_alpha * edge);
+        }
+      `;
+
+      const compileShader = (type, source) => {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          throw new Error(gl.getShaderInfoLog(shader));
+        }
+        return shader;
+      };
+
+      const createProgram = () => {
+        const program = gl.createProgram();
+        gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vertexShaderSource));
+        gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource));
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          throw new Error(gl.getProgramInfoLog(program));
+        }
+        return program;
+      };
+
+      const program = createProgram();
+      const positionLocation = gl.getAttribLocation(program, 'a_position');
+      const uvLocation = gl.getAttribLocation(program, 'a_uv');
+      const colorLocation = gl.getUniformLocation(program, 'u_color');
+      const textureLocation = gl.getUniformLocation(program, 'u_texture');
+      const sizeLocation = gl.getUniformLocation(program, 'u_size');
+      const radiusLocation = gl.getUniformLocation(program, 'u_radius');
+      const alphaLocation = gl.getUniformLocation(program, 'u_alpha');
+      const hasTextureLocation = gl.getUniformLocation(program, 'u_hasTexture');
+      const imageAspectLocation = gl.getUniformLocation(program, 'u_imageAspect');
+      const cardAspectLocation = gl.getUniformLocation(program, 'u_cardAspect');
+      const buffer = gl.createBuffer();
+
+      gl.useProgram(program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.enableVertexAttribArray(positionLocation);
+      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 16, 0);
+      gl.enableVertexAttribArray(uvLocation);
+      gl.vertexAttribPointer(uvLocation, 2, gl.FLOAT, false, 16, 8);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.uniform1i(textureLocation, 0);
+
+      const createTextureFromImage = (image) => {
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        return texture;
+      };
+
+      // Cards should stagger in when the user actually scrolls the section
+      // into view, not the instant their images finish loading (which
+      // happens almost immediately on page load, long before the user
+      // has scrolled anywhere near this section). revealStartedAt is only
+      // set once both the images are ready AND the section has entered
+      // the viewport, timed from whichever happens later.
+      let loadSettledCount = 0;
+      let imagesSettledAt = null;
+      let sectionEnteredAt = null;
+      let revealStartedAt = null;
+      const markCardSettled = () => {
+        loadSettledCount += 1;
+        if (loadSettledCount === CARD_COUNT && imagesSettledAt === null) {
+          imagesSettledAt = window.performance.now();
+        }
+      };
+
+      const galleryEntryObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && sectionEnteredAt === null) {
+            sectionEnteredAt = window.performance.now();
+          }
+        });
+      }, { threshold: 0 });
+      galleryEntryObserver.observe(galleryInteractionEl);
+
+      const cards = Array.from({ length: CARD_COUNT }, (_, index) => ({
+        index,
+        color: index % 2
+          ? [199 / 255, 202 / 255, 204 / 255, 1]
+          : [215 / 255, 217 / 255, 218 / 255, 1],
+        backColor: [186 / 255, 191 / 255, 193 / 255, 1],
+        texture: null,
+        imageAspect: 1,
+        isLoaded: false,
+        hoverLift: 0,
+        state: null,
+      }));
+
+      cards.forEach((card, index) => {
+        const image = new Image();
+        image.onload = () => {
+          card.texture = createTextureFromImage(image);
+          card.imageAspect = image.naturalWidth / image.naturalHeight;
+          card.isLoaded = true;
+          markCardSettled();
+        };
+        image.onerror = () => {
+          markCardSettled();
+        };
+        image.src = cardImageSources[index];
+      });
+
+      let smoothScroll = 0;
+      let pointerX = 0;
+      let pointerY = 0;
+      let hoverActive = false;
+      let hoveredCard = -1;
+      let viewportWidth = 0;
+      let viewportHeight = 0;
+      let dpr = 1;
+
+      const updatePointerFromEvent = (event) => {
+        const rect = gallery.getBoundingClientRect();
+        pointerX = event.clientX - rect.left;
+        pointerY = event.clientY - rect.top;
+        hoverActive = true;
+      };
+
+      const handlePointerLeave = () => {
+        hoverActive = false;
+      };
+
+      const resizeCanvas = (width, height) => {
+        const nextDpr = Math.min(window.devicePixelRatio || 1, 2);
+        if (viewportWidth === width && viewportHeight === height && dpr === nextDpr) return;
+        viewportWidth = width;
+        viewportHeight = height;
+        dpr = nextDpr;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      };
+
+      const projectPoint = (point, centerX, centerY) => {
+        const perspective = 900;
+        const depthScale = perspective / (perspective - point.z);
+        return {
+          x: centerX + (point.x - centerX) * depthScale,
+          y: centerY + (point.y - centerY) * depthScale,
+          z: point.z,
+          scale: depthScale,
+        };
+      };
+
+      const getCardCorners = (card, centerX, centerY) => {
+        const projectedCenter = projectPoint({ x: card.x, y: card.y, z: card.z }, centerX, centerY);
+        const flipSqueeze = Math.max(0.08, Math.abs(Math.cos(toRadians(card.flipX))));
+        const halfW = (card.w * card.scale * projectedCenter.scale) / 2;
+        const halfH = (card.h * card.scale * projectedCenter.scale * flipSqueeze) / 2;
+        const rotate = toRadians(card.rotation);
+        const cosZ = Math.cos(rotate);
+        const sinZ = Math.sin(rotate);
+        const local = [
+          [-halfW, -halfH, 0, 0],
+          [halfW, -halfH, 1, 0],
+          [halfW, halfH, 1, 1],
+          [-halfW, halfH, 0, 1],
+        ];
+
+        return local.map(([lx, ly, u, v]) => {
+          const rx = lx * cosZ - ly * sinZ;
+          const ry = lx * sinZ + ly * cosZ;
+          return {
+            x: projectedCenter.x + rx,
+            y: projectedCenter.y + ry,
+            scale: projectedCenter.scale,
+            u,
+            v,
+          };
+        });
+      };
+
+      const drawCard = (card, centerX, centerY) => {
+        if (card.opacity <= 0.002) return;
+
+        const corners = getCardCorners(card, centerX, centerY);
+        const faceTowardCamera = Math.cos(toRadians(card.flipX)) >= 0;
+        const vertices = [
+          corners[0], corners[1], corners[2],
+          corners[0], corners[2], corners[3],
+        ];
+        const data = new Float32Array(vertices.flatMap((corner) => [
+          (corner.x / viewportWidth) * 2 - 1,
+          1 - (corner.y / viewportHeight) * 2,
+          corner.u,
+          faceTowardCamera ? corner.v : 1 - corner.v,
+        ]));
+        const color = faceTowardCamera ? card.color : card.backColor;
+        const visualScale = card.scale * Math.max(0.65, corners.reduce((sum, corner) => sum + corner.scale, 0) / corners.length);
+
+        gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, card.texture);
+        gl.uniform4f(colorLocation, color[0], color[1], color[2], color[3]);
+        gl.uniform2f(sizeLocation, card.w * visualScale, card.h * visualScale);
+        gl.uniform1f(radiusLocation, 6 * visualScale);
+        gl.uniform1f(alphaLocation, card.opacity);
+        gl.uniform1f(hasTextureLocation, card.texture ? 1 : 0);
+        gl.uniform1f(imageAspectLocation, card.imageAspect || 1);
+        gl.uniform1f(cardAspectLocation, card.w / card.h);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      };
+
+      const renderCards = (centerX, centerY) => {
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        cards
+          .filter((card) => card.state)
+          .map((card) => card.state)
+          .sort((a, b) => a.z - b.z)
+          .forEach((state) => drawCard(state, centerX, centerY));
+      };
+
+      const layout = () => {
+        // clientWidth (not innerWidth) on purpose: innerWidth includes the
+        // reserved scrollbar strip, but the sitewide .fixed-grid-lines is
+        // position:fixed, so its left/right offsets resolve against the
+        // initial containing block, which excludes that strip. Sizing the
+        // canvas off innerWidth made it 15-20px wider than the page's actual
+        // content box, overflowing under the scrollbar and shifting this
+        // canvas's own centerX away from the grid's true center divider by
+        // half that gap -- exactly the rightward drift reported against the
+        // grid line.
+        const width = document.documentElement.clientWidth;
+        const height = window.innerHeight;
+        resizeCanvas(width, height);
+
+        const scrollRange = galleryInteractionEl.offsetHeight - height;
+        const targetScroll = scrollRange > 0
+          ? clamp(-galleryInteractionEl.getBoundingClientRect().top, 0, scrollRange)
+          : 0;
+        smoothScroll = lerp(smoothScroll, targetScroll, 0.075);
+        const scrollFraction = scrollRange > 0 ? clamp(smoothScroll / scrollRange) : 0;
+        const progress = scrollFraction <= earlyScrollFraction
+          ? (scrollFraction / earlyScrollFraction) * zoomPhaseStart
+          : zoomPhaseStart + ((scrollFraction - earlyScrollFraction) / (1 - earlyScrollFraction)) * (1 - zoomPhaseStart);
+
+        const mobile = width <= 520;
+        const tablet = width <= 900;
+        const cardW = mobile ? 30 : tablet ? width * 0.031 : Math.min(59, Math.max(38, width * (59 / 1920)));
+        const cardH = cardW * (77 / 59);
+        const cardGap = mobile ? 6 : width * (14 / 1920);
+        const centerX = width * 0.5;
+        const centerY = height * 0.5;
+        const arcSceneLift = height * (mobile ? 0.1 : tablet ? 0.115 : 0.13);
+        const baseRadius = mobile
+          ? Math.min(width, height) * 0.32
+          : tablet
+            ? Math.min(width, height) * 0.295
+            : Math.min(width * (328 / 1920), height * 0.38);
+        const finalRingRadius = baseRadius;
+
+        const makeLine = range(progress, 0.08, 0.29);
+        const ringProgress = range(progress, 0.29, 0.64);
+        const arcZoomIn = range(progress, 0.64, 0.84);
+        const subTextIndex = subTextChangePoints.reduce(
+          (activeIndex, point, i) => (progress >= point ? i : activeIndex),
+          0,
+        );
+        const hoverReady = range(progress, 0.72, 0.84);
+        const hoverSearch = { index: -1, distance: Infinity };
+
+        if (revealStartedAt === null && imagesSettledAt !== null && sectionEnteredAt !== null) {
+          revealStartedAt = Math.max(imagesSettledAt, sectionEnteredAt);
+        }
+
+        cards.forEach((card, index) => {
+          const lineT = index / (cards.length - 1);
+          const appearDelay = revealRank[index] * 108;
+          const now = window.performance.now();
+          const revealElapsed = revealStartedAt === null ? 0 : now - revealStartedAt;
+          const appearByTime = range(revealElapsed, appearDelay, appearDelay + 720);
+          const appearByScroll = range(progress, 0.025 + revealRank[index] * 0.005, 0.24 + revealRank[index] * 0.005);
+          const appear = card.isLoaded ? Math.max(appearByTime, appearByScroll) : 0;
+
+          let x = centerX + scatter[index][0] * width;
+          let y = centerY + scatter[index][1] * height;
+          let z = 0;
+          let rotation = 0;
+          let flipX = 0;
+          let scale = lerp(0.94, 1, appear);
+
+          const lineWidth = cardW * cards.length + cardGap * (cards.length - 1);
+          const lineStart = centerX - lineWidth / 2 + cardW / 2;
+          const lineX = lineStart + index * (cardW + cardGap);
+          const lineY = centerY;
+          x = lerp(x, lineX, makeLine);
+          y = lerp(y, lineY, makeLine);
+
+          const edgeDistance = Math.abs(lineT - 0.5) * 2;
+          // Symmetric distance-from-nearest-edge, 0-indexed (cards.length - 1,
+          // matching lineT above) -- the previous `cards.length - index` was
+          // off by one, so the two center cards (11/12 of 24) got unequal
+          // edgeRank (11 vs 12) and every right-side card folded into the
+          // ring 0.035s later than its mirrored left-side card, reading as a
+          // persistent rightward lag/shift during the line->ring fold.
+          const edgeRank = Math.min(index, cards.length - 1 - index);
+          const foldDelay = edgeRank * 0.035;
+          const localFold = range(ringProgress, foldDelay, Math.min(1, foldDelay + 0.62));
+          const planeOpen = Math.pow(ringProgress, 2.6);
+          const ringAngle = ((index - (cards.length * 0.75 - 0.5)) * Math.PI * 2) / cards.length;
+          const ringX = centerX + Math.cos(ringAngle) * finalRingRadius;
+          const ringY = centerY + Math.sin(ringAngle) * finalRingRadius * planeOpen;
+          const ringZ = -(Math.sin(ringAngle) + 1) * finalRingRadius * (1 - planeOpen) * 1.15;
+
+          const localFlipProgress = range(ringProgress, foldDelay, Math.min(1, foldDelay + 0.5));
+          const flipToBack = range(localFlipProgress, 0, 0.34);
+          const flipSettle = range(localFlipProgress, 0.34, 1);
+          const flipArc = Math.sin(localFlipProgress * Math.PI);
+          const radialRotation = normalizeDegrees((ringAngle * 180) / Math.PI + 90);
+
+          if (progress > 0.29) {
+            x = lerp(lineX, ringX, localFold);
+            y = lerp(lineY, ringY, localFold) - flipArc * cardH * 0.14;
+          }
+          z = lerp(0, ringZ, localFold) - edgeDistance * cardH * 0.42 * flipArc;
+          rotation = lerp(0, radialRotation, localFold * planeOpen);
+          flipX = -180 * flipToBack - 180 * flipSettle * planeOpen;
+
+          const zoomIn = arcZoomIn;
+          const orbitProgress = range(progress, orbitScrollStart, orbitScrollEnd);
+          const zoomScale = lerp(1, mobile ? 2.4 : 3.05, zoomIn);
+          const zoomRotation = orbitProgress * targetOrbitRotation;
+          const zoomAngle = ringAngle + zoomRotation;
+          const zoomCenterY = centerY + finalRingRadius * zoomIn * (mobile ? 1.9 : 3.15) - arcSceneLift * zoomIn;
+          const zoomX = centerX + Math.cos(zoomAngle) * finalRingRadius * zoomScale;
+          const zoomY = zoomCenterY + Math.sin(zoomAngle) * finalRingRadius * zoomScale;
+          const zoomCardRotation = normalizeDegrees((zoomAngle * 180) / Math.PI + 90);
+          x = lerp(x, zoomX, zoomIn);
+          y = lerp(y, zoomY, zoomIn);
+          scale *= zoomScale;
+          rotation = lerpAngleDegrees(rotation, zoomCardRotation, zoomIn);
+
+          if (hoverActive && hoverReady > 0.05) {
+            const hitW = Math.max(cardW * scale * 0.68, 96);
+            const hitH = Math.max(cardH * scale * 0.68, 128);
+            const dx = (pointerX - x) / hitW;
+            const dy = (pointerY - y) / hitH;
+            const distance = dx * dx + dy * dy;
+            if (distance < 1 && distance < hoverSearch.distance) {
+              hoverSearch.index = index;
+              hoverSearch.distance = distance;
+            }
+          }
+
+          card.hoverLift = lerp(card.hoverLift, hoveredCard === index ? hoverReady : 0, 0.16);
+          y -= cardH * scale * 0.42 * card.hoverLift;
+          z += 180 * card.hoverLift;
+          scale *= 1 + 0.08 * card.hoverLift;
+
+          card.state = {
+            x, y, z,
+            w: cardW,
+            h: cardH,
+            scale,
+            rotation,
+            flipX,
+            opacity: appear,
+            color: card.color,
+            backColor: card.backColor,
+            texture: card.texture,
+            imageAspect: card.imageAspect,
+          };
+        });
+
+        hoveredCard = hoverSearch.index;
+        renderCards(centerX, centerY);
+
+        const activeSubText = subTextItems[subTextIndex];
+        if (visionTitle) visionTitle.textContent = activeSubText.title;
+        if (visionDescription) {
+          visionDescription.innerHTML = activeSubText.lines.map((line) => `<p>${line}</p>`).join('');
+        }
+        if (ringLabel) ringLabel.textContent = '';
+        if (ringHint) ringHint.textContent = '';
+
+        galleryInteractionEl.classList.toggle('is-vision', progress > 0.67);
+        galleryInteractionEl.classList.toggle('is-intro-ready', progress > 0.52);
+        galleryInteractionEl.classList.toggle('is-vision-copy-ready', progress >= subTextChangePoints[0]);
+      };
+
+      const animate = () => {
+        layout();
+        requestAnimationFrame(animate);
+      };
+
+      galleryStage.addEventListener('pointermove', updatePointerFromEvent);
+      galleryStage.addEventListener('pointerleave', handlePointerLeave);
+      window.addEventListener('pointermove', updatePointerFromEvent);
+      window.addEventListener('resize', layout);
+      animate();
+    }
+  }
+
   /* Work-detail: the cover (project 01/03) stays pinned past its own 100vh
      of rest. .work-detail__track holds the cover plus every scene after it
      as side-by-side panels -- a real filmstrip, .work-detail__panel's
@@ -924,8 +2044,62 @@ document.addEventListener('DOMContentLoaded', () => {
   if (workDetailEl) {
     const trackEl = document.getElementById('workDetailTrack');
     const sceneDescEnEls = Array.from(document.querySelectorAll('.work-scenes__desc-en'));
-    const gridLinesEl = document.querySelector('.work-detail__grid-lines');
     const sceneVideoEls = Array.from(document.querySelectorAll('.work-scenes__device-media'));
+
+    // One path spans all 6 work-scenes panels (see the CSS comment on
+    // .work-detail__glow-curve) so it draws on once, continuously, across
+    // the whole journey rather than resetting per scene.
+    //
+    // GLOW_PEAKS is the only part of this meant to be hand-tuned: one
+    // number per scene panel, in scene order, with no path/SVG syntax
+    // involved. Each number is how far the curve bulges away from its
+    // 150-unit baseline at the middle of that panel -- positive bulges up
+    // (toward the mockup sitting above), negative bulges down, and 0 is a
+    // flat line through that panel. Every panel's curve always starts and
+    // ends exactly at the shared baseline (see buildGlowPath below), so
+    // changing one entry can never break the seam with its neighbors --
+    // edit freely.
+    const GLOW_PEAKS = [-190, 170, -265, 195, -255, -205];
+    const GLOW_PANEL_WIDTH = 1920; // matches .work-scenes__stage's own 1920-wide design unit
+    const GLOW_BASELINE = 150; // vertical center of the curve's viewBox band
+    const GLOW_SAMPLE_STEP = 60; // smaller = smoother curve, larger = shorter path string
+
+    // Builds one continuous polyline: within each panel, x runs 0..1 as t
+    // and y = baseline + peak * half*(1-cos(2*pi*t)) -- a raised-cosine
+    // "bump" that is 0 at both t=0 and t=1 AND has zero slope at both
+    // t=0 and t=1, regardless of peak's value or sign (derivative is
+    // peak*pi*sin(2*pi*t), which is 0 whenever sin(2*pi*t) is, i.e. at
+    // every integer t). That's what makes adjacent panels meet with no
+    // kink even though their peaks differ: each panel arrives at the
+    // shared boundary already flat, so there's nothing for the next
+    // panel's own flat start to clash with. The bump peaks at exactly
+    // `peak` at t=0.5 (mid-panel), so GLOW_PEAKS keeps the same meaning
+    // as before -- edit freely.
+    const buildGlowPath = (peaks) => {
+      const points = [];
+      peaks.forEach((peak, i) => {
+        const xOffset = i * GLOW_PANEL_WIDTH;
+        for (let x = 0; x <= GLOW_PANEL_WIDTH; x += GLOW_SAMPLE_STEP) {
+          if (i > 0 && x === 0) continue; // already emitted as previous panel's last point
+          const t = x / GLOW_PANEL_WIDTH;
+          const y = GLOW_BASELINE + peak * 0.5 * (1 - Math.cos(2 * Math.PI * t));
+          points.push(`${xOffset + x},${y.toFixed(2)}`);
+        }
+      });
+      return `M ${points.join(' L ')}`;
+    };
+
+    // getTotalLength() is pure path geometry in the SVG's own user space,
+    // so it's stable regardless of screen size -- no resize-driven
+    // remeasurement needed, unlike the fog-chars' offsetLeft/Width
+    // measurements elsewhere in this file. It has to run after setAttribute
+    // (not against whatever static "d" shipped in the markup) since that's
+    // the shape actually being drawn now.
+    const glowPath = document.querySelector('.work-detail__glow-curve path');
+    if (glowPath) {
+      glowPath.setAttribute('d', buildGlowPath(GLOW_PEAKS));
+    }
+    const glowLength = glowPath ? glowPath.getTotalLength() : 0;
 
     // Stage boundaries as fractions of the post-dock dwell, in order:
     // pause at the cover -> slide to scene 1 -> fill scene 1's desc-en ->
@@ -986,7 +2160,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // reason-quote/cards-reveal's own mobile guards.
       if (window.innerWidth <= 768) {
         workDetailDarkContribution = 0;
-        if (gridLinesEl) gridLinesEl.style.opacity = String(1 - applyCombinedDarkState());
+        applyCombinedDarkState();
         if (trackEl) trackEl.style.transform = 'none';
         // Mobile shows every scene as a plain static stack with no scroll
         // gating -- just start each video once, the first time this runs.
@@ -1020,27 +2194,28 @@ document.addEventListener('DOMContentLoaded', () => {
       // re-crossfading between later, already-black scenes.
       const darkProgress = Math.min(1, totalSlide);
       workDetailDarkContribution = Math.min(entry >= 1 ? darkProgress : 0, exit);
-      const combinedDark = applyCombinedDarkState();
+      applyCombinedDarkState();
 
       if (trackEl) {
         trackEl.style.transform = `translateX(${-totalSlide * 100}%)`;
       }
 
-      // The grid lines are tuned to sit almost invisibly on the white
-      // cover -- against the overlay's black they'd read as bright, eye
-      // catching lines instead. Fading them against the *combined* overlay
-      // (not just this section's own workDetailDarkContribution) covers
-      // both directions: work-detail's own slide-driven darkening, and the
-      // incoming case where cards-reveal's dark overlay is still fading
-      // out while the cover first scrolls into view -- either way, the
-      // lines stay just as invisible as they are at rest on white.
-      if (gridLinesEl) {
-        gridLinesEl.style.opacity = String(1 - combinedDark);
+      // Single draw-on reveal across the *entire* work-scenes journey (from
+      // the first scene's slide-in to the last scene's fill-end), rather
+      // than a per-scene fillProgress -- a viewer asked for the light
+      // streak to keep growing continuously as they scroll through the
+      // scenes instead of restarting fresh in every panel, so this ties it
+      // to one span's worth of progress instead of resetting per scene.
+      if (glowPath) {
+        const glowProgress = stage(SLIDE_STARTS[0], FILL_ENDS[FILL_ENDS.length - 1], dwellProgress);
+        glowPath.style.strokeDasharray = `${glowLength}`;
+        glowPath.style.strokeDashoffset = `${glowLength * (1 - glowProgress)}`;
       }
 
       scenes.forEach((scene) => {
+        const fillProgress = stage(scene.slideEnd, scene.fillEnd, dwellProgress);
+
         if (scene.fillChars.length) {
-          const fillProgress = stage(scene.slideEnd, scene.fillEnd, dwellProgress);
           const startRGB = [0x45, 0x45, 0x45];
           const n = scene.fillChars.length;
           scene.fillChars.forEach((span, i) => {
@@ -1092,4 +2267,139 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', updateWorkDetail);
     window.addEventListener('load', updateWorkDetail);
   }
+
+  // Clone-coding gallery -- each card rises into place once as it scrolls
+  // into view (see .clone-coding__card / .is-revealed in style.css).
+  const cloneCards = document.querySelectorAll('.clone-coding__card');
+  if (cloneCards.length) {
+    const cloneObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+          cloneObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
+
+    cloneCards.forEach((card) => cloneObserver.observe(card));
+  }
+
+  // Clone-coding intro -- fog-in reveal across the whole sticky intro
+  // (chips, title, subtitle), the reverse of .work-transition__title's
+  // fog-dissolve: everything starts blurred/faded/dropped and condenses
+  // into place, staggered chips -> title chars -> subtitle. Unlike the
+  // one-time card reveal, this toggles .is-revealed on and off as the
+  // intro enters/leaves the viewport, so it replays every time you
+  // scroll away and back in.
+  const cloneIntroEl = document.querySelector('.clone-coding__intro');
+  if (cloneIntroEl) {
+    const cloneChipEls = Array.from(cloneIntroEl.querySelectorAll('.clone-coding__chip'));
+    const cloneTitleEl = cloneIntroEl.querySelector('.clone-coding__title');
+    const cloneSubtitleEl = cloneIntroEl.querySelector('.clone-coding__subtitle');
+
+    if (cloneTitleEl) {
+      wrapChars(cloneTitleEl, 'clone-coding__title-char');
+    }
+    const titleChars = cloneTitleEl
+      ? Array.from(cloneTitleEl.querySelectorAll('.clone-coding__title-char'))
+      : [];
+
+    const chipsEnd = cloneChipEls.length * 60;
+    cloneChipEls.forEach((el, i) => {
+      el.style.setProperty('--fog-delay', `${i * 60}ms`);
+    });
+    titleChars.forEach((el, i) => {
+      el.style.setProperty('--fog-delay', `${chipsEnd + 150 + i * 25}ms`);
+    });
+    if (cloneSubtitleEl) {
+      const titleEnd = titleChars.length * 25;
+      cloneSubtitleEl.style.setProperty('--fog-delay', `${chipsEnd + 150 + titleEnd + 150}ms`);
+    }
+
+    const cloneIntroObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        cloneIntroEl.classList.toggle('is-revealed', entry.isIntersecting);
+      });
+    }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
+
+    cloneIntroObserver.observe(cloneIntroEl);
+  }
+
+  // Skill content -- fog-in reveal for the SKILL title + Korean subtitle,
+  // identical mechanics to .clone-coding__intro above (title chars wrap
+  // + stagger via --fog-delay, subtitle fades as one block), replaying on
+  // every re-entry via IntersectionObserver.
+  const skillIntroEl = document.querySelector('.skill-content__intro');
+  if (skillIntroEl) {
+    const skillTitleEl = skillIntroEl.querySelector('.skill-content__title');
+    const skillSubtitleEl = skillIntroEl.querySelector('.skill-content__subtitle');
+
+    if (skillTitleEl) {
+      wrapChars(skillTitleEl, 'skill-content__title-char');
+    }
+    const skillTitleChars = skillTitleEl
+      ? Array.from(skillTitleEl.querySelectorAll('.skill-content__title-char'))
+      : [];
+
+    skillTitleChars.forEach((el, i) => {
+      el.style.setProperty('--fog-delay', `${i * 25}ms`);
+    });
+    if (skillSubtitleEl) {
+      const titleEnd = skillTitleChars.length * 25;
+      skillSubtitleEl.style.setProperty('--fog-delay', `${titleEnd + 150}ms`);
+    }
+
+    const skillIntroObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        skillIntroEl.classList.toggle('is-revealed', entry.isIntersecting);
+      });
+    }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
+
+    skillIntroObserver.observe(skillIntroEl);
+  }
+
+  // Skill content icons -- each icon rises into place once as it scrolls
+  // into view beside the sticky-pinned .skill-content__columns, same
+  // one-time reveal mechanics as .clone-coding__card (unobserve after
+  // the first reveal; see .skill-content__icon.is-revealed in style.css).
+  const skillIconEls = document.querySelectorAll('.skill-content__icon');
+  if (skillIconEls.length) {
+    const skillIconObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+          skillIconObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
+
+    skillIconEls.forEach((icon) => skillIconObserver.observe(icon));
+  }
+
+  // Clone-coding cards: the "view website" badge replaces the pointer
+  // itself and tracks it around inside the frame, rather than sitting
+  // fixed in the center (native cursor hidden via .clone-coding__frame's
+  // cursor:none in style.css).
+  document.querySelectorAll('.clone-coding__frame').forEach((frame) => {
+    const badge = frame.querySelector('.clone-coding__badge');
+    if (!badge) return;
+
+    const moveBadgeTo = (e) => {
+      const rect = frame.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      badge.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    };
+
+    frame.addEventListener('mouseenter', (e) => {
+      moveBadgeTo(e);
+      badge.classList.add('is-active');
+    });
+
+    frame.addEventListener('mousemove', moveBadgeTo);
+
+    frame.addEventListener('mouseleave', () => {
+      badge.classList.remove('is-active');
+    });
+  });
 });

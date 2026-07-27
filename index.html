@@ -8,11 +8,18 @@
 </head>
 <body>
 
+  <div class="fixed-grid-lines" aria-hidden="true">
+    <div class="fixed-grid-lines__col"></div>
+    <div class="fixed-grid-lines__col"></div>
+    <div class="fixed-grid-lines__col"></div>
+    <div class="fixed-grid-lines__col"></div>
+  </div>
+
   <div class="scroll-dark-overlay" id="scrollDarkOverlay" aria-hidden="true"></div>
 
   <header class="header">
     <div class="header__inner">
-      <a href="#intro" class="logo">PORTFOLIO</a>
+      <a href="#intro" class="logo"><img class="logo__mark" src="images/JIHYUN.svg" alt="박지현 포트폴리오"></a>
 
       <nav class="nav" id="nav">
         <a href="#intro" class="nav__link is-active" data-nav="intro">INTRO</a>
@@ -38,13 +45,6 @@
 
   <main>
     <section class="hero" id="intro">
-      <div class="grid-lines-container" aria-hidden="true">
-        <div class="grid-lines-col"></div>
-        <div class="grid-lines-col"></div>
-        <div class="grid-lines-col"></div>
-        <div class="grid-lines-col"></div>
-      </div>
-
       <div class="hero__stage">
         <div class="hero__letters" aria-hidden="true">
           <div class="letter letter--j"><img src="images/letter-j.svg" alt=""></div>
@@ -64,13 +64,6 @@
 
     <section class="intro-reasons">
       <div class="intro-reasons__sticky">
-        <div class="grid-lines-container" aria-hidden="true">
-          <div class="grid-lines-col"></div>
-          <div class="grid-lines-col"></div>
-          <div class="grid-lines-col"></div>
-          <div class="grid-lines-col"></div>
-        </div>
-
         <div class="intro-reasons__stage">
           <div class="stay-title intro-reasons__title" aria-hidden="true">
             <span class="stay-title-line">DESIGNING</span>
@@ -186,7 +179,7 @@
       </div>
     </section>
 
-    <section class="work-transition" id="workTransition">
+    <section class="work-transition" id="workTransition" data-nav-id="work">
       <div class="work-transition__sticky">
         <div class="work-transition__base">
           <div class="work-transition__scroller" id="workTransitionScrollerBase">
@@ -196,6 +189,12 @@
           </div>
         </div>
         <div class="work-transition__wipe" id="workTransitionWipe">
+          <div class="work-transition__wipe-grid" aria-hidden="true">
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+          </div>
           <div class="work-transition__scroller" id="workTransitionScrollerWipe">
             <p class="work-transition__title">
               <span class="work-transition__title-en">WORK </span><span class="work-transition__title-em">selected projects</span>
@@ -208,10 +207,15 @@
     <section class="work-detail" id="work">
       <div class="work-detail__sticky">
       <div class="work-detail__track" id="workDetailTrack">
+      <svg class="work-detail__glow-curve" viewBox="0 0 11520 289.216" preserveAspectRatio="none" aria-hidden="true">
+        <!-- Shape (and per-scene bulge amount) is generated at runtime by
+             buildGlowPath()/GLOW_PEAKS in script.js -- this "d" is a plain
+             flat placeholder overwritten before first paint, not the real
+             curve, so there's nothing here worth hand-editing. -->
+        <path d="M 0,150 L 11520,150" />
+      </svg>
       <div class="work-detail__panel">
       <div class="work-detail__stage">
-        <img class="work-detail__grid-lines" src="images/work-grid-lines.svg" alt="" aria-hidden="true">
-
         <img class="work-detail__mockup" src="images/work-ilkw-mockup.png" alt="ILKW 웹사이트 데스크톱, 태블릿, 모바일 화면">
 
         <div class="work-detail__info">
@@ -475,8 +479,429 @@
       </div>
     </section>
 
-    <section class="section" id="skill"><p class="section__placeholder">SKILL — 준비중</p></section>
-    <section class="section" id="about"><p class="section__placeholder">ABOUT — 준비중</p></section>
+    <!-- Project 02/03 cover -- static poster only (see style.css's
+         .work-cover2 comment); not wired into work-detail's scroll track
+         since this project's own scenes aren't built yet. -->
+    <section class="work-cover2" id="workCover2" data-nav-id="work">
+      <div class="work-cover2__stage">
+        <img class="work-cover2__mockup" src="images/work-werun-mockup.png" alt="W:RUN 앱 UI 화면">
+
+        <div class="work-detail__info">
+          <div class="work-detail__head">
+            <p class="work-detail__index"><span class="work-detail__index-current">02</span><span class="work-detail__index-total">/ 03</span></p>
+
+            <div class="work-detail__heading">
+              <p class="work-detail__eyebrow">러닝 팬덤 앱 / 팀 프로젝트 · 6인</p>
+              <p class="work-detail__title"><span class="work-detail__title-en">W:RUN</span><span class="work-detail__title-em"> app</span></p>
+
+              <div class="work-detail__links">
+                <a class="work-detail__link" href="#" target="_blank" rel="noopener">
+                  <span>APP</span>
+                  <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
+                </a>
+                <a class="work-detail__link" href="#" target="_blank" rel="noopener">
+                  <span>PROPOSAL</span>
+                  <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="work-detail__body">
+            <div class="work-detail__meta">
+              <div class="work-detail__meta-group work-detail__meta-group--duration">
+                <p class="work-detail__meta-label">DURATION</p>
+                <p class="work-detail__meta-value">2026 . 07. ~ 2026. 08.</p>
+              </div>
+
+              <div class="work-detail__meta-group">
+                <p class="work-detail__meta-label">PROJECT BRIEF</p>
+                <div class="work-detail__brief">
+                  <p>러너와 경험을 연결하는 <strong>러닝 커뮤니티 플랫폼</strong>입니다.</p>
+                  <p>크루, 대회 정보, 피드, <strong>AI 맞춤 추천</strong> 등 다양한 기능을 통해 지속 가능한 러닝 경험을 제공합니다.</p>
+                </div>
+              </div>
+
+              <div class="work-detail__meta-group">
+                <p class="work-detail__meta-label">WHAT I CONTRIBUTED</p>
+                <div class="work-detail__contributed">
+                  <div class="work-detail__contributed-col">
+                    <p>· UX 리서치 및 인사이트 도출</p>
+                    <p>· 서비스 기획 및 핵심 기능 설계</p>
+                    <p>· 온보딩 경험 설계</p>
+                  </div>
+                  <div class="work-detail__contributed-col">
+                    <p>· UI 디자인</p>
+                    <p>· React, Tailwind CSS 기반 화면 구현</p>
+                    <p>· 발표자료 기획서 제작</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="work-detail__progress">
+              <p class="work-detail__progress-item"><strong>기획</strong><span>80%</span></p>
+              <p class="work-detail__progress-item"><strong>디자인</strong><span>90%</span></p>
+              <p class="work-detail__progress-item"><strong>개발</strong><span>70%</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Project 03/03 cover -- static poster only (see style.css's
+         .work-cover3 comment); not wired into work-detail's scroll track
+         since this project's own scenes aren't built yet. -->
+    <section class="work-cover3" id="workCover3" data-nav-id="work">
+      <div class="work-cover3__stage">
+        <img class="work-cover3__mockup" src="images/work-muit-mockup.png" alt="MU:it 앱 UI 화면">
+
+        <div class="work-detail__info">
+          <div class="work-detail__head">
+            <p class="work-detail__index"><span class="work-detail__index-current">03</span><span class="work-detail__index-total">/ 03</span></p>
+
+            <div class="work-detail__heading">
+              <p class="work-detail__eyebrow">클래식 음악 레슨 매칭 및 성장 관리 앱 / 개인 프로젝트</p>
+              <p class="work-detail__title"><span class="work-detail__title-en">MU:it</span><span class="work-detail__title-em"> app</span></p>
+
+              <div class="work-detail__links">
+                <a class="work-detail__link" href="#" target="_blank" rel="noopener">
+                  <span>APP</span>
+                  <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
+                </a>
+                <a class="work-detail__link" href="#" target="_blank" rel="noopener">
+                  <span>PROPOSAL</span>
+                  <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="work-detail__body">
+            <div class="work-detail__meta">
+              <div class="work-detail__meta-group work-detail__meta-group--duration">
+                <p class="work-detail__meta-label">DURATION</p>
+                <p class="work-detail__meta-value">2026 . 03. ~ 2026. 05.</p>
+              </div>
+
+              <div class="work-detail__meta-group">
+                <p class="work-detail__meta-label">PROJECT BRIEF</p>
+                <div class="work-detail__brief">
+                  <p>선생님 <strong>탐색</strong>부터 레슨 관리와 <strong>성장 관리</strong>까지 이어지는 사용자 경험을 설계한 서비스입니다.</p>
+                  <p>선생님 매칭 이후에도 꾸준히 사용할 수 있는 <strong>학습 관리 기능</strong>을 중심으로 서비스를 설계했습니다.</p>
+                </div>
+              </div>
+
+              <div class="work-detail__meta-group">
+                <p class="work-detail__meta-label">WHAT I DID</p>
+                <div class="work-detail__contributed">
+                  <div class="work-detail__contributed-col">
+                    <p>· 데스크 리서치 및 경쟁 서비스 분석</p>
+                    <p>· 사용자 설문조사 및 인사이트 도출</p>
+                    <p>· UI 디자인 및 프로토타입 제작</p>
+                  </div>
+                  <div class="work-detail__contributed-col">
+                    <p>· React 기반 화면 구현</p>
+                    <p>· 휴리스틱 사용성 평가</p>
+                    <p>· 발표자료 기획서 제작</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="work-detail__progress">
+              <p class="work-detail__progress-item"><strong>기획</strong><span>100%</span></p>
+              <p class="work-detail__progress-item"><strong>디자인</strong><span>100%</span></p>
+              <p class="work-detail__progress-item"><strong>개발</strong><span>100%</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Clone-coding gallery -- NOT related to .cards-reveal above (that's
+         the unrelated pinned 3D flip-card personal-values narrative); this
+         is a plain scroll-reveal grid where each card rises into place as
+         it enters the viewport (script.js, IntersectionObserver). Figma's
+         own decorative diagonal-line background behind the cards is
+         skipped, same as all three work covers above also omit that
+         layer. -->
+    <section class="clone-coding" id="cloneCoding" data-nav-id="work">
+      <div class="clone-coding__stage">
+        <div class="clone-coding__intro">
+          <ul class="clone-coding__chips">
+            <li class="clone-coding__chip">HTML</li>
+            <li class="clone-coding__chip">CSS</li>
+            <li class="clone-coding__chip">JavaScript</li>
+            <li class="clone-coding__chip">React</li>
+            <li class="clone-coding__chip">GSAP</li>
+            <li class="clone-coding__chip">ScrollTrigger</li>
+          </ul>
+
+          <p class="clone-coding__title"><span class="clone-coding__title-em">clone</span><span class="clone-coding__title-en"> CODING</span></p>
+          <p class="clone-coding__subtitle">
+            클론 코딩을 통해 실제 서비스를 분석하고 직접 구현하며<br>
+            화면 구조와 인터랙션에 대한 이해를 넓혔습니다.
+          </p>
+        </div>
+
+        <div class="clone-coding__grid">
+          <figure class="clone-coding__card clone-coding__card--1">
+            <a class="clone-coding__frame" href="#" target="_blank" rel="noopener" aria-label="한국소비자원 클론 코딩 보러가기">
+              <img class="clone-coding__img" src="images/clone-korea-consumer.jpg" alt="한국소비자원 클론 코딩 화면" loading="lazy">
+              <span class="clone-coding__badge">
+                <svg class="clone-coding__badge-ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <defs>
+                    <path id="clone-badge-path-1" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
+                  </defs>
+                  <text><textPath href="#clone-badge-path-1" textLength="232.48" lengthAdjust="spacing">VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; </textPath></text>
+                </svg>
+                <img class="clone-coding__badge-icon" src="images/icon-arrow-up-right.svg" alt="">
+              </span>
+            </a>
+            <figcaption class="clone-coding__caption">한국소비자원</figcaption>
+          </figure>
+
+          <figure class="clone-coding__card clone-coding__card--2">
+            <a class="clone-coding__frame" href="#" target="_blank" rel="noopener" aria-label="한화케미칼 클론 코딩 보러가기">
+              <img class="clone-coding__img" src="images/clone-hanwha-chemical.jpg" alt="한화케미칼 클론 코딩 화면" loading="lazy">
+              <span class="clone-coding__badge">
+                <svg class="clone-coding__badge-ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <defs>
+                    <path id="clone-badge-path-2" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
+                  </defs>
+                  <text><textPath href="#clone-badge-path-2" textLength="232.48" lengthAdjust="spacing">VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; </textPath></text>
+                </svg>
+                <img class="clone-coding__badge-icon" src="images/icon-arrow-up-right.svg" alt="">
+              </span>
+            </a>
+            <figcaption class="clone-coding__caption">한화케미칼</figcaption>
+          </figure>
+
+          <figure class="clone-coding__card clone-coding__card--3">
+            <a class="clone-coding__frame" href="#" target="_blank" rel="noopener" aria-label="와이스튜디오 클론 코딩 보러가기">
+              <img class="clone-coding__img" src="images/clone-y-studio.jpg" alt="와이스튜디오 클론 코딩 화면" loading="lazy">
+              <span class="clone-coding__badge">
+                <svg class="clone-coding__badge-ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <defs>
+                    <path id="clone-badge-path-3" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
+                  </defs>
+                  <text><textPath href="#clone-badge-path-3" textLength="232.48" lengthAdjust="spacing">VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; </textPath></text>
+                </svg>
+                <img class="clone-coding__badge-icon" src="images/icon-arrow-up-right.svg" alt="">
+              </span>
+            </a>
+            <figcaption class="clone-coding__caption">와이스튜디오</figcaption>
+          </figure>
+
+          <figure class="clone-coding__card clone-coding__card--4">
+            <a class="clone-coding__frame" href="#" target="_blank" rel="noopener" aria-label="크루어라모드 클론 코딩 보러가기">
+              <img class="clone-coding__img" src="images/clone-crew-la-mode.jpg" alt="크루어라모드 클론 코딩 화면" loading="lazy">
+              <span class="clone-coding__badge">
+                <svg class="clone-coding__badge-ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <defs>
+                    <path id="clone-badge-path-4" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
+                  </defs>
+                  <text><textPath href="#clone-badge-path-4" textLength="232.48" lengthAdjust="spacing">VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; </textPath></text>
+                </svg>
+                <img class="clone-coding__badge-icon" src="images/icon-arrow-up-right.svg" alt="">
+              </span>
+            </a>
+            <figcaption class="clone-coding__caption">크루어라모드</figcaption>
+          </figure>
+
+          <figure class="clone-coding__card clone-coding__card--5">
+            <a class="clone-coding__frame" href="#" target="_blank" rel="noopener" aria-label="뮤자인 클론 코딩 보러가기">
+              <img class="clone-coding__img" src="images/clone-musain.jpg" alt="뮤자인 클론 코딩 화면" loading="lazy">
+              <span class="clone-coding__badge">
+                <svg class="clone-coding__badge-ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <defs>
+                    <path id="clone-badge-path-5" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
+                  </defs>
+                  <text><textPath href="#clone-badge-path-5" textLength="232.48" lengthAdjust="spacing">VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; </textPath></text>
+                </svg>
+                <img class="clone-coding__badge-icon" src="images/icon-arrow-up-right.svg" alt="">
+              </span>
+            </a>
+            <figcaption class="clone-coding__caption">뮤자인</figcaption>
+          </figure>
+
+          <figure class="clone-coding__card clone-coding__card--6">
+            <a class="clone-coding__frame" href="#" target="_blank" rel="noopener" aria-label="대방산업 클론 코딩 보러가기">
+              <img class="clone-coding__img" src="images/clone-daebang.jpg" alt="대방산업 클론 코딩 화면" loading="lazy">
+              <span class="clone-coding__badge">
+                <svg class="clone-coding__badge-ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <defs>
+                    <path id="clone-badge-path-6" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" />
+                  </defs>
+                  <text><textPath href="#clone-badge-path-6" textLength="232.48" lengthAdjust="spacing">VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; VIEW WEBSITE &#8226; </textPath></text>
+                </svg>
+                <img class="clone-coding__badge-icon" src="images/icon-arrow-up-right.svg" alt="">
+              </span>
+            </a>
+            <figcaption class="clone-coding__caption">대방산업</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Same pinned scroll-scrub structure/interaction as .work-transition
+         above (title scrolls in from the right, dissolves character-by-
+         character, wipe reveals mid-dwell) -- only the colors invert: this
+         one starts white bg/black text and wipes to black bg/white text,
+         the opposite of work-transition's black-to-white. -->
+    <section class="skill-transition" id="skillTransition" data-nav-id="skill">
+      <div class="skill-transition__sticky">
+        <div class="skill-transition__base">
+          <div class="skill-transition__wipe-grid" aria-hidden="true">
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+          </div>
+          <div class="skill-transition__scroller" id="skillTransitionScrollerBase">
+            <p class="skill-transition__title">
+              <span class="skill-transition__title-en">SKILL </span><span class="skill-transition__title-em">tools &amp; skills</span>
+            </p>
+          </div>
+        </div>
+        <div class="skill-transition__wipe" id="skillTransitionWipe">
+          <div class="skill-transition__scroller" id="skillTransitionScrollerWipe">
+            <p class="skill-transition__title">
+              <span class="skill-transition__title-en">SKILL </span><span class="skill-transition__title-em">tools &amp; skills</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Figma node 2832-1904: black-bg SKILL section -- centered title +
+         Korean subtitle (fog-in reveal, same pattern/interaction as
+         .clone-coding__intro), then a DESIGN/FRONTEND/AI three-column
+         list that pins at viewport-center (position: sticky, same trick
+         as .clone-coding__intro) while the two flanking icon clusters
+         rise up into place beside it as the page keeps scrolling (same
+         one-time IntersectionObserver reveal as .clone-coding__card).
+         Icons use the project's own local SVGs (already placed by the
+         user) rather than Figma's exported assets. -->
+    <section class="skill-content" id="skill">
+      <div class="skill-content__intro">
+        <p class="skill-content__title">SKILL</p>
+        <p class="skill-content__subtitle">다양한 디자인 툴과 AI 도구를 활용하여<br>효율적인 프로세스와 완성도 높은 결과물을 만들어갑니다.</p>
+      </div>
+
+      <div class="skill-content__stage">
+        <div class="skill-content__icons skill-content__icons--left" aria-hidden="true">
+          <img class="skill-content__icon skill-content__icon--figma" src="images/figma.svg" alt="">
+          <img class="skill-content__icon skill-content__icon--illustrator" src="images/illustrator.svg" alt="">
+          <img class="skill-content__icon skill-content__icon--javascript" src="images/javascript.svg" alt="">
+          <img class="skill-content__icon skill-content__icon--claude" src="images/claude.svg" alt="">
+          <img class="skill-content__icon skill-content__icon--midjourney" src="images/midjourney.svg" alt="">
+        </div>
+        <div class="skill-content__icons skill-content__icons--right" aria-hidden="true">
+          <img class="skill-content__icon skill-content__icon--photoshop" src="images/photoshop.svg" alt="">
+          <img class="skill-content__icon skill-content__icon--html" src="images/html.svg" alt="">
+          <img class="skill-content__icon skill-content__icon--css" src="images/css.svg" alt="">
+          <img class="skill-content__icon skill-content__icon--gpt" src="images/gpt.svg" alt="">
+          <img class="skill-content__icon skill-content__icon--gemini" src="images/gemini.svg" alt="">
+        </div>
+
+        <div class="skill-content__columns">
+          <div class="skill-content__column">
+            <p class="skill-content__column-title">DESIGN</p>
+            <ul class="skill-content__column-list">
+              <li>Figma</li>
+              <li>Photoshop</li>
+              <li>Illustrator</li>
+            </ul>
+          </div>
+          <div class="skill-content__column">
+            <p class="skill-content__column-title">FRONTEND</p>
+            <ul class="skill-content__column-list">
+              <li>HTML</li>
+              <li>CSS</li>
+              <li>JavaScript</li>
+              <li>JQuery</li>
+              <li>React</li>
+              <li>TypeScript</li>
+              <li>Tailwind CSS</li>
+              <li>GSAP</li>
+            </ul>
+          </div>
+          <div class="skill-content__column">
+            <p class="skill-content__column-title skill-content__column-title--ai">AI</p>
+            <ul class="skill-content__column-list">
+              <li>ChatGPT</li>
+              <li>Claude</li>
+              <li>Gemini</li>
+              <li>Perplexity</li>
+              <li>Midjourney</li>
+              <li>Gamma</li>
+              <li>Figma MCP</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Figma node 2832-1978: same pinned scroll-scrub structure/interaction
+         as .work-transition (title scrolls in from the right, dissolves
+         character-by-character, wipe reveals mid-dwell) -- black-to-white,
+         same direction as work-transition, not skill-transition's
+         white-to-black. See script.js's updateAboutTransition, a 1:1 mirror
+         of updateWorkTransition. -->
+    <section class="about-transition" id="aboutTransition" data-nav-id="about">
+      <div class="about-transition__sticky">
+        <div class="about-transition__base">
+          <div class="about-transition__scroller" id="aboutTransitionScrollerBase">
+            <p class="about-transition__title">
+              <span class="about-transition__title-en">ABOUT </span><span class="about-transition__title-em">more about me</span>
+            </p>
+          </div>
+        </div>
+        <div class="about-transition__wipe" id="aboutTransitionWipe">
+          <div class="about-transition__wipe-grid" aria-hidden="true">
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+            <div class="fixed-grid-lines__col"></div>
+          </div>
+          <div class="about-transition__scroller" id="aboutTransitionScrollerWipe">
+            <p class="about-transition__title">
+              <span class="about-transition__title-en">ABOUT </span><span class="about-transition__title-em">more about me</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="gallery-interaction" id="about">
+      <div class="gallery-interaction__pin">
+        <div class="gallery-interaction__copy gallery-interaction__copy--intro">
+          <p class="gallery-interaction__shape-title">
+            <span>WHAT</span> <em>shapes</em> <span>ME</span>
+          </p>
+          <span class="gallery-interaction__shape-subtitle">일상의 경험으로 디자인을 바라보는 시선을 만듭니다.</span>
+        </div>
+
+        <div class="gallery-interaction__copy gallery-interaction__copy--vision">
+          <p class="gallery-interaction__vision-title">PHOTOGRAPHY</p>
+          <div class="gallery-interaction__vision-description">
+            <p>사진의 프레임 안에서 구도와 색감을 익히며,</p>
+            <p>일상의 따뜻한 순간과 감정을 바라보는 시선도 함께 넓혀왔습니다.</p>
+          </div>
+        </div>
+
+        <div class="gallery-interaction__stage" aria-hidden="true">
+          <div class="gallery-interaction__gallery"></div>
+          <div class="gallery-interaction__ring-overlay">
+            <div class="gallery-interaction__ring-center">
+              <span class="gallery-interaction__ring-hint"></span>
+              <strong class="gallery-interaction__ring-label"></strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="section" id="contact"><p class="section__placeholder">CONTACT — 준비중</p></section>
   </main>
 

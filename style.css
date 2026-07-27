@@ -232,12 +232,15 @@ button {
 }
 
 .logo {
-  font-family: 'Neue Montreal', sans-serif;
-  font-weight: 700;
-  font-size: 32px;
-  letter-spacing: 1.6px;
-  white-space: nowrap;
-  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  transition: filter 0.2s ease;
+}
+
+.logo__mark {
+  display: block;
+  height: 32px;
+  width: auto;
 }
 
 /* .header--inverted is toggled by script.js once the scroll-dark overlay
@@ -245,9 +248,12 @@ button {
    black -> white swap (the same 0.2s ease already used for hover, not a
    slow scroll-scrubbed blend through gray) for the logo and whichever nav
    link is active. Inactive links are intentionally left alone here -- they
-   stay --color-muted whether the page is light or dark. */
+   stay --color-muted whether the page is light or dark. The logo mark is a
+   flat-black SVG, so inverting it the same way the work-scenes link icon
+   does (filter: invert(1)) flips it to white without needing a second
+   asset. */
 .header--inverted .logo {
-  color: #ffffff;
+  filter: invert(1);
 }
 
 .nav {
@@ -357,50 +363,103 @@ button {
 }
 
 /* ==========================================================================
-   Grid lines background (reference snippet, used as-is)
-   ========================================================================== */
-.grid-lines-container {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  max-width: 1280px;
-  min-height: 100vh;
-  margin: 0 auto;
-  background: #ffffff;
+   Fixed grid-line background (FIXED-GRID-BACKGROUND.md)
+   A single persistent layer living outside <main> entirely, never
+   transformed/translated by any section's own scroll-scrubbed animation --
+   that's the whole trick to it reading as "fixed" rather than tricks like
+   clip-path or per-frame repositioning. Sits at z-index 0: below
+   .scroll-dark-overlay (40) and every section's own pinned/sticky content
+   (41), so any black cover/dark transition simply paints over it in place,
+   and below whichever section is currently in normal flow -- each white
+   section below has had its own opaque background removed so these lines
+   show through it, while black sections (reason-quote, cards-reveal,
+   work-transition's base layer) keep their own opaque background and
+   simply hide the grid, matching "흰 배경일 땐 항상 회색 선, 검은 배경일
+   땐 없음". --u-fixed mirrors --u's own min(1cqw, 19.2px) scale but in vw,
+   since this element sits outside every section's own container-type:
+   inline-size context, so cqw here wouldn't reliably resolve against the
+   viewport the way it does inside those containers. */
+:root {
+  --u-fixed: min(1vw, 19.2px);
+}
+
+.fixed-grid-lines {
+  position: fixed;
+  top: 0;
+  left: calc(16.6667 * var(--u-fixed));
+  right: calc(16.6667 * var(--u-fixed));
+  height: 100vh;
+  z-index: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   border-left: 1px solid var(--color-line);
   border-right: 1px solid var(--color-line);
-  z-index: 0;
+  pointer-events: none;
 }
 
-.grid-lines-col {
+.fixed-grid-lines__col {
   border-right: 1px solid var(--color-line);
 }
 
-.grid-lines-col:last-child {
+.fixed-grid-lines__col:last-child {
   border-right: none;
 }
 
-/* The generic grid snippet above is a fixed 1280px block centered in the
-   viewport, but .hero and .intro-reasons' own title/subtitle/photo/text are
-   all positioned as percentages of a 1920px poster (var(--u)). The two
-   coordinate systems only coincide by chance at exactly 1920px wide --
-   below that, the fixed 1280px block drifts away from the poster's own
-   margins at a different rate, so lines 1/2/4/5 (every one except the
-   dead-center divider, which stays put in both systems by symmetry)
-   visibly jump sideways right at the hero -> intro-reasons handoff instead
-   of reading as one continuous line straight through the scroll. Locking
-   both instances' left/right inset to the same --u scale keeps every line
-   flush with the poster's own content edge -- and each other -- at any
-   width. */
-.hero .grid-lines-container,
-.intro-reasons .grid-lines-container {
+/* .work-transition's white "wipe" reveal is its own clip-path-constrained
+   surface (see .work-transition__wipe below), not the page background, so
+   it needs its own copy of the same lines rather than relying on the
+   global .fixed-grid-lines (which the wipe's own opaque background would
+   just paint over). Reusing .fixed-grid-lines__col for its columns keeps
+   both copies pixel-identical; --u here (not --u-fixed) is correct since
+   .work-transition itself is a container-type: inline-size ancestor
+   spanning the full viewport width, same as every other section's
+   own var(--u) usage. Because clip-path only grows the reveal *window*
+   over this element -- it's never translated -- these lines never shift
+   sideways as the wipe grows, satisfying "선이 옆으로 이동하지 않는". */
+.work-transition__wipe-grid {
+  position: absolute;
+  top: 0;
   left: calc(16.6667 * var(--u));
   right: calc(16.6667 * var(--u));
-  width: auto;
-  max-width: none;
-  margin: 0;
+  height: 100%;
+  z-index: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-left: 1px solid var(--color-line);
+  border-right: 1px solid var(--color-line);
+  pointer-events: none;
+}
+
+/* Same reasoning as .work-transition__wipe-grid above, just for
+   .skill-transition__wipe's own clip-path-constrained surface. */
+.skill-transition__wipe-grid {
+  position: absolute;
+  top: 0;
+  left: calc(16.6667 * var(--u));
+  right: calc(16.6667 * var(--u));
+  height: 100%;
+  z-index: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-left: 1px solid var(--color-line);
+  border-right: 1px solid var(--color-line);
+  pointer-events: none;
+}
+
+/* Same reasoning as .work-transition__wipe-grid above, just for
+   .about-transition__wipe's own clip-path-constrained surface. */
+.about-transition__wipe-grid {
+  position: absolute;
+  top: 0;
+  left: calc(16.6667 * var(--u));
+  right: calc(16.6667 * var(--u));
+  height: 100%;
+  z-index: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-left: 1px solid var(--color-line);
+  border-right: 1px solid var(--color-line);
+  pointer-events: none;
 }
 
 /* ==========================================================================
@@ -1301,6 +1360,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-family: 'Cardinal Fruit', serif;
   font-weight: 400;
   font-style: italic;
+  letter-spacing: 0;
 }
 
 .work-transition__base .work-transition__title {
@@ -1353,8 +1413,483 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
+/* Same pinned scroll-scrub structure/interaction as .work-transition above
+   (title scrolls in from the right and dissolves character-by-character,
+   a clip-path wipe reveals mid-dwell) -- only the light/dark roles invert:
+   .skill-transition__base starts on a WHITE background with BLACK text,
+   and the wipe reveals a BLACK background with WHITE text, the opposite of
+   work-transition's black-to-white. See script.js's updateSkillTransition,
+   which mirrors updateWorkTransition 1:1 except the dark-contribution
+   formula flips (the "dark" state now comes *after* the wipe instead of
+   before it). */
+.skill-transition {
+  position: relative;
+  height: 350vh;
+  background: #ffffff;
+  container-type: inline-size;
+}
+
+.skill-transition__sticky {
+  position: sticky;
+  top: 0;
+  z-index: 41;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.skill-transition__base,
+.skill-transition__wipe {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.skill-transition__base {
+  background: #ffffff;
+}
+
+.skill-transition__wipe {
+  background: #000000;
+  /* Hidden at rest, same collapsed-polygon trick as work-transition's
+     wipe; script.js grows this toward the full rectangle as dwell
+     progress crosses the middle third. */
+  clip-path: polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%);
+}
+
+.skill-transition__scroller {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  padding-left: 320px;
+  padding-right: 80px;
+}
+
+.skill-transition__title {
+  margin: 0;
+  white-space: nowrap;
+  font-size: calc(20.8333 * var(--u));
+  letter-spacing: calc(-0.4167 * var(--u));
+  line-height: normal;
+}
+
+.skill-transition__title .fog-char {
+  display: inline-block;
+}
+
+.skill-transition__title-en {
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+}
+
+.skill-transition__title-em {
+  font-family: 'Cardinal Fruit', serif;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+.skill-transition__base .skill-transition__title {
+  color: #000000;
+}
+
+.skill-transition__wipe .skill-transition__title {
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .skill-transition {
+    height: auto;
+  }
+
+  .skill-transition__sticky {
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
+
+  .skill-transition__base {
+    display: none;
+  }
+
+  .skill-transition__wipe {
+    position: static;
+    inset: auto;
+    clip-path: none;
+    min-height: 40vh;
+    justify-content: center;
+    padding: 64px 24px;
+    box-sizing: border-box;
+  }
+
+  .skill-transition__scroller {
+    white-space: normal;
+    justify-content: center;
+    transform: none !important;
+  }
+
+  .skill-transition__title {
+    white-space: normal;
+    text-align: center;
+    font-size: 56px;
+    letter-spacing: -1px;
+  }
+}
+
+/* Figma node 2832-1978: same pinned scroll-scrub structure/interaction as
+   .work-transition above (title scrolls in from the right and dissolves
+   character-by-character, a clip-path wipe reveals mid-dwell) -- and the
+   same black-to-white direction as .work-transition (not
+   .skill-transition's white-to-black), per the brief: 색상은 검->흰 전환.
+   See script.js's updateAboutTransition, a 1:1 mirror of
+   updateWorkTransition. */
+.about-transition {
+  position: relative;
+  height: 350vh;
+  background: #000000;
+  container-type: inline-size;
+}
+
+.about-transition__sticky {
+  position: sticky;
+  top: 0;
+  /* Above .scroll-dark-overlay's z-index: 40, same convention as every
+     other pinned section's own sticky/stage element. */
+  z-index: 41;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.about-transition__base,
+.about-transition__wipe {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.about-transition__base {
+  background: #000000;
+}
+
+.about-transition__wipe {
+  background: #ffffff;
+  clip-path: polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%);
+}
+
+.about-transition__scroller {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  padding-left: 320px;
+  padding-right: 80px;
+}
+
+.about-transition__title {
+  margin: 0;
+  white-space: nowrap;
+  font-size: calc(20.8333 * var(--u));
+  letter-spacing: calc(-0.4167 * var(--u));
+  line-height: normal;
+}
+
+.about-transition__title .fog-char {
+  display: inline-block;
+}
+
+.about-transition__title-en {
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+}
+
+.about-transition__title-em {
+  font-family: 'Cardinal Fruit', serif;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+.about-transition__base .about-transition__title {
+  color: #ffffff;
+}
+
+.about-transition__wipe .about-transition__title {
+  color: #000000;
+}
+
+@media (max-width: 768px) {
+  .about-transition {
+    height: auto;
+  }
+
+  .about-transition__sticky {
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
+
+  .about-transition__base {
+    display: none;
+  }
+
+  .about-transition__wipe {
+    position: static;
+    inset: auto;
+    clip-path: none;
+    min-height: 40vh;
+    justify-content: center;
+    padding: 64px 24px;
+    box-sizing: border-box;
+  }
+
+  .about-transition__scroller {
+    white-space: normal;
+    justify-content: center;
+    transform: none !important;
+  }
+
+  .about-transition__title {
+    white-space: normal;
+    text-align: center;
+    font-size: 56px;
+    letter-spacing: -1px;
+  }
+}
+
 /* ==========================================================================
-   Work detail — project 01/03 (ILKW web). A static 1920x1080 poster (same
+   Skill content — Figma node 2832-1904. Black-bg section following
+   .skill-transition's wipe-to-black: centered SKILL title + Korean
+   subtitle (fog-in reveal, same IntersectionObserver + wrapChars +
+   --fog-delay pattern as .clone-coding__intro -- see script.js), then a
+   DESIGN/FRONTEND/AI three-column list that pins at viewport-center
+   (position: sticky, same top: 50vh / translateY(-50%) trick as
+   .clone-coding__intro) while the two flanking icon clusters rise up
+   into place beside it -- same one-time IntersectionObserver reveal as
+   .clone-coding__card, applied per icon. Icons use the project's own
+   local SVGs instead of Figma's exported assets.
+   ========================================================================== */
+.skill-content {
+  position: relative;
+  /* Above .scroll-dark-overlay's z-index: 40, same convention as every
+     other section that contributes to it (see .reason-quote__sticky) --
+     without this the overlay (opacity driven by skillContentDarkContribution
+     in script.js) paints its own solid black over this section's content
+     instead of just keeping the header inverted behind it. */
+  z-index: 41;
+  background: #000000;
+  color: #ffffff;
+  container-type: inline-size;
+}
+
+.skill-content__intro {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(0.8333 * var(--u));
+  width: min(100cqw, 1920px);
+  margin: calc(13.4375 * var(--u)) auto 0;
+  text-align: center;
+}
+
+.skill-content__title {
+  margin: 0;
+  line-height: normal;
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(5.2083 * var(--u));
+  letter-spacing: calc(-0.1042 * var(--u));
+}
+
+/* Reverse-of-dissolve fog-in, identical mechanics to
+   .clone-coding__title-char: script.js wraps each character, staggers
+   --fog-delay, and toggles .is-revealed on .skill-content__intro via
+   IntersectionObserver so it replays on every re-entry. */
+.skill-content__title-char {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(18px);
+  transform: translateY(calc(0.6 * var(--u)));
+  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.skill-content__intro.is-revealed .skill-content__title-char {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+.skill-content__subtitle {
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(0.8333 * var(--u));
+  letter-spacing: calc(-0.0167 * var(--u));
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  filter: blur(16px);
+  transform: translateY(calc(0.5 * var(--u)));
+  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.skill-content__intro.is-revealed .skill-content__subtitle {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-content__title-char,
+  .skill-content__subtitle {
+    transition: none;
+  }
+}
+
+/* Stage below the intro: .skill-content__columns is the only in-flow
+   child (icons are position: absolute), so this height alone controls
+   how long the sticky pin holds -- same technique as
+   .clone-coding__stage / .clone-coding__intro. margin-top is viewport-
+   relative (not the --u scale) and must clear at least half a viewport
+   height -- the column's sticky offset (top: 50vh) engages the moment
+   its static position scrolls within 50vh of the top, so anything
+   shorter lets it snap to center while .skill-content__intro is still
+   on screen above it. */
+.skill-content__stage {
+  position: relative;
+  width: min(100cqw, 1920px);
+  height: calc(90 * var(--u));
+  margin: 60vh auto 0;
+}
+
+.skill-content__icons {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10.4167 * var(--u));
+  z-index: 0;
+}
+
+.skill-content__icons--left {
+  left: calc(18 * var(--u));
+}
+
+.skill-content__icons--right {
+  right: calc(18 * var(--u));
+}
+
+/* Each icon starts lower + faded and rises into place once it scrolls
+   into view, staying there -- same one-time reveal mechanics as
+   .clone-coding__card (script.js observes + unobserves per icon).
+   position: relative + the nth-child(odd/even) left offsets below zigzag
+   the cluster instead of stacking every icon on one straight line;
+   transition-delay staggers each icon's rise so they pop up one after
+   another rather than all at once. */
+.skill-content__icon {
+  display: block;
+  object-fit: contain;
+  position: relative;
+  opacity: 0;
+  transform: translateY(calc(2.5 * var(--u)));
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.skill-content__icon.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.skill-content__icon:nth-child(odd) { left: calc(-2.0833 * var(--u)); }
+.skill-content__icon:nth-child(even) { left: calc(2.0833 * var(--u)); }
+
+.skill-content__icon:nth-child(1) { transition-delay: 0s; }
+.skill-content__icon:nth-child(2) { transition-delay: 0.09s; }
+.skill-content__icon:nth-child(3) { transition-delay: 0.18s; }
+.skill-content__icon:nth-child(4) { transition-delay: 0.27s; }
+.skill-content__icon:nth-child(5) { transition-delay: 0.36s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-content__icon {
+    transition: none;
+  }
+}
+
+.skill-content__icon--figma { width: calc(3.0385 * var(--u)); height: calc(4.5578 * var(--u)); }
+.skill-content__icon--illustrator { width: calc(3.8969 * var(--u)); height: calc(3.7775 * var(--u)); }
+.skill-content__icon--javascript { width: calc(4.5302 * var(--u)); height: calc(5.1885 * var(--u)); }
+.skill-content__icon--claude { width: calc(4.3286 * var(--u)); height: calc(4.3286 * var(--u)); }
+.skill-content__icon--midjourney { width: calc(4.6498 * var(--u)); height: calc(4.6498 * var(--u)); }
+.skill-content__icon--photoshop { width: calc(3.8176 * var(--u)); height: calc(3.7132 * var(--u)); }
+.skill-content__icon--html { width: calc(4.5302 * var(--u)); height: calc(5.0509 * var(--u)); }
+.skill-content__icon--css { width: calc(4.5302 * var(--u)); height: calc(5.3230 * var(--u)); }
+.skill-content__icon--gpt { width: calc(4.6804 * var(--u)); height: calc(4.6804 * var(--u)); }
+.skill-content__icon--gemini { width: calc(5.2157 * var(--u)); height: calc(5.2157 * var(--u)); }
+
+/* The columns block itself: stays in normal flow until its sticky offset
+   engages, then holds at viewport-center for the rest of the stage's
+   height, same trick as .clone-coding__intro (position: sticky; top:
+   50vh; transform: translateY(-50%) instead of top: 50% so the offset
+   resolves against the viewport, not the stage's own box). */
+.skill-content__columns {
+  position: sticky;
+  top: 50vh;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: calc(3.6458 * var(--u));
+  width: calc(28.8542 * var(--u));
+  margin: 0 auto;
+  text-align: left;
+}
+
+.skill-content__column {
+  flex: 0 0 auto;
+}
+
+.skill-content__column-title {
+  margin: 0 0 calc(2.6146 * var(--u));
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 500;
+  font-size: calc(1.25 * var(--u));
+  letter-spacing: calc(-0.025 * var(--u));
+  line-height: normal;
+}
+
+.skill-content__column-title--ai {
+  letter-spacing: calc(0.0375 * var(--u));
+}
+
+.skill-content__column-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.25 * var(--u));
+}
+
+.skill-content__column-list li {
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(1.0417 * var(--u));
+  line-height: normal;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+/* Work detail — project 01/03 (ILKW web). A static 1920x1080 poster (same
    width min(100cqw,1920px) + aspect-ratio scaling technique as the other
    sections' __stage) for the cover itself, but the section stays pinned
    past that cover for an extra dwell: .work-detail__track holds the cover
@@ -1366,8 +1901,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    ========================================================================== */
 .work-detail {
   position: relative;
-  background: #ffffff;
-  border-top: 1px solid var(--color-line);
+  /* No background of its own (body's white shows through) so the global
+     .fixed-grid-lines is visible behind the cover instead of being painted
+     over -- #scrollDarkOverlay covers it the same "curtain" way once the
+     scenes darken, rather than anything here pushing/sliding it away. No
+     border-top either -- a horizontal seam at the work-transition handoff
+     would cut across the fixed grid's own vertical lines, which should
+     read as one uninterrupted background straight through the transition. */
   container-type: inline-size;
   /* 100vh for the cover to sit at rest, fully visible, before pinning kicks
      in + 1680vh dwell once pinned, paced by script.js's fraction constants
@@ -1416,15 +1956,6 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0 auto;
 }
 
-.work-detail__grid-lines {
-  position: absolute;
-  top: 0;
-  left: calc(16.6667 * var(--u));
-  width: calc(66.6667 * var(--u));
-  height: 100%;
-  pointer-events: none;
-}
-
 /* Single pre-composited mockup (all three devices + their shadows already
    baked in as one image) replacing what used to be three separate device
    photos (iMac/iPad/iPhone), each with their own bezel+screen layering.
@@ -1453,7 +1984,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   width: calc(38.0208 * var(--u));
   display: flex;
   flex-direction: column;
-  gap: calc(3.3854 * var(--u));
+  gap: calc(2.6042 * var(--u));
 }
 
 /* Wraps .work-detail__meta + .work-detail__progress with their own,
@@ -1504,11 +2035,21 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-weight: 400;
   font-size: calc(1.25 * var(--u));
   letter-spacing: calc(-0.025 * var(--u));
+  /* Same reasoning as .work-detail__title above -- Figma's own eyebrow
+     paragraph is whitespace-nowrap too, meant to overflow past
+     .work-detail__heading's nominal width rather than wrap. Went unnoticed
+     for ILKW/W:RUN's shorter eyebrow copy; MU:it's is long enough to wrap
+     without this. */
+  white-space: nowrap;
 }
 
 .work-detail__title {
   margin: 0;
   line-height: normal;
+  /* Figma's own title paragraph is whitespace-nowrap -- it's meant to
+     overflow past .work-detail__heading's nominal width rather than wrap,
+     since that width is really sized for the eyebrow line above it. */
+  white-space: nowrap;
 }
 
 .work-detail__title-en,
@@ -1565,7 +2106,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .work-detail__meta {
   display: flex;
   flex-direction: column;
-  gap: calc(2.0833 * var(--u));
+  gap: calc(1.9 * var(--u));
 }
 
 .work-detail__meta-group {
@@ -1582,14 +2123,14 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0;
   font-family: 'Neue Montreal', sans-serif;
   font-weight: 500;
-  font-size: calc(1.25 * var(--u));
+  font-size: calc(1.0417 * var(--u));
 }
 
 .work-detail__meta-value {
   margin: 0;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   font-weight: 400;
-  font-size: calc(1.0417 * var(--u));
+  font-size: calc(0.9375 * var(--u));
   letter-spacing: calc(-0.0208 * var(--u));
 }
 
@@ -1597,7 +2138,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   font-weight: 400;
-  font-size: calc(1.0417 * var(--u));
+  font-size: calc(0.9375 * var(--u));
   letter-spacing: calc(-0.0208 * var(--u));
   line-height: 1.4;
 }
@@ -1615,7 +2156,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   font-weight: 400;
-  font-size: calc(1.0417 * var(--u));
+  font-size: calc(0.9375 * var(--u));
   letter-spacing: calc(-0.0208 * var(--u));
   line-height: 1.4;
   white-space: nowrap;
@@ -1632,7 +2173,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   display: flex;
   align-items: center;
   gap: calc(0.5208 * var(--u));
-  font-size: calc(1.25 * var(--u));
+  font-size: calc(1.1458 * var(--u));
   letter-spacing: calc(-0.025 * var(--u));
 }
 
@@ -1644,6 +2185,385 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .work-detail__progress-item span {
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   font-weight: 400;
+}
+
+/* ==========================================================================
+   Work cover 2 — project 02/03 (W:RUN app). A plain static poster, NOT
+   wired into .work-detail's pinned/sliding track -- project 2's own scenes
+   don't exist yet, so there's nothing to slide to. Reuses .work-detail__info
+   and everything under it (head/heading/meta/brief/contributed/progress)
+   as-is since that typography is identical between covers; only the stage
+   wrapper and mockup get their own classes here, since this cover's mockup
+   is a single pre-composited image (three phones + Apple Watch, shadows
+   already baked in) positioned differently than ILKW's. --u still resolves
+   correctly against this section's own container-type: inline-size, same
+   1920-wide design scale as .work-detail. */
+.work-cover2 {
+  position: relative;
+  container-type: inline-size;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.work-cover2__stage {
+  position: relative;
+  width: min(100cqw, 1920px);
+  aspect-ratio: 1920 / 1080;
+  margin: 0 auto;
+}
+
+/* Position/size derived from the actual visible (non-transparent) content
+   inside work-werun-mockup.png, not the raw image box -- this asset has
+   more padding baked in around the phones than Figma's own export, so
+   reusing Figma's group bounding box directly overshot into the copy
+   column. Numbers below place that visible content at the same 8.5u-46.5u
+   horizontal / 8.5u-49.6u vertical span Figma's cover uses. */
+.work-cover2__mockup {
+  position: absolute;
+  left: calc(-1.9 * var(--u));
+  top: calc(8.1 * var(--u));
+  width: calc(52.8 * var(--u));
+  height: auto;
+  max-width: none;
+}
+
+/* ==========================================================================
+   Work cover 3 — project 03/03 (MU:it app). Same static-poster treatment as
+   .work-cover2 above, and for the same reason: this project's own scenes
+   don't exist yet, so there's nothing to slide to. */
+.work-cover3 {
+  position: relative;
+  container-type: inline-size;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.work-cover3__stage {
+  position: relative;
+  width: min(100cqw, 1920px);
+  aspect-ratio: 1920 / 1080;
+  margin: 0 auto;
+}
+
+/* Position/size derived from the actual visible (non-transparent) content
+   inside work-muit-mockup.png (a tightly-cropped phone fan, unlike
+   work-werun-mockup's generous padding) mapped onto where Figma's own
+   cover places that same content -- see .work-cover2__mockup's comment for
+   the general technique. The asset's own content aspect ratio doesn't
+   quite match Figma's target span (its crop is a bit shorter top-to-bottom
+   relative to its width than Figma's), so top is centered between the
+   top- and bottom-matching values rather than hitting both exactly. */
+.work-cover3__mockup {
+  position: absolute;
+  left: calc(-5.1 * var(--u));
+  top: calc(5.6 * var(--u));
+  width: calc(56 * var(--u));
+  height: auto;
+  max-width: none;
+}
+
+/* ==========================================================================
+   Clone coding -- gallery of 6 clone-coding projects, each card rising into
+   place as it scrolls into view (script.js toggles .is-revealed via
+   IntersectionObserver). NOT related to .cards-reveal above (that's an
+   unrelated pinned 3D flip-card personal-values narrative) -- kept as a
+   distinct class scheme on purpose so the two aren't confused. Figma's own
+   decorative diagonal-line background behind the cards is skipped, same as
+   all three work covers above which also omit that layer.
+   ========================================================================== */
+.clone-coding {
+  position: relative;
+  container-type: inline-size;
+}
+
+.clone-coding__stage {
+  position: relative;
+  width: min(100cqw, 1920px);
+  height: calc(234 * var(--u));
+  margin: 0 auto;
+}
+
+.clone-coding__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(0.625 * var(--u));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clone-coding__chip {
+  padding: calc(0.4167 * var(--u)) calc(0.8333 * var(--u));
+  border: 1px solid #000000;
+  border-radius: 999px;
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(0.7292 * var(--u));
+  letter-spacing: calc(-0.0146 * var(--u));
+  white-space: nowrap;
+  opacity: 0;
+  filter: blur(14px);
+  transform: translateY(calc(0.4 * var(--u)));
+  transition: opacity 0.8s ease, filter 0.8s ease, transform 0.8s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.clone-coding__intro.is-revealed .clone-coding__chip {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+/* Sticky instead of absolute: this is the only in-flow child of
+   .clone-coding__stage (chips/grid stay position:absolute), so as the
+   page scrolls it travels up normally until its top edge reaches the
+   middle of the viewport, then holds there while the rest of the stage
+   -- the cards -- keeps scrolling past underneath. .clone-coding__grid
+   comes after it in the DOM, so the cards paint above it and visually
+   rise up over the pinned intro. Un-sticks once the stage (its
+   containing block) scrolls past, same as any sticky element. */
+.clone-coding__intro {
+  position: sticky;
+  top: 50vh;
+  transform: translateY(-50%);
+  margin: calc(16.25 * var(--u)) auto 0;
+  width: calc(55.7813 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(0.8333 * var(--u));
+  text-align: center;
+  z-index: 0;
+}
+
+.clone-coding__title {
+  margin: 0;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.clone-coding__title-em,
+.clone-coding__title-en {
+  font-size: calc(5.2083 * var(--u));
+  letter-spacing: calc(-0.1042 * var(--u));
+}
+
+.clone-coding__title-em {
+  font-family: 'Cardinal Fruit', serif;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.clone-coding__title-en {
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+}
+
+/* Reverse of .work-transition__title .fog-char: instead of scrubbing
+   dissolve-away with scroll, each character starts already "fogged"
+   (blurred/faded/dropped) and condenses into place via a plain CSS
+   transition, staggered across the whole .clone-coding__intro (chips,
+   then title chars, then subtitle) whenever the intro gets .is-revealed.
+   Unlike the one-time card reveal, script.js toggles .is-revealed on and
+   off as the sticky intro enters/leaves the viewport, so scrolling away
+   and back re-plays the fog-in every time. A plain transition-delay per
+   element is enough for this replay-on-reentry behavior -- no need for
+   the scroll-scrubbed getBoundingClientRect machinery the original
+   dissolve effect uses. */
+.clone-coding__title-char {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(18px);
+  transform: translateY(calc(0.6 * var(--u)));
+  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.clone-coding__intro.is-revealed .clone-coding__title-char {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clone-coding__chip,
+  .clone-coding__title-char,
+  .clone-coding__subtitle {
+    transition: none;
+  }
+}
+
+.clone-coding__subtitle {
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(0.8333 * var(--u));
+  letter-spacing: calc(-0.0167 * var(--u));
+  line-height: 1.4;
+  opacity: 0;
+  filter: blur(16px);
+  transform: translateY(calc(0.5 * var(--u)));
+  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.clone-coding__intro.is-revealed .clone-coding__subtitle {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+.clone-coding__grid {
+  position: absolute;
+  inset: 0;
+}
+
+/* Cards start translated down + faded out; script.js adds .is-revealed
+   once each card scrolls into view, animating it up into its resting
+   position ("스크롤하면 밑에 카드들이 위로 올라오는 형식"). */
+.clone-coding__card {
+  position: absolute;
+  width: calc(37.8125 * var(--u));
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.5625 * var(--u));
+  opacity: 0;
+  transform: translateY(calc(4 * var(--u)));
+  transition: opacity 0.4s ease, transform 0.8s ease;
+}
+
+.clone-coding__card.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.clone-coding__card--1 { left: calc(8.8542 * var(--u)); top: calc(38.9063 * var(--u)); }
+.clone-coding__card--2 { left: calc(53.3333 * var(--u)); top: calc(71.6667 * var(--u)); }
+.clone-coding__card--3 { left: calc(8.8542 * var(--u)); top: calc(104.4271 * var(--u)); }
+.clone-coding__card--4 { left: calc(53.3333 * var(--u)); top: calc(137.1875 * var(--u)); }
+.clone-coding__card--5 { left: calc(8.8542 * var(--u)); top: calc(170.1563 * var(--u)); }
+.clone-coding__card--6 { left: calc(53.3333 * var(--u)); top: calc(202.7083 * var(--u)); }
+
+.clone-coding__frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: calc(23.6979 * var(--u));
+  border-radius: calc(2.6042 * var(--u));
+  overflow: hidden;
+}
+
+.clone-coding__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.35s ease, transform 0.35s ease;
+}
+
+/* As each card rises into place, the photo settles in slightly zoomed
+   in rather than at rest -- a small "this is hoverable" affordance on
+   top of the bigger hover zoom below. */
+.clone-coding__card.is-revealed .clone-coding__img {
+  transform: scale(1.02);
+}
+
+/* Hover: darken the shot and swap the pointer for a "view website" badge
+   that follows it around inside the frame, inviting the click (Figma node
+   3136:716). The badge itself acts as the cursor -- native cursor is
+   hidden via cursor:none, and script.js drives its position on
+   mousemove; CSS only owns the show/hide (.is-active) and pop-in scale,
+   using the standalone `scale` property so it doesn't fight the
+   position `transform` JS sets inline. */
+.clone-coding__frame:hover .clone-coding__img {
+  filter: brightness(0.55);
+  transform: scale(1.06);
+}
+
+.clone-coding__frame {
+  cursor: none;
+}
+
+.clone-coding__badge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(5.8854 * var(--u));
+  height: calc(5.8854 * var(--u));
+  transform: translate(-50%, -50%);
+  scale: 0.85;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(0.3125 * var(--u));
+  border: 1px solid #ffffff;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition: opacity 0.2s ease, scale 0.2s ease;
+  pointer-events: none;
+}
+
+.clone-coding__badge.is-active {
+  opacity: 1;
+  scale: 1;
+}
+
+.clone-coding__badge-icon {
+  position: relative;
+  width: calc(1.25 * var(--u));
+  height: calc(1.25 * var(--u));
+}
+
+/* "VIEW WEBSITE" spins slowly around the badge ring's border while
+   hovering, riding an SVG textPath so the letters curve with the
+   circle instead of sitting on a straight baseline. Paused by default
+   and only spun up via .is-active so idle cards cost nothing. */
+.clone-coding__badge-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: clone-badge-spin 9s linear infinite;
+  animation-play-state: paused;
+  transform-origin: 50% 50%;
+}
+
+.clone-coding__badge.is-active .clone-coding__badge-ring {
+  animation-play-state: running;
+}
+
+.clone-coding__badge-ring text {
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 500;
+  font-size: 8.2px;
+  fill: #ffffff;
+}
+
+@keyframes clone-badge-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clone-coding__badge-ring {
+    animation: none;
+  }
+}
+
+.clone-coding__caption {
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(0.9375 * var(--u));
+  letter-spacing: calc(-0.0188 * var(--u));
+  text-align: center;
 }
 
 /* ==========================================================================
@@ -1660,6 +2580,45 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   width: min(100cqw, 1920px);
   aspect-ratio: 1920 / 1080;
   margin: 0 auto;
+}
+
+/* Glowing curve running behind the mockup/copy of all 6 work-scenes panels
+   at once (Figma spec: 10px stroke, warm rgba(251,242,223,0.5), 7.5px blur
+   at full scale -- converted to var(--u)). This is a SINGLE path spanning
+   all 6 scene panels' combined width, not one per panel: a viewer asked
+   for the light streak to keep drawing continuously as they scroll from
+   scene to scene rather than resetting/restarting at every panel boundary,
+   so one long path is scroll-driven a single time across the whole
+   work-scenes journey instead of each scene re-triggering its own copy.
+   It's a child of #workDetailTrack itself (not of any one .work-detail__panel)
+   sized to the 6 work-scenes panels' combined width and offset past the
+   leading cover panel, so it slides along with the track's own translateX
+   and never re-enters/resets per panel. Placed first in track's markup so
+   plain DOM order (both track's children and, within each panel, the
+   device/copy already being position: absolute with no z-index of their
+   own) puts every panel's content on top of it, same "behind the mockup/
+   text" read as before. --u here resolves against .work-detail's own
+   container query (the nearest container-type ancestor above the
+   non-container track), which has the same inline size as every
+   .work-detail__panel, so the scale matches what the path's own geometry
+   (drawn in one 1920-wide unit repeated 6x) assumes per panel. */
+.work-detail__glow-curve {
+  position: absolute;
+  left: 100%;
+  top: calc(20.5933 * var(--u));
+  width: 600%;
+  height: calc(15.0633 * var(--u));
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.work-detail__glow-curve path {
+  fill: none;
+  stroke: rgba(251, 242, 223, 0.5);
+  stroke-width: calc(0.5208 * var(--u));
+  stroke-linecap: round;
+  filter: blur(calc(0.3906 * var(--u)));
 }
 
 .work-scenes__eyebrow {
@@ -2160,6 +3119,224 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* ==========================================================================
+   Gallery interaction ("WHAT shapes ME") -- ported from the standalone
+   gallery-interaction-clone project per GALLERY_INTERACTION_GUIDE.md.
+   Header/footer/scroll-rail from the original are dropped since the
+   portfolio already has its own; positions are switched from
+   viewport-fixed to absolute-within-the-sticky-pin.
+   ========================================================================== */
+.gallery-interaction {
+  position: relative;
+  height: 1081vh;
+  container-type: inline-size;
+}
+
+/* No background here (unlike the black wipe surfaces elsewhere, e.g.
+   .work-transition__wipe) -- the canvas clears to transparent
+   (gl.clearColor(0,0,0,0)) and this section's own background is white
+   already, so leaving this transparent lets the sitewide
+   .fixed-grid-lines (z-index 0, position:fixed, painted under <body>'s
+   white) show through for this section's entire pinned dwell, matching
+   every other white section's "흰 배경일 땐 항상 회색 선" convention
+   instead of hiding it behind an opaque re-paint. */
+.gallery-interaction__pin {
+  position: sticky;
+  top: 0;
+  z-index: 41;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.gallery-interaction__copy {
+  position: absolute;
+  left: 50%;
+  z-index: 3;
+  width: min(520px, calc(100vw - 48px));
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.gallery-interaction__copy--intro {
+  top: 50%;
+  width: max-content;
+  max-width: calc(100vw - 48px);
+  transform: translate(-50%, -50%);
+  transition: opacity 260ms linear;
+}
+
+.gallery-interaction__copy--vision {
+  bottom: clamp(120px, 14vh, 170px);
+  transform: translateX(-50%);
+  transition: opacity 220ms linear;
+}
+
+.gallery-interaction.is-intro-ready .gallery-interaction__copy--intro {
+  opacity: 1;
+}
+
+.gallery-interaction.is-vision .gallery-interaction__copy--intro {
+  opacity: 0;
+}
+
+.gallery-interaction.is-vision-copy-ready .gallery-interaction__copy--vision {
+  opacity: 1;
+}
+
+.gallery-interaction__shape-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  min-width: 100%;
+  margin: 0;
+  color: #000;
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.gallery-interaction__shape-title em {
+  font-family: 'Cardinal Fruit', serif;
+  font-size: 34px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.gallery-interaction__shape-subtitle {
+  display: block;
+  margin-top: 10px;
+  color: #000;
+  font-family: 'Neue Montreal', sans-serif;
+  font-size: 16px;
+  line-height: normal;
+  letter-spacing: -0.32px;
+  white-space: nowrap;
+}
+
+.gallery-interaction__vision-title {
+  min-width: 100%;
+  margin: 0;
+  color: #000;
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 500;
+  font-size: 36px;
+  line-height: normal;
+}
+
+.gallery-interaction__vision-description {
+  margin-top: 10px;
+  color: #000;
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.4;
+  letter-spacing: -0.32px;
+  white-space: nowrap;
+}
+
+.gallery-interaction__vision-description p {
+  margin: 0;
+}
+
+.gallery-interaction__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  perspective: 900px;
+  perspective-origin: 50% 50%;
+  pointer-events: auto;
+}
+
+.gallery-interaction__gallery {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.gallery-interaction__webgl-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.gallery-interaction__ring-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.gallery-interaction__ring-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  text-align: center;
+}
+
+.gallery-interaction__ring-hint {
+  font-family: 'Neue Montreal', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+}
+
+.gallery-interaction__ring-label {
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ink, #252b2d);
+}
+
+@media (max-width: 900px) {
+  .gallery-interaction__shape-title {
+    font-size: 32px;
+  }
+
+  .gallery-interaction__vision-title {
+    font-size: 32px;
+  }
+
+  .gallery-interaction__copy--vision {
+    bottom: clamp(96px, 12vh, 132px);
+  }
+}
+
+@media (max-width: 520px) {
+  .gallery-interaction {
+    height: 950vh;
+  }
+
+  .gallery-interaction__copy {
+    width: calc(100vw - 40px);
+  }
+
+  .gallery-interaction__shape-title {
+    font-size: 27px;
+  }
+
+  .gallery-interaction__vision-title {
+    font-size: 27px;
+  }
+
+  .gallery-interaction__copy--vision {
+    bottom: clamp(78px, 11vh, 104px);
+  }
+}
+
+/* ==========================================================================
    Placeholder sections (to be implemented from future Figma frames)
    ========================================================================== */
 .section {
@@ -2188,8 +3365,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .nav {
     gap: 76px;
   }
-  .logo {
-    font-size: 26px;
+  .logo__mark {
+    height: 26px;
   }
   .nav__link {
     font-size: 16px;
@@ -2204,8 +3381,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .nav {
     gap: 56px;
   }
-  .logo {
-    font-size: 24px;
+  .logo__mark {
+    height: 24px;
   }
   .nav__link {
     font-size: 15px;
@@ -2226,8 +3403,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .mobile-nav {
     display: flex;
   }
-  .logo {
-    font-size: 22px;
+  .logo__mark {
+    height: 22px;
   }
 
   /* Intro-reasons: temporary mobile legibility fix. The desktop layout
@@ -2458,6 +3635,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     height: auto;
   }
 
+  /* The spanning curve's sizing/position math assumes the sliding-track
+     layout (left: 100%/width: 600% of the track's own box) that this
+     breakpoint drops in favor of a plain static stack -- with the track
+     no longer a fixed-width filmstrip, those percentages no longer mean
+     anything, so just drop the decoration rather than have it render
+     somewhere nonsensical. */
+  .work-detail__glow-curve {
+    display: none;
+  }
+
   .work-detail__stage {
     aspect-ratio: unset;
     width: 100%;
@@ -2467,10 +3654,6 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     flex-direction: column;
     align-items: center;
     gap: 24px;
-  }
-
-  .work-detail__grid-lines {
-    display: none;
   }
 
   .work-detail__mockup {
@@ -2622,6 +3805,141 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .work-scenes__desc-kr {
     font-size: 14px;
   }
+
+  /* Work cover 2: same static-stack treatment as .work-detail's own mobile
+     fallback above -- drop the fixed 1920x1080 poster for a plain centered
+     column. */
+  .work-cover2 {
+    min-height: auto;
+  }
+
+  .work-cover2__stage {
+    aspect-ratio: unset;
+    width: 100%;
+    padding: 64px 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .work-cover2__mockup {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    width: 100%;
+    height: auto;
+    margin: 0 auto;
+    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.1));
+  }
+
+  /* Work cover 3: same static-stack treatment as work cover 2's own mobile
+     fallback above. */
+  .work-cover3 {
+    min-height: auto;
+  }
+
+  .work-cover3__stage {
+    aspect-ratio: unset;
+    width: 100%;
+    padding: 64px 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .work-cover3__mockup {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    width: 100%;
+    height: auto;
+    margin: 0 auto;
+    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.1));
+  }
+
+  /* Clone coding: same static-stack treatment as the work covers' own
+     mobile fallback above -- drop the absolute-positioned poster for a
+     plain centered column, single card per row. */
+  .clone-coding__stage {
+    width: 100%;
+    height: auto;
+    padding: 64px 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+  }
+
+  .clone-coding__intro {
+    position: static;
+    left: auto;
+    top: auto;
+    width: auto;
+    margin: 0;
+    transform: none;
+  }
+
+  .clone-coding__grid {
+    position: static;
+    inset: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .clone-coding__card {
+    position: static;
+    width: 100%;
+  }
+
+  .clone-coding__frame {
+    height: auto;
+    aspect-ratio: 726 / 455;
+  }
+
+  /* Skill content: same static-stack treatment -- drop the absolute
+     "constellation" icon clusters (purely decorative, aria-hidden) and
+     the sticky-pin behavior, stacking title/subtitle/columns in a plain
+     centered column instead. */
+  .skill-content__stage {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0 24px 64px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .skill-content__icons {
+    display: none;
+  }
+
+  .skill-content__intro {
+    width: 100%;
+    margin: 0;
+    padding: 64px 24px 0;
+    box-sizing: border-box;
+  }
+
+  .skill-content__columns {
+    position: static;
+    transform: none;
+    width: 100%;
+    max-width: 360px;
+    margin: 48px auto 0;
+    flex-direction: column;
+    gap: 32px;
+  }
 }
 
 /* Mobile 430 */
@@ -2629,9 +3947,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .header__inner {
     padding: 16px 20px;
   }
-  .logo {
-    font-size: 19px;
-    letter-spacing: 1px;
+  .logo__mark {
+    height: 19px;
   }
   .hamburger {
     width: 28px;
@@ -2669,7 +3986,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .header__inner {
     padding: 14px 16px;
   }
-  .logo {
-    font-size: 17px;
+  .logo__mark {
+    height: 17px;
   }
 }
