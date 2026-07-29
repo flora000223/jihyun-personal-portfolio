@@ -1424,7 +1424,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   position: relative;
   /* See .work-transition's comment above -- same reasoning, kept in sync. */
   height: 440vh;
-  background: #ffffff;
+  background: transparent;
   container-type: inline-size;
 }
 
@@ -1446,7 +1446,11 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .skill-transition__base {
-  background: #ffffff;
+  background: transparent;
+}
+
+.skill-transition__base .skill-transition__wipe-grid {
+  display: none;
 }
 
 .skill-transition__wipe {
@@ -1726,7 +1730,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-size: calc(0.8333 * var(--u));
   letter-spacing: calc(-0.0167 * var(--u));
   line-height: 1.4;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffffff;
   opacity: 0;
   filter: blur(16px);
   transform: translateY(calc(0.5 * var(--u)));
@@ -1735,7 +1739,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .skill-content__intro.is-revealed .skill-content__subtitle {
-  opacity: 1;
+  opacity: 0.7;
   filter: blur(0);
   transform: translateY(0);
 }
@@ -1917,17 +1921,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
      read as one uninterrupted background straight through the transition. */
   container-type: inline-size;
   /* 100vh for the cover to sit at rest, fully visible, before pinning kicks
-     in + 1680vh dwell once pinned, paced by script.js's fraction constants
-     (a seven-panel filmstrip now: cover -> TYPOGRAPHY -> LIGHT ->
-     BEFORE & AFTER -> EDITORIAL -> RESPONSIVE -> better TOGETHER): a pause
-     at the cover, then for each scene in turn -- slide in while the
-     background darkens (only visibly on the very first slide; it's
-     already black after that), a wide/slow fill of that scene's desc-en
-     gray -> white, a brief hold -- and finally a longer hold before the
-     section releases. Chaining an eighth panel later means growing this
-     height further and adding its own stage + slide/fill window the same
-     way. */
-  height: calc(100vh + 1680vh);
+     in + 1425vh dwell once pinned, paced by script.js's fraction constants
+     (a six-panel filmstrip now: cover -> CRAFTING -> TYPOGRAPHY ->
+     BEFORE & AFTER -> EDITORIAL -> better TOGETHER): a pause at the cover,
+     then for each scene in turn -- slide in while the background darkens
+     (only visibly on the very first slide; it's already black after
+     that), a wide/slow fill of that scene's desc-en gray -> white, a
+     brief hold -- and finally a longer hold before the section releases.
+     Chaining a seventh panel later means growing this height further and
+     adding its own stage + slide/fill window the same way. */
+  height: calc(100vh + 1425vh);
 }
 
 .work-detail__sticky {
@@ -1942,18 +1945,43 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .work-detail__track {
-  display: flex;
+  position: relative;
+  display: block;
   height: 100%;
+  --detail-overlay-x: 100%;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.work-detail__track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #000000;
+  transform: translateX(var(--detail-overlay-x));
   will-change: transform;
 }
 
 .work-detail__panel {
-  flex: 0 0 100%;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   container-type: inline-size;
+  will-change: transform;
+}
+
+.work-detail__panel:first-of-type {
+  will-change: filter;
+}
+
+.work-detail__panel + .work-detail__panel {
+  z-index: 3;
+  transform: translateX(100%);
 }
 
 .work-detail__stage {
@@ -2195,29 +2223,26 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* ==========================================================================
-   Work cover 2 — project 02/03 (W:RUN app). A plain static poster, NOT
-   wired into .work-detail's pinned/sliding track -- project 2's own scenes
-   don't exist yet, so there's nothing to slide to. Reuses .work-detail__info
-   and everything under it (head/heading/meta/brief/contributed/progress)
-   as-is since that typography is identical between covers; only the stage
-   wrapper and mockup get their own classes here, since this cover's mockup
-   is a single pre-composited image (three phones + Apple Watch, shadows
-   already baked in) positioned differently than ILKW's. --u still resolves
-   correctly against this section's own container-type: inline-size, same
-   1920-wide design scale as .work-detail. */
-.work-cover2 {
-  position: relative;
-  container-type: inline-size;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
+   Work detail — project 02/03 (W:RUN app). Same pinned/sliding-track
+   pattern as .work-detail above (that's the shared/base rule this modifier
+   layers onto -- see its own comment for the full mechanism); this
+   modifier only overrides what's actually project-specific: the dwell
+   height (a shorter journey so far -- cover + four scenes, not cover +
+   five) and the cover's own mockup position (a single pre-composited
+   image, three phones + Apple Watch with shadows already baked in,
+   positioned differently than ILKW's). No .work-detail__glow-curve
+   override needed -- this project's markup doesn't include that SVG at
+   all yet. */
+.work-detail--p2 {
+  /* 100vh for the cover to sit at rest + 1170vh dwell, paced by script.js's
+     initWorkDetailSequence call for #workDetail2 (a five-panel filmstrip:
+     cover -> RETENSION-FOCUSED experience -> COMMUNITY & CREW -> SHARE your
+     RUN -> AI running PARTNER). */
+  height: calc(100vh + 1170vh);
 }
 
-.work-cover2__stage {
-  position: relative;
-  width: min(100cqw, 1920px);
-  aspect-ratio: 1920 / 1080;
-  margin: 0 auto;
+.work-detail--p3 {
+  height: calc(100vh + 1425vh);
 }
 
 /* Position/size derived from the actual visible (non-transparent) content
@@ -2226,19 +2251,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    reusing Figma's group bounding box directly overshot into the copy
    column. Numbers below place that visible content at the same 8.5u-46.5u
    horizontal / 8.5u-49.6u vertical span Figma's cover uses. */
-.work-cover2__mockup {
-  position: absolute;
+.work-detail__mockup--p2 {
   left: calc(-1.9 * var(--u));
   top: calc(8.1 * var(--u));
   width: calc(52.8 * var(--u));
-  height: auto;
-  max-width: none;
 }
 
 /* ==========================================================================
    Work cover 3 — project 03/03 (MU:it app). Same static-poster treatment as
-   .work-cover2 above, and for the same reason: this project's own scenes
-   don't exist yet, so there's nothing to slide to. */
+   the old work-cover2 used to get, and for the same reason: this project's
+   own scenes don't exist yet. */
 .work-cover3 {
   position: relative;
   container-type: inline-size;
@@ -2257,8 +2279,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 /* Position/size derived from the actual visible (non-transparent) content
    inside work-muit-mockup.png (a tightly-cropped phone fan, unlike
    work-werun-mockup's generous padding) mapped onto where Figma's own
-   cover places that same content -- see .work-cover2__mockup's comment for
-   the general technique. The asset's own content aspect ratio doesn't
+   cover places that same content -- see .work-detail__mockup--p2's comment
+   for the general technique. The asset's own content aspect ratio doesn't
    quite match Figma's target span (its crop is a bit shorter top-to-bottom
    relative to its width than Figma's), so top is centered between the
    top- and bottom-matching values rather than hitting both exactly. */
@@ -2269,6 +2291,554 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   width: calc(56 * var(--u));
   height: auto;
   max-width: none;
+}
+
+.work-scenes--user-research {
+  color: #ffffff;
+}
+
+.work-scenes--user-research .work-scenes__eyebrow {
+  left: calc(8.8542 * var(--u));
+  top: calc(9.8958 * var(--u));
+  width: auto;
+  text-align: left;
+}
+
+.work-scenes__research-img {
+  position: absolute;
+  left: calc(8.8542 * var(--u));
+  top: calc(14.6875 * var(--u));
+  width: calc(37.8125 * var(--u));
+  height: calc(33.3333 * var(--u));
+  object-fit: contain;
+}
+
+.work-scenes--user-research .work-scenes__copy {
+  left: calc(57.0313 * var(--u));
+  top: calc(17.5521 * var(--u));
+  width: calc(31.9271 * var(--u));
+  gap: calc(4.4792 * var(--u));
+}
+
+.work-scenes--user-research .work-scenes__title {
+  white-space: nowrap;
+}
+
+.work-scenes--user-research .work-scenes__title-en,
+.work-scenes--user-research .work-scenes__title-em {
+  font-size: calc(3.6458 * var(--u));
+  letter-spacing: calc(-0.0729 * var(--u));
+}
+
+.work-scenes--user-research .work-scenes__desc {
+  gap: calc(2.0833 * var(--u));
+}
+
+.work-scenes--user-research .work-scenes__desc-en {
+  width: 100%;
+  color: #454545;
+}
+
+.work-scenes--user-research .work-scenes__desc-en p {
+  font-size: calc(2.0833 * var(--u));
+  letter-spacing: calc(-0.0417 * var(--u));
+}
+
+.work-scenes--user-research .work-scenes__desc-kr {
+  width: 100%;
+}
+
+.work-scenes--user-research .work-scenes__desc-kr p {
+  font-size: calc(1.0417 * var(--u));
+  letter-spacing: calc(-0.0208 * var(--u));
+  line-height: 1.4;
+}
+
+.work-scenes--friendly-onboarding {
+  color: #ffffff;
+}
+
+.work-scenes__onboarding-phone {
+  position: absolute;
+  left: calc(17.8125 * var(--u));
+  top: calc(14.375 * var(--u));
+  width: calc(13.125 * var(--u));
+  height: calc(26.7444 * var(--u));
+}
+
+.work-scenes__onboarding-screen {
+  position: absolute;
+  left: 4.6183%;
+  top: 1.9086%;
+  width: 90.644%;
+  height: 96.482%;
+  overflow: hidden;
+  border-radius: calc(1.7543 * var(--u));
+  background: #ffffff;
+}
+
+.work-scenes__onboarding-ui {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #111111;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+}
+
+.work-scenes__onboarding-status {
+  position: absolute;
+  left: 6.8%;
+  right: 6.8%;
+  top: 2.2%;
+  display: flex;
+  justify-content: space-between;
+  font-size: calc(0.22 * var(--u));
+  font-weight: 600;
+}
+
+.work-scenes__onboarding-top {
+  position: absolute;
+  left: 6.8%;
+  right: 6.8%;
+  top: 6.2%;
+  display: flex;
+  justify-content: space-between;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: calc(0.26 * var(--u));
+}
+
+.work-scenes__onboarding-logo {
+  position: absolute;
+  left: 50%;
+  top: 34.5%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: calc(0.08 * var(--u));
+  color: #7d6cff;
+  font-family: 'Neue Montreal', sans-serif;
+  font-size: calc(2.4 * var(--u));
+  font-weight: 500;
+  line-height: 0.85;
+}
+
+.work-scenes__onboarding-logo small {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  font-size: calc(0.34 * var(--u));
+  line-height: 1;
+}
+
+.work-scenes__onboarding-socials {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 12.3%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.work-scenes__onboarding-social {
+  width: calc(0.8 * var(--u));
+  height: calc(0.8 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: calc(0.32 * var(--u));
+  font-weight: 700;
+}
+
+.work-scenes__onboarding-social--k { background: #f4e437; color: #111111; }
+.work-scenes__onboarding-social--n { background: #5fb44b; color: #ffffff; }
+.work-scenes__onboarding-social--f { background: #4867aa; color: #ffffff; }
+.work-scenes__onboarding-social--a { background: #111111; color: #ffffff; }
+.work-scenes__onboarding-social--g { background: #ffffff; color: #4285f4; }
+
+.work-scenes__onboarding-button {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 6.4%;
+  height: calc(1.1 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d7d7ee;
+  border-radius: calc(0.16 * var(--u));
+  color: #7d6cff;
+  font-size: calc(0.28 * var(--u));
+  font-weight: 600;
+}
+
+.work-scenes__onboarding-home {
+  position: absolute;
+  left: 50%;
+  bottom: 1.9%;
+  width: 35%;
+  height: calc(0.16 * var(--u));
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #111111;
+}
+
+.work-scenes__onboarding-bezel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.work-scenes__onboarding-island {
+  position: absolute;
+  left: 35.359%;
+  top: 3.222%;
+  width: 28.919%;
+  height: 4.114%;
+  z-index: 3;
+  border-radius: 999px;
+  background: #000000;
+  pointer-events: none;
+}
+
+.work-scenes__onboarding-camera {
+  position: absolute;
+  right: 8.6%;
+  top: 24.66%;
+  width: 14.286%;
+  height: 49.274%;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.work-scenes__onboarding-character {
+  position: absolute;
+  left: calc(26.8229 * var(--u));
+  top: calc(10 * var(--u));
+  width: calc(3.4896 * var(--u));
+  height: calc(5.2604 * var(--u));
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.work-scenes__onboarding-character img {
+  position: absolute;
+  left: -227.56%;
+  top: -24.2%;
+  width: 352.27%;
+  height: 234.4%;
+  max-width: none;
+}
+
+.work-scenes--friendly-onboarding .work-scenes__copy {
+  left: calc(39.6354 * var(--u));
+  top: calc(21.1458 * var(--u));
+  width: calc(42.6042 * var(--u));
+  gap: calc(4.4792 * var(--u));
+}
+
+.work-scenes--friendly-onboarding .work-scenes__title {
+  white-space: nowrap;
+}
+
+.work-scenes--friendly-onboarding .work-scenes__title-en,
+.work-scenes--friendly-onboarding .work-scenes__title-em {
+  font-size: calc(3.6458 * var(--u));
+  letter-spacing: calc(-0.0729 * var(--u));
+}
+
+.work-scenes--friendly-onboarding .work-scenes__desc {
+  gap: calc(2.0833 * var(--u));
+}
+
+.work-scenes--friendly-onboarding .work-scenes__desc-en {
+  width: 100%;
+}
+
+.work-scenes--friendly-onboarding .work-scenes__desc-kr {
+  width: calc(31.9271 * var(--u));
+}
+
+.work-scenes--personalized-matching {
+  color: #ffffff;
+}
+
+.work-scenes__matching-phone {
+  position: absolute;
+  width: calc(13.2245 * var(--u));
+  height: calc(26.9471 * var(--u));
+}
+
+.work-scenes__matching-phone--onboarding {
+  left: calc(13.2292 * var(--u));
+  top: calc(17.9167 * var(--u));
+}
+
+.work-scenes__matching-phone--list {
+  left: calc(29.5313 * var(--u));
+  top: calc(9.1146 * var(--u));
+}
+
+.work-scenes__matching-screen {
+  position: absolute;
+  left: 4.6152%;
+  top: 1.9058%;
+  width: 90.644%;
+  height: 96.482%;
+  overflow: hidden;
+  border-radius: calc(1.7676 * var(--u));
+  background: #ffffff;
+}
+
+.work-scenes__matching-bezel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.work-scenes__matching-island {
+  position: absolute;
+  left: 35.359%;
+  top: 3.2185%;
+  width: 28.919%;
+  height: 4.115%;
+  z-index: 3;
+  border-radius: 999px;
+  background: #000000;
+  pointer-events: none;
+}
+
+.work-scenes__matching-camera {
+  position: absolute;
+  right: 8.6%;
+  top: 24.66%;
+  width: 14.286%;
+  height: 49.274%;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.work-scenes--personalized-matching .work-scenes__copy {
+  left: calc(47.6563 * var(--u));
+  top: calc(21.4063 * var(--u));
+  width: calc(40.2083 * var(--u));
+  gap: calc(4.4792 * var(--u));
+}
+
+.work-scenes--personalized-matching .work-scenes__title {
+  white-space: nowrap;
+}
+
+.work-scenes--personalized-matching .work-scenes__title-en,
+.work-scenes--personalized-matching .work-scenes__title-em {
+  font-size: calc(3.6458 * var(--u));
+  letter-spacing: calc(-0.0729 * var(--u));
+}
+
+.work-scenes--personalized-matching .work-scenes__desc {
+  gap: calc(2.0833 * var(--u));
+}
+
+.work-scenes--personalized-matching .work-scenes__desc-en {
+  width: 100%;
+}
+
+.work-scenes--personalized-matching .work-scenes__desc-kr {
+  width: calc(24.4271 * var(--u));
+}
+
+.work-scenes--personalized-matching .work-scenes__desc-kr p,
+.work-scenes--beyond-matching .work-scenes__desc-kr p:nth-child(2) {
+  white-space: nowrap;
+}
+
+.work-scenes--beyond-matching {
+  color: #ffffff;
+}
+
+.work-scenes__beyond-phone {
+  position: absolute;
+  width: calc(13.2245 * var(--u));
+  height: calc(26.9471 * var(--u));
+}
+
+.work-scenes__beyond-phone--music {
+  left: calc(10.3125 * var(--u));
+  top: calc(12.2396 * var(--u));
+}
+
+.work-scenes__beyond-phone--lesson {
+  left: calc(26.875 * var(--u));
+  top: calc(20.1563 * var(--u));
+}
+
+.work-scenes__beyond-screen {
+  position: absolute;
+  left: 4.6152%;
+  top: 1.9058%;
+  width: 90.644%;
+  height: 96.482%;
+  overflow: hidden;
+  border-radius: calc(1.7676 * var(--u));
+  background: #ffffff;
+}
+
+.work-scenes__beyond-bezel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.work-scenes__beyond-island {
+  position: absolute;
+  left: 35.359%;
+  top: 3.2185%;
+  width: 28.919%;
+  height: 4.115%;
+  z-index: 3;
+  border-radius: 999px;
+  background: #000000;
+  pointer-events: none;
+}
+
+.work-scenes__beyond-camera {
+  position: absolute;
+  right: 8.6%;
+  top: 24.66%;
+  width: 14.286%;
+  height: 49.274%;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.work-scenes--beyond-matching .work-scenes__copy {
+  left: calc(46.25 * var(--u));
+  top: calc(13.125 * var(--u));
+  width: calc(39.2188 * var(--u));
+  gap: calc(4.4792 * var(--u));
+}
+
+.work-scenes--beyond-matching .work-scenes__title {
+  white-space: nowrap;
+}
+
+.work-scenes--beyond-matching .work-scenes__title-en,
+.work-scenes--beyond-matching .work-scenes__title-em {
+  font-size: calc(3.6458 * var(--u));
+  letter-spacing: calc(-0.0729 * var(--u));
+}
+
+.work-scenes--beyond-matching .work-scenes__desc {
+  gap: calc(2.0833 * var(--u));
+}
+
+.work-scenes--beyond-matching .work-scenes__desc-en {
+  width: 100%;
+}
+
+.work-scenes--beyond-matching .work-scenes__desc-kr {
+  width: calc(42.5 * var(--u));
+}
+
+.work-scenes--idea-deployment {
+  color: #ffffff;
+}
+
+.work-scenes__deployment-photo {
+  position: absolute;
+  display: block;
+  object-fit: cover;
+  border-radius: calc(1.0417 * var(--u));
+  pointer-events: none;
+}
+
+.work-scenes__deployment-photo--code {
+  left: calc(6.6667 * var(--u));
+  top: calc(13.5417 * var(--u));
+  width: calc(24.8958 * var(--u));
+  height: calc(18.6458 * var(--u));
+  z-index: 2;
+}
+
+.work-scenes__deployment-photo--presentation {
+  left: calc(19.6354 * var(--u));
+  top: calc(29.2708 * var(--u));
+  width: calc(17.8646 * var(--u));
+  height: calc(13.3854 * var(--u));
+  z-index: 1;
+}
+
+.work-scenes--idea-deployment .work-scenes__copy {
+  left: calc(44.7917 * var(--u));
+  top: calc(19.2188 * var(--u));
+  width: calc(48.5417 * var(--u));
+  gap: calc(4.4792 * var(--u));
+}
+
+.work-scenes--idea-deployment .work-scenes__title {
+  white-space: nowrap;
+}
+
+.work-scenes--idea-deployment .work-scenes__title-en,
+.work-scenes--idea-deployment .work-scenes__title-em {
+  font-size: calc(3.6458 * var(--u));
+  letter-spacing: calc(-0.0729 * var(--u));
+}
+
+.work-scenes--idea-deployment .work-scenes__desc {
+  gap: calc(2.0833 * var(--u));
+}
+
+.work-scenes--idea-deployment .work-scenes__desc-en {
+  width: 100%;
+}
+
+.work-scenes--idea-deployment .work-scenes__desc-kr {
+  width: calc(48.5417 * var(--u));
+}
+
+.work-scenes__deployment-links {
+  position: absolute;
+  left: calc(79.7917 * var(--u));
+  top: calc(44.9479 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(1.4583 * var(--u));
+}
+
+.work-scenes__deployment-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(0.3125 * var(--u));
+  height: calc(2.6042 * var(--u));
+  padding: 0 calc(0.8333 * var(--u));
+  border: 1px solid #ffffff;
+  border-radius: calc(2.6042 * var(--u));
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 500;
+  font-size: calc(0.8333 * var(--u));
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.work-scenes__deployment-link-icon {
+  width: calc(1.0417 * var(--u));
+  height: calc(1.0417 * var(--u));
 }
 
 /* ==========================================================================
@@ -2418,7 +2988,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .clone-coding__intro.is-revealed .clone-coding__subtitle {
-  opacity: 1;
+  opacity: 0.7;
   filter: blur(0);
   transform: translateY(0);
 }
@@ -2443,6 +3013,18 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   transition: opacity 0.4s ease, transform 0.8s ease;
 }
 
+.clone-coding__card::before {
+  content: "";
+  position: absolute;
+  left: -100cqw;
+  right: -100cqw;
+  top: calc(-0.75 * var(--u));
+  bottom: calc(-0.75 * var(--u));
+  z-index: 0;
+  background: rgba(255, 255, 255, 0);
+  pointer-events: auto;
+}
+
 .clone-coding__card.is-revealed {
   opacity: 1;
   transform: translateY(0);
@@ -2457,6 +3039,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 .clone-coding__frame {
   position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: calc(23.6979 * var(--u));
@@ -2479,26 +3062,21 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   transform: scale(1.02);
 }
 
-/* Hover: darken the shot and swap the pointer for a "view website" badge
-   that follows it around inside the frame, inviting the click (Figma node
-   3136:716). The badge itself acts as the cursor -- native cursor is
-   hidden via cursor:none, and script.js drives its position on
-   mousemove; CSS only owns the show/hide (.is-active) and pop-in scale,
-   using the standalone `scale` property so it doesn't fight the
-   position `transform` JS sets inline. */
-.clone-coding__frame:hover .clone-coding__img {
+/* Hover: the whole card triggers the photo treatment, while the badge
+   stays fixed in the center of the shot and only its circular text spins. */
+.clone-coding__card:hover .clone-coding__img {
   filter: brightness(0.55);
   transform: scale(1.06);
 }
 
 .clone-coding__frame {
-  cursor: none;
+  cursor: pointer;
 }
 
 .clone-coding__badge {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: 50%;
+  top: 50%;
   width: calc(5.8854 * var(--u));
   height: calc(5.8854 * var(--u));
   transform: translate(-50%, -50%);
@@ -2516,7 +3094,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   pointer-events: none;
 }
 
-.clone-coding__badge.is-active {
+.clone-coding__card:hover .clone-coding__badge {
   opacity: 1;
   scale: 1;
 }
@@ -2530,7 +3108,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 /* "VIEW WEBSITE" spins slowly around the badge ring's border while
    hovering, riding an SVG textPath so the letters curve with the
    circle instead of sitting on a straight baseline. Paused by default
-   and only spun up via .is-active so idle cards cost nothing. */
+   and only spun up on card hover so idle cards cost nothing. */
 .clone-coding__badge-ring {
   position: absolute;
   inset: 0;
@@ -2541,7 +3119,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   transform-origin: 50% 50%;
 }
 
-.clone-coding__badge.is-active .clone-coding__badge-ring {
+.clone-coding__card:hover .clone-coding__badge-ring {
   animation-play-state: running;
 }
 
@@ -2565,12 +3143,199 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .clone-coding__caption {
+  position: relative;
+  z-index: 1;
   margin: 0;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   font-weight: 400;
   font-size: calc(0.9375 * var(--u));
   letter-spacing: calc(-0.0188 * var(--u));
   text-align: center;
+}
+
+/* ==========================================================================
+   AI Lab -- embedded hands-on project, placed after clone coding and before
+   the SKILL transition so the user can try the AI-built feature in context.
+   ========================================================================== */
+.ai-lab {
+  position: relative;
+  container-type: inline-size;
+  padding: calc(24.3333 * var(--u)) 0 calc(9.375 * var(--u));
+}
+
+.ai-lab__stage {
+  width: min(calc(100cqw - 96px), 1600px);
+  margin: 0 auto;
+}
+
+.ai-lab__head {
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.25 * var(--u));
+  margin-bottom: calc(6.5 * var(--u));
+}
+
+.ai-lab__title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(2 * var(--u));
+}
+
+.ai-lab__title {
+  margin: 0;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.ai-lab__title-en,
+.ai-lab__title-em {
+  font-size: calc(5.2083 * var(--u));
+  letter-spacing: calc(-0.1042 * var(--u));
+}
+
+.ai-lab__title-en {
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+}
+
+.ai-lab__title-em {
+  font-family: 'Cardinal Fruit', serif;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.ai-lab__title-char {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(18px);
+  transform: translateY(calc(0.6 * var(--u)));
+  transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.ai-lab__head.is-revealed .ai-lab__title-char {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-lab__title-char,
+  .ai-lab__summary,
+  .ai-lab__links {
+    transition: none;
+  }
+}
+
+.ai-lab__summary {
+  display: flex;
+  flex-direction: column;
+  gap: calc(0.4167 * var(--u));
+  width: min(680px, 100%);
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  letter-spacing: calc(-0.0167 * var(--u));
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.72);
+  opacity: 0;
+  filter: blur(16px);
+  transform: translateY(calc(0.5 * var(--u)));
+  transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.ai-lab__head.is-revealed .ai-lab__summary {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+.ai-lab__summary p {
+  margin: 0;
+}
+
+.ai-lab__links {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: calc(1.4583 * var(--u));
+  opacity: 0;
+  filter: blur(16px);
+  transform: translateY(calc(0.5 * var(--u)));
+  transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.ai-lab__head.is-revealed .ai-lab__links {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+.ai-lab__link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: calc(0.3125 * var(--u));
+  height: calc(2.6042 * var(--u));
+  min-height: 44px;
+  padding: 0 calc(0.8333 * var(--u));
+  border: 1px solid #000000;
+  border-radius: 999px;
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 500;
+  font-size: clamp(14px, calc(0.8333 * var(--u)), 16px);
+  color: #000000;
+  white-space: nowrap;
+}
+
+.ai-lab__link-icon {
+  width: calc(1.0417 * var(--u));
+  min-width: 18px;
+  height: calc(1.0417 * var(--u));
+  min-height: 18px;
+}
+
+.ai-lab__browser {
+  position: relative;
+  width: min(100%, calc(58 * var(--u)));
+  aspect-ratio: 4340 / 2860;
+  margin: 0 auto;
+}
+
+.ai-lab__screen {
+  position: absolute;
+  left: 10%;
+  top: 10.5555%;
+  width: 80%;
+  height: 80.5594%;
+  z-index: 1;
+  overflow: hidden;
+  background: #171511;
+}
+
+.ai-lab__iframe {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #171511;
+  color-scheme: dark;
+}
+
+.ai-lab__bezel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  max-width: none;
+  pointer-events: none;
 }
 
 /* ==========================================================================
@@ -2589,16 +3354,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0 auto;
 }
 
-/* Glowing curve running behind the mockup/copy of all 6 work-scenes panels
+/* Glowing curve running behind the mockup/copy of all 5 work-scenes panels
    at once (Figma spec: 10px stroke, warm rgba(251,242,223,0.5), 7.5px blur
    at full scale -- converted to var(--u)). This is a SINGLE path spanning
-   all 6 scene panels' combined width, not one per panel: a viewer asked
+   all 5 scene panels' combined width, not one per panel: a viewer asked
    for the light streak to keep drawing continuously as they scroll from
    scene to scene rather than resetting/restarting at every panel boundary,
    so one long path is scroll-driven a single time across the whole
    work-scenes journey instead of each scene re-triggering its own copy.
    It's a child of #workDetailTrack itself (not of any one .work-detail__panel)
-   sized to the 6 work-scenes panels' combined width and offset past the
+   sized to the 5 work-scenes panels' combined width and offset past the
    leading cover panel, so it slides along with the track's own translateX
    and never re-enters/resets per panel. Placed first in track's markup so
    plain DOM order (both track's children and, within each panel, the
@@ -2608,16 +3373,17 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    container query (the nearest container-type ancestor above the
    non-container track), which has the same inline size as every
    .work-detail__panel, so the scale matches what the path's own geometry
-   (drawn in one 1920-wide unit repeated 6x) assumes per panel. */
+   (drawn in one 1920-wide unit repeated 5x) assumes per panel. */
 .work-detail__glow-curve {
   position: absolute;
   left: 100%;
   top: calc(20.5933 * var(--u));
-  width: 600%;
+  width: 500%;
   height: calc(15.0633 * var(--u));
   overflow: visible;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
+  will-change: transform;
 }
 
 .work-detail__glow-curve path {
@@ -2628,17 +3394,19 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   filter: blur(calc(0.3906 * var(--u)));
 }
 
-.work-scenes__eyebrow {
-  position: absolute;
-  left: calc(8.8542 * var(--u));
-  top: calc(9.8958 * var(--u));
-  margin: 0;
-  font-family: 'Neue Montreal', sans-serif;
-  font-weight: 400;
-  font-size: calc(0.8333 * var(--u));
-  color: #ffffff;
-  white-space: nowrap;
+.work-detail--p2 .work-detail__glow-curve {
+  width: 400%;
 }
+
+.work-detail--p2 .work-detail__glow-curve path {
+  stroke: rgba(212, 255, 63, 0.5);
+}
+
+.work-detail--p3 .work-detail__glow-curve path {
+  stroke: rgba(128, 113, 252, 0.5);
+}
+
+
 
 /* Device/bezel/copy positioning is scene-specific (each scene's device is
    a different mockup at a different spot), scoped via .work-scenes--X on
@@ -2649,6 +3417,43 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   position: absolute;
 }
 
+/* Figma's own box (from its stated inset percentages) is ~1.548:1, but
+   the bezel's actual alpha-measured cutout is 3454x2168 (~1.593:1) --
+   using Figma's height as-is here would stretch the bezel PNG slightly
+   off its native aspect once scaled to fill this box (see
+   .work-scenes--crafting .work-scenes__device-bezel below, which is
+   derived from that same cutout measurement). Deriving height from the
+   cutout's own ratio instead (keeping Figma's width/left/top) keeps the
+   bezel artwork undistorted. drop-shadow value is Figma's own stated
+   7.969px blur for this scene's device instance. */
+.work-scenes--crafting .work-scenes__device {
+  --crafting-device-left: 15.9896;
+  --crafting-device-top: 29.1146;
+  --crafting-device-width: 26.7708;
+  --crafting-device-height: 16.8062;
+  --crafting-screen-left: 0%;
+  --crafting-screen-top: -3.8%;
+  --crafting-screen-width: 100%;
+  --crafting-screen-height: 111.2%;
+  --crafting-media-left: 0%;
+  --crafting-media-top: 0%;
+  --crafting-media-width: 100%;
+  --crafting-media-height: 100%;
+  left: calc(var(--crafting-device-left) * var(--u));
+  top: calc(var(--crafting-device-top) * var(--u));
+  width: calc(var(--crafting-device-width) * var(--u));
+  height: calc(var(--crafting-device-height) * var(--u));
+  --macbook-screen-left: var(--crafting-screen-left);
+  --macbook-screen-top: var(--crafting-screen-top);
+  --macbook-screen-width: var(--crafting-screen-width);
+  --macbook-screen-height: var(--crafting-screen-height);
+  --macbook-media-left: var(--crafting-media-left);
+  --macbook-media-top: var(--crafting-media-top);
+  --macbook-media-width: var(--crafting-media-width);
+  --macbook-media-height: var(--crafting-media-height);
+  filter: drop-shadow(0 0 calc(0.4151 * var(--u)) rgba(255, 255, 255, 0.3));
+}
+
 .work-scenes--typo .work-scenes__device {
   left: calc(10.46875 * var(--u));
   top: calc(17.1875 * var(--u));
@@ -2657,25 +3462,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   filter: drop-shadow(0 0 calc(0.4577 * var(--u)) rgba(255, 255, 255, 0.3));
 }
 
-/* Figma's own box (from its stated inset percentages) is ~1.548:1, but
-   the bezel's actual alpha-measured cutout is 3454x2168 (~1.593:1) --
-   using Figma's height as-is here would stretch the bezel PNG slightly
-   off its native aspect once scaled to fill this box (see
-   .work-scenes--light .work-scenes__device-bezel below, which is derived
-   from that same cutout measurement). Deriving height from the cutout's
-   own ratio instead (keeping Figma's width/left/top) keeps the bezel
-   artwork undistorted. top re-synced to a later Figma revision that moved
-   this device down (was 8.5975u). */
-.work-scenes--light .work-scenes__device {
-  left: calc(13.07 * var(--u));
-  top: calc(12.24 * var(--u));
-  width: calc(30.37 * var(--u));
-  height: calc(19.062 * var(--u));
-  filter: drop-shadow(0 0 calc(0.4708 * var(--u)) rgba(255, 255, 255, 0.3));
-}
-
 /* Figma's box here is ~0.751:1 vs the iPad bezel's alpha-measured cutout
-   at ~0.7496:1 -- close enough (<0.2%) that, unlike the MacBook scene,
+   at ~0.7496:1 -- close enough (<0.2%) that, unlike the MacBook scenes,
    no height correction is needed to keep the bezel artwork undistorted. */
 .work-scenes--beforeafter .work-scenes__device {
   left: calc(19.17 * var(--u));
@@ -2685,17 +3473,80 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   filter: drop-shadow(0 0 calc(0.5221 * var(--u)) rgba(0, 0, 0, 0.3));
 }
 
-/* Same MacBook bezel asset as .work-scenes--light (confirmed
+/* Same MacBook bezel asset as .work-scenes--crafting (confirmed
    byte-identical), so it needs the same height correction for the same
    reason -- keeping Figma's own 30.37u width but deriving height from
    the bezel's own cutout aspect (not Figma's stated 19.6256u) to avoid
    distorting the bezel artwork. */
 .work-scenes--editorial .work-scenes__device {
   left: calc(12.03 * var(--u));
-  top: calc(23.4394 * var(--u));
+  top: calc(22.35 * var(--u));
   width: calc(30.37 * var(--u));
-  height: calc(19.062 * var(--u));
+  height: calc(21.196 * var(--u));
   filter: drop-shadow(0 0 calc(0.4708 * var(--u)) rgba(255, 255, 255, 0.3));
+}
+
+/* RETENTION is the only scene with two devices side by side (an iPad and
+   an iPhone) instead of one -- both boxes' aspect ratios already match
+   their own bezel's alpha-measured cutout within a fraction of a percent,
+   so (unlike crafting/editorial's MacBook) neither needs a height
+   correction away from Figma's own stated box. */
+.work-scenes--retention .work-scenes__device--ipad {
+  left: calc(10.2604 * var(--u));
+  top: calc(14.5519 * var(--u));
+  width: calc(19.427 * var(--u));
+  height: calc(13.567 * var(--u));
+}
+
+.work-scenes--retention .work-scenes__device--phone {
+  left: calc(24.395 * var(--u));
+  top: calc(27.3302 * var(--u));
+  width: calc(10.6224 * var(--u));
+  height: calc(23.0388 * var(--u));
+}
+
+/* COMMUNITY & CREW is the only scene with two of the *same* device side by
+   side (two iPhones sharing one bezel asset) instead of two different ones
+   -- so, unlike RETENTION's --ipad/--phone pair, only position differs
+   between them; width/height is shared. Both boxes use each iPhone's own
+   inner "screen" rect from Figma (230.154 x 499.182px), not the larger
+   "change color here" placeholder box that same layer group also contains
+   -- the screen rect's aspect (0.4611) lines up with the bezel's own
+   alpha-measured cutout aspect (458/997 = 0.4594) within a fraction of a
+   percent, same reasoning as RETENTION's own device boxes above, while the
+   placeholder box's aspect (253.91/517.384 = 0.4907) is off by ~7%. */
+.work-scenes--community .work-scenes__device--phone-1,
+.work-scenes--community .work-scenes__device--phone-2,
+.work-scenes--sharerun .work-scenes__device--phone-1,
+.work-scenes--sharerun .work-scenes__device--phone-2,
+.work-scenes--ai-partner .work-scenes__device--phone {
+  width: calc(11.9872 * var(--u));
+  height: calc(25.999 * var(--u));
+}
+
+.work-scenes--community .work-scenes__device--phone-1 {
+  left: calc(15.663 * var(--u));
+  top: calc(10.3057 * var(--u));
+}
+
+.work-scenes--community .work-scenes__device--phone-2 {
+  left: calc(26.2359 * var(--u));
+  top: calc(21.6078 * var(--u));
+}
+
+.work-scenes--sharerun .work-scenes__device--phone-1 {
+  left: calc(15.7672 * var(--u));
+  top: calc(11.1391 * var(--u));
+}
+
+.work-scenes--sharerun .work-scenes__device--phone-2 {
+  left: calc(31.6526 * var(--u));
+  top: calc(23.4828 * var(--u));
+}
+
+.work-scenes--ai-partner .work-scenes__device--phone {
+  left: calc(18.4234 * var(--u));
+  top: calc(14.0036 * var(--u));
 }
 
 .work-scenes__device-screen {
@@ -2704,60 +3555,29 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   overflow: hidden;
 }
 
-/* RESPONSIVE scene's iPhone is built from Figma primitives rather than
-   one pre-baked bezel photo: this box IS the phone's own outer silhouette
-   (matches work-responsive-iphone.png's own pixel aspect almost exactly,
-   confirmed -- so unlike the iMac/MacBook/iPad bezels, no overhang trick
-   is needed; the bezel image just fills this box at 100%/100%, see
-   .work-scenes--responsive .work-scenes__device-bezel below). */
-.work-scenes--responsive .work-scenes__device {
-  left: calc(18.91 * var(--u));
-  top: calc(14.2144 * var(--u));
-  width: calc(13.12 * var(--u));
-  height: calc(26.7413 * var(--u));
-  filter: drop-shadow(0 0 calc(0.4708 * var(--u)) rgba(0, 0, 0, 0.3));
+.work-scenes--crafting .work-scenes__device-screen {
+  left: var(--macbook-screen-left, 0);
+  top: var(--macbook-screen-top, 0);
+  width: var(--macbook-screen-width, 100%);
+  height: var(--macbook-screen-height, 100%);
 }
 
-/* Overrides the shared inset: 0 with an explicit, smaller box (the video
-   crop, inset from the phone's outer edge to sit behind the bezel's own
-   frame) -- right/bottom must be cleared to auto or the inherited
-   inset: 0's right/bottom would combine with this rule's own top/left/
-   width/height into the same over-constrained, wrongly-sized box seen
-   with the img bezels earlier in this file. Rect measured directly off
-   work-responsive-iphone.png's alpha cutout (456x990 at (24,20) out of
-   504x1027), same methodology as every other bezel here. Rounded to
-   match the screen's own corner radius (33.682px from Figma). */
-.work-scenes--responsive .work-scenes__device-screen {
-  top: 1.9474%;
-  left: 4.7619%;
-  right: auto;
-  bottom: auto;
-  width: 90.4762%;
-  height: 96.3973%;
-  border-radius: calc(1.7543 * var(--u));
+/* Only RETENTION's phone screen has rounded corners of its own (Figma:
+   30.073px) -- every other scene's screen rect is either a plain rect
+   (MacBook/iPad bezels crop it anyway) or already handled via
+   .work-scenes__media's border-radius. */
+.work-scenes__device-screen--phone {
+  border-radius: calc(1.5663 * var(--u));
+  background: #141414;
 }
 
-.work-scenes--responsive .work-scenes__device-bezel {
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* The dynamic island: Figma draws it as a separate black pill (+ a tiny
-   camera dot this reproduces as a plain shape rather than a second image
-   asset, since at this size the two are visually indistinguishable) on
-   top of the screen, not baked into the bezel artwork. Position/size
-   relative to .work-scenes__device, converted from Figma's canvas-space
-   inset the same way as the other elements here. */
-.work-scenes__device-island {
-  position: absolute;
-  left: 35.3659%;
-  top: 3.2179%;
-  width: 28.8872%;
-  height: 4.1019%;
-  background: #000000;
-  border-radius: 999px;
-  pointer-events: none;
+/* COMMUNITY & CREW's iPhone mockup is a different Figma export than
+   RETENTION's own iPhone (33.937px screen radius vs 30.073px there), so it
+   needs its own radius rather than inheriting the shared rule above. */
+.work-scenes--community .work-scenes__device-screen--phone,
+.work-scenes--sharerun .work-scenes__device-screen--phone,
+.work-scenes--ai-partner .work-scenes__device-screen--phone {
+  border-radius: calc(1.7676 * var(--u));
 }
 
 .work-scenes__device-media {
@@ -2784,8 +3604,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    hidden across frames without visibly zooming in. The origin's vertical
    center also grows the video 1% past the top/bottom edges, but that's a
    symmetric, imperceptible crop with nothing to lose there.
-   The LIGHT scene's recording is the same 2560x1440 (16:9), but its
-   screen box (.work-scenes--light .work-scenes__device, above) is
+   The CRAFTING scene's clip is the same 2560x1440 (16:9), but its screen
+   box (.work-scenes--crafting .work-scenes__device, above) is
    proportionally narrower than 16:9 -- cover already center-crops ~7.4%
    off *each* side to fill it, nearly 10x more than the scrollbar needs,
    so that scene needs no extra scale trick here. */
@@ -2806,18 +3626,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    That rect's own edges sit right on top of the DevTools frame's 1px
    anti-aliased border (confirmed via canvas getImageData scrubbing along
    all four sides -- a light-gray transition pixel exactly at x=938,
-   x=1622, y=251 and y=1163), so blowing it up ~3.7x on X / ~1.5x on Y
-   stretched that single border pixel into a visible thin white line on
-   every edge. Insetting 2px further in on each side (a 680x908 rect at
-   (940, 253)) crops past that border pixel entirely:
-     width:  2560/680 = 376.4706%   left: -940/680  = -138.2353%
-     height: 1388/908 = 152.8634%   top:  -253/908  = -27.8634% */
+   x=1622, y=251 and y=1163). This uses that measured 684x912 content rect
+   directly so the screen feels less zoomed-in:
+     width:  2560/684 = 374.269%   left: -938/684  = -137.1345%
+     height: 1388/912 = 152.193%   top:  -251/912  = -27.522% */
 .work-scenes--beforeafter .work-scenes__device-media {
   position: absolute;
-  top: -27.8634%;
-  left: -138.2353%;
-  width: 376.4706%;
-  height: 152.8634%;
+  top: -27.522%;
+  left: -137.1345%;
+  width: 374.269%;
+  height: 152.193%;
 }
 
 /* The EDITORIAL recording is a plain full browser window (tabs, address
@@ -2835,29 +3653,11 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    match the content rect's own (~1.657, a ~4% difference) -- the bezel
    artwork's own fidelity was prioritized over the video's, so this one
    carries a small, likely unnoticeable stretch instead. */
-.work-scenes--editorial .work-scenes__device-media {
-  position: absolute;
-  top: -13.2075%;
-  left: 0%;
-  width: 100.949%;
-  height: 113.208%;
-}
-
-/* Same DevTools-responsive-mode capture pattern as BEFORE & AFTER, this
-   time at an iPhone-sized 430x932 viewport. Content rect measured off a
-   captured frame: 511x1107 (~0.462:1, matching a phone screen) starting
-   at (1025, 251) out of the 2560x1388 capture.
-     width:  2560/511  = 501.0%    left: -1025/511 = -200.587%
-     height: 1388/1107 = 125.39%   top:  -251/1107 = -22.6739%
-   This scene's screen box aspect (~0.4604, from the bezel's own alpha
-   cutout) is within 0.3% of the content rect's (~0.4616), so unlike
-   EDITORIAL there's no meaningful stretch here. */
-.work-scenes--responsive .work-scenes__device-media {
-  position: absolute;
-  top: -22.6739%;
-  left: -200.587%;
-  width: 501.0%;
-  height: 125.39%;
+.work-scenes--crafting .work-scenes__device-media {
+  top: var(--macbook-media-top, -14.25%);
+  left: var(--macbook-media-left, -0.5%);
+  width: var(--macbook-media-width, 101%);
+  height: var(--macbook-media-height, 114.75%);
 }
 
 /* work-typo-imac27.png is 5640x4540 with its screen cut out (alpha 0) as
@@ -2906,7 +3706,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    crops past all four transition pixels instead of aligning with them:
    width: 4340/3450 = 125.7971%   left: -445/3450  = -12.8986%
    height: 2860/2164 = 132.1627%   top:  -380/2164  = -17.5601% */
-.work-scenes--light .work-scenes__device-bezel {
+.work-scenes--crafting .work-scenes__device-bezel {
   top: -17.5601%;
   left: -12.8986%;
   width: 125.7971%;
@@ -2927,17 +3727,109 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   height: 108.3455%;
 }
 
-/* Same asset + cutout as .work-scenes--light's bezel (confirmed
+/* Same asset + cutout as .work-scenes--crafting's bezel (confirmed
    byte-identical) -- identical percentages, just applied under this
    scene's own modifier since inset percentages are relative to each
    scene's own .work-scenes__device box, not shared directly. See the
-   2px anti-aliased-edge inset explained on .work-scenes--light's own
+   2px anti-aliased-edge inset explained on .work-scenes--crafting's own
    bezel rule above -- same fix, same numbers, same asset. */
+/* work-retention-ipad-bezel.png: cutout 2388x1668 at (111, 111) out of
+   2610x1890, alpha-sampled the same way as the other bezels above (a 2px
+   inset past the measured hole clears the same one-pixel anti-aliased
+   transition ring):
+   width: 2610/2384 = 109.4799%   left: -113/2384 = -4.7399%
+   height: 1890/1664 = 113.5817%  top:  -113/1664 = -6.7909% */
+.work-scenes--retention .work-scenes__device-bezel--ipad,
 .work-scenes--editorial .work-scenes__device-bezel {
-  top: -17.5601%;
-  left: -12.8986%;
-  width: 125.7971%;
-  height: 132.1627%;
+  top: -6.7909%;
+  left: -4.7399%;
+  width: 109.4799%;
+  height: 113.5817%;
+}
+
+/* work-retention-iphone-bezel.png: cutout 408x885 at (21, 17) out of
+   450x917, same 2px-inset treatment:
+   width: 450/404 = 111.3861%   left: -23/404 = -5.6931%
+   height: 917/881 = 104.0863%  top:  -19/881 = -2.1567% */
+.work-scenes--retention .work-scenes__device-bezel--phone {
+  top: -2.1567%;
+  left: -5.6931%;
+  width: 111.3861%;
+  height: 104.0863%;
+}
+
+/* work-community-iphone-bezel.png: cutout 458x997 at (24, 20) out of
+   508x1035, same 2px-inset treatment as every bezel above -- a 454x993
+   hole at (26, 22):
+   width: 508/454 = 111.8943%   left: -26/454 = -5.7269%
+   height: 1035/993 = 104.2296%  top:  -22/993 = -2.2155%
+   Both iPhones in this scene share this one asset/rule -- no --phone-1/
+   --phone-2 split needed here, unlike the device-box rule above, since the
+   bezel itself doesn't differ between them. */
+.work-scenes--community .work-scenes__device-bezel,
+.work-scenes--sharerun .work-scenes__device-bezel,
+.work-scenes--ai-partner .work-scenes__device-bezel {
+  top: -2.2155%;
+  left: -5.7269%;
+  width: 111.8943%;
+  height: 104.2296%;
+}
+
+/* Dynamic-island cutout on the phone bezel -- a plain filled pill drawn
+   on top of the video screen underneath it (not a bezel PNG detail,
+   since the bezel's own alpha cutout is a single full-screen rect).
+   Percentages are relative to .work-scenes__device--phone's own box. */
+.work-scenes__device-island {
+  position: absolute;
+  left: 33.912%;
+  top: 1.3585%;
+  width: 31.902%;
+  height: 4.2645%;
+  background: #000000;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* The phone screen plays a real recording of the actual W:RUN app (a
+   Chrome DevTools responsive-mode capture at 430x932, the same
+   "record real content, measure the rect, absolutely position to fill"
+   treatment as .work-scenes--beforeafter's own capture below) rather
+   than Figma's own placeholder (a plain solid-color rect with no real
+   screen content baked in, unlike the iPad's own static image fill).
+   Content rect measured directly off a captured frame's pixels: a
+   510x1105 region at (1026, 252) out of the 2560x1388 capture:
+     width:  2560/510  = 501.9608%   left: -1026/510  = -201.1765%
+     height: 1388/1105 = 125.6109%   top:  -252/1105  = -22.8054%
+   Scoped through .work-scenes__device--phone (rather than the bare
+   .work-scenes--retention .work-scenes__device-media used by every
+   single-device scene) since RETENTION is the only scene with two
+   .work-scenes__device-media elements in one panel -- the iPad's own
+   screen image must keep its plain 100%/100% cover sizing. */
+.work-scenes--retention .work-scenes__device--phone .work-scenes__device-media {
+  position: absolute;
+  top: -22.8054%;
+  left: -201.1765%;
+  width: 501.9608%;
+  height: 125.6109%;
+}
+
+/* Both COMMUNITY & CREW videos (werun-2.mp4, werun-2-1.mp4) are the exact
+   same Chrome DevTools responsive-mode capture setup as RETENTION's own
+   iPhone recording above -- pixel-scanned the same left/top/right edges at
+   matching coordinates and found them identical down to the pixel, so this
+   reuses that same crop rect/percentages rather than re-deriving new ones.
+   Scoped to the bare .work-scenes__device-media here (not through a
+   .work-scenes__device--phone-N descendant like RETENTION needed) since
+   both of this scene's media elements are videos needing the same crop --
+   there's no sibling image at a different aspect to avoid clobbering. */
+.work-scenes--community .work-scenes__device-media,
+.work-scenes--sharerun .work-scenes__device-media,
+.work-scenes--ai-partner .work-scenes__device-media {
+  position: absolute;
+  top: -22.8054%;
+  left: -201.1765%;
+  width: 501.9608%;
+  height: 125.6109%;
 }
 
 .work-scenes__copy {
@@ -2947,16 +3839,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   gap: calc(4.4792 * var(--u));
 }
 
+.work-scenes--crafting .work-scenes__copy {
+  left: calc(49.375 * var(--u));
+  top: calc(16.4167 * var(--u));
+  width: calc(43.4375 * var(--u));
+}
+
 .work-scenes--typo .work-scenes__copy {
   left: calc(54.16667 * var(--u));
   top: calc(23.75 * var(--u));
   width: calc(36.5104 * var(--u));
-}
-
-.work-scenes--light .work-scenes__copy {
-  left: calc(52.1354 * var(--u));
-  top: calc(24.7917 * var(--u));
-  width: calc(38.9583 * var(--u));
 }
 
 .work-scenes--beforeafter .work-scenes__copy {
@@ -2971,16 +3863,41 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   width: calc(38.75 * var(--u));
 }
 
-.work-scenes--responsive .work-scenes__copy {
-  left: calc(45.5729 * var(--u));
-  top: calc(17.3438 * var(--u));
-  width: calc(38.75 * var(--u));
-}
-
 .work-scenes--together .work-scenes__copy {
   left: calc(43.3854 * var(--u));
   top: calc(14.9479 * var(--u));
   width: calc(48.3854 * var(--u));
+}
+
+.work-scenes--retention .work-scenes__copy {
+  left: calc(40.99 * var(--u));
+  top: calc(25 * var(--u));
+  width: calc(48.75 * var(--u));
+}
+
+.work-scenes--community .work-scenes__copy {
+  left: calc(50.4167 * var(--u));
+  top: calc(13.6979 * var(--u));
+  width: calc(34.5833 * var(--u));
+}
+
+.work-scenes--sharerun .work-scenes__copy {
+  left: calc(55 * var(--u));
+  top: calc(13.4896 * var(--u));
+  width: calc(29.8958 * var(--u));
+  gap: calc(4.4792 * var(--u));
+}
+
+.work-scenes--ai-partner .work-scenes__copy {
+  left: calc(46.6667 * var(--u));
+  top: calc(12.7083 * var(--u));
+  width: calc(35.5208 * var(--u));
+  gap: calc(4.4792 * var(--u));
+}
+
+.work-scenes--ai-partner .work-scenes__links {
+  left: calc(66.6146 * var(--u));
+  top: calc(40.9375 * var(--u));
 }
 
 /* Figma wraps this title in a flex items-center box, but that wrapper
@@ -3055,6 +3972,72 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 .work-scenes__desc-kr p {
   margin: 0;
+}
+
+/* TEAM PROJECT 1 label -- unique to the CRAFTING scene, no analog on any
+   other scene. */
+.work-scenes__eyebrow {
+  position: absolute;
+  left: calc(8.8542 * var(--u));
+  top: calc(9.8958 * var(--u));
+  width: calc(6.5625 * var(--u));
+  margin: 0;
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(0.8333 * var(--u));
+  color: #ffffff;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* TEAM PROJECT 2 label -- RETENTION scene's own equivalent, same
+   typography as the shared rule above, just repositioned. */
+.work-scenes--retention .work-scenes__eyebrow {
+  left: calc(8.85 * var(--u));
+  top: calc(9.8944 * var(--u));
+  width: calc(6.77 * var(--u));
+}
+
+/* Three blurred, angled screenshots of ILKW's own site (an archive log
+   entry, the brand-story page, a product manual page) fanned out above/
+   behind the MacBook -- decorative, not interactive. DOM order matches
+   Figma's own layer stacking (painted in listed order, so --card--3 sits
+   on top of --card--2 on top of --card--1, with the MacBook bezel drawn
+   after all three, covering their lower portion). */
+.work-scenes__card {
+  position: absolute;
+  border-radius: calc(0.5208 * var(--u));
+
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.work-scenes__card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.work-scenes__card--1 {
+  left: calc(7.7083 * var(--u));
+  top: calc(23.3333 * var(--u));
+  width: calc(16.5625 * var(--u));
+  height: calc(7.9688 * var(--u));
+}
+
+.work-scenes__card--2 {
+  left: calc(15.46875 * var(--u));
+  top: calc(16.25 * var(--u));
+  width: calc(16.5104 * var(--u));
+  height: calc(7.9688 * var(--u));
+}
+
+.work-scenes__card--3 {
+  left: calc(22.7083 * var(--u));
+  top: calc(21.71875 * var(--u));
+  width: calc(16.5104 * var(--u));
+  height: calc(7.9167 * var(--u));
 }
 
 /* better TOGETHER's two photo/video rects -- unlike every other scene,
@@ -3216,7 +4199,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .gallery-interaction__shape-subtitle {
   display: block;
   margin-top: 10px;
-  color: #000;
+  color: rgba(0, 0, 0, 0.7);
   font-family: 'Neue Montreal', sans-serif;
   font-size: 16px;
   line-height: normal;
@@ -3237,7 +4220,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 .gallery-interaction__vision-description {
   margin-top: 10px;
-  color: #000;
+  color: rgba(0, 0, 0, 0.7);
   font-family: 'Neue Montreal', sans-serif;
   font-weight: 400;
   font-size: 16px;
@@ -3411,7 +4394,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-size: calc(0.8333 * var(--u));
   line-height: 1.4;
   letter-spacing: calc(-0.0167 * var(--u));
-  color: rgba(255, 255, 255, 0.9);
+  color: #ffffff;
   opacity: 0;
   filter: blur(16px);
   transform: translateY(calc(0.5 * var(--u)));
@@ -3420,7 +4403,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .quick-qa.is-revealed .quick-qa__subtitle {
-  opacity: 1;
+  opacity: 0.7;
   filter: blur(0);
   transform: translateY(0);
 }
@@ -3875,13 +4858,20 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     display: block;
   }
 
+  .work-detail__track::before {
+    display: none;
+  }
+
   .work-detail__panel {
+    position: static;
+    inset: auto;
+    transform: none !important;
     flex: none;
     height: auto;
   }
 
   /* The spanning curve's sizing/position math assumes the sliding-track
-     layout (left: 100%/width: 600% of the track's own box) that this
+     layout (left: 100%/width: 500% of the track's own box) that this
      breakpoint drops in favor of a plain static stack -- with the track
      no longer a fixed-width filmstrip, those percentages no longer mean
      anything, so just drop the decoration rather than have it render
@@ -3997,20 +4987,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     padding: 32px 0;
   }
 
-  .work-scenes__eyebrow {
-    position: static;
-    font-size: 14px;
-    align-self: flex-start;
-  }
+
 
   /* Specificity note: the desktop rules for these two are scoped under
-     .work-scenes--typo/--light (two classes) so each scene can have its
+     .work-scenes--typo/--crafting (two classes) so each scene can have its
      own device position/size -- matching that same two-class shape here
      (rather than the bare one-class .work-scenes__device/__copy) is what
      lets this mobile override actually win over them, the same as it did
      before that scoping existed. */
   .work-scenes--typo .work-scenes__device,
-  .work-scenes--light .work-scenes__device {
+  .work-scenes--crafting .work-scenes__device {
     position: static;
     transform: none;
     width: 100%;
@@ -4023,15 +5009,30 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     aspect-ratio: 605.145 / 340.394;
   }
 
-  .work-scenes--light .work-scenes__device {
-    aspect-ratio: 30.37 / 19.062;
+  .work-scenes--crafting .work-scenes__device {
+    aspect-ratio: 26.7708 / 16.8062;
   }
 
   .work-scenes--typo .work-scenes__copy,
-  .work-scenes--light .work-scenes__copy {
+  .work-scenes--crafting .work-scenes__copy {
     position: static;
     width: 100%;
     gap: 24px;
+  }
+
+  /* Eyebrow/cards are CRAFTING-only decoration positioned in absolute
+     Figma-canvas coordinates -- meaningless once .work-scenes__device
+     above collapses to a static, full-width block, so drop the cards
+     entirely and let the eyebrow sit as a plain static line above the
+     title instead of floating at its desktop coordinates. */
+  .work-scenes__eyebrow {
+    position: static;
+    width: auto;
+    text-align: left;
+  }
+
+  .work-scenes__card {
+    display: none;
   }
 
   .work-scenes__title {
@@ -4051,36 +5052,271 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     font-size: 14px;
   }
 
-  /* Work cover 2: same static-stack treatment as .work-detail's own mobile
-     fallback above -- drop the fixed 1920x1080 poster for a plain centered
-     column. */
-  .work-cover2 {
-    min-height: auto;
-  }
-
-  .work-cover2__stage {
-    aspect-ratio: unset;
-    width: 100%;
-    padding: 64px 24px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 24px;
-  }
-
-  .work-cover2__mockup {
-    position: relative;
-    left: auto;
-    top: auto;
-    transform: none;
+  /* RETENTION has two devices in one scene (iPad + iPhone) rather than
+     typo/crafting's one each, so both collapse to static, centered,
+     max-width blocks stacked in DOM order by .work-scenes__stage's own
+     mobile flex-column above, instead of sharing a single rule with
+     those two scenes' one-device shape. */
+  .work-scenes--retention .work-scenes__device--ipad,
+  .work-scenes--retention .work-scenes__device--phone {
+    position: static;
     width: 100%;
     height: auto;
     margin: 0 auto;
-    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.1));
   }
 
-  /* Work cover 3: same static-stack treatment as work cover 2's own mobile
+  .work-scenes--retention .work-scenes__device--ipad {
+    max-width: 420px;
+    aspect-ratio: 19.427 / 13.567;
+  }
+
+  .work-scenes--retention .work-scenes__device--phone {
+    max-width: 220px;
+    aspect-ratio: 10.6224 / 23.0388;
+  }
+
+  .work-scenes--retention .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  /* COMMUNITY & CREW's two iPhones (same shared bezel/aspect) collapse the
+     same way as RETENTION's own devices above -- static, centered,
+     max-width blocks stacked in DOM order. */
+  .work-scenes--community .work-scenes__device--phone-1,
+  .work-scenes--community .work-scenes__device--phone-2,
+  .work-scenes--sharerun .work-scenes__device--phone-1,
+  .work-scenes--sharerun .work-scenes__device--phone-2,
+  .work-scenes--ai-partner .work-scenes__device--phone {
+    position: static;
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    aspect-ratio: 11.9872 / 25.999;
+    margin: 0 auto;
+  }
+
+  .work-scenes--community .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .work-scenes--sharerun .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .work-scenes--ai-partner .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .work-scenes--ai-partner .work-scenes__links {
+    position: static;
+    gap: 12px;
+  }
+
+  .work-scenes__research-img {
+    position: static;
+    width: 100%;
+    height: auto;
+  }
+
+  .work-scenes--user-research .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .work-scenes--user-research .work-scenes__title {
+    white-space: normal;
+  }
+
+  .work-scenes--user-research .work-scenes__title-en,
+  .work-scenes--user-research .work-scenes__title-em {
+    font-size: 40px;
+    letter-spacing: 0;
+  }
+
+  .work-scenes--user-research .work-scenes__desc {
+    gap: 20px;
+  }
+
+  .work-scenes--user-research .work-scenes__desc-en p {
+    font-size: 22px;
+    letter-spacing: 0;
+  }
+
+  .work-scenes--user-research .work-scenes__desc-kr p {
+    font-size: 15px;
+    letter-spacing: 0;
+  }
+
+  .work-scenes__onboarding-phone {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: min(252px, 72vw);
+    height: auto;
+    aspect-ratio: 252 / 513.492;
+  }
+
+  .work-scenes__onboarding-character {
+    position: absolute;
+    left: calc(50% + 70px);
+    top: 28px;
+    width: 54px;
+    height: 82px;
+  }
+
+  .work-scenes--friendly-onboarding .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .work-scenes--friendly-onboarding .work-scenes__title {
+    white-space: normal;
+  }
+
+  .work-scenes--friendly-onboarding .work-scenes__title-en,
+  .work-scenes--friendly-onboarding .work-scenes__title-em {
+    font-size: 40px;
+    letter-spacing: 0;
+  }
+
+  .work-scenes--friendly-onboarding .work-scenes__desc {
+    gap: 20px;
+  }
+
+  .work-scenes--friendly-onboarding .work-scenes__desc-kr {
+    width: 100%;
+  }
+
+  .work-scenes__matching-phone {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: min(254px, 72vw);
+    height: auto;
+    aspect-ratio: 253.91 / 517.384;
+  }
+
+  .work-scenes--personalized-matching .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .work-scenes--personalized-matching .work-scenes__title {
+    white-space: normal;
+  }
+
+  .work-scenes--personalized-matching .work-scenes__title-en,
+  .work-scenes--personalized-matching .work-scenes__title-em {
+    font-size: 40px;
+    letter-spacing: 0;
+  }
+
+  .work-scenes--personalized-matching .work-scenes__desc {
+    gap: 20px;
+  }
+
+  .work-scenes--personalized-matching .work-scenes__desc-kr {
+    width: 100%;
+  }
+
+  .work-scenes--personalized-matching .work-scenes__desc-kr p,
+  .work-scenes--beyond-matching .work-scenes__desc-kr p:nth-child(2) {
+    white-space: normal;
+  }
+
+  .work-scenes__beyond-phone {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: min(254px, 72vw);
+    height: auto;
+    aspect-ratio: 253.91 / 517.384;
+  }
+
+  .work-scenes--beyond-matching .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .work-scenes--beyond-matching .work-scenes__title {
+    white-space: normal;
+  }
+
+  .work-scenes--beyond-matching .work-scenes__title-en,
+  .work-scenes--beyond-matching .work-scenes__title-em {
+    font-size: 40px;
+    letter-spacing: 0;
+  }
+
+  .work-scenes--beyond-matching .work-scenes__desc {
+    gap: 20px;
+  }
+
+  .work-scenes--beyond-matching .work-scenes__desc-kr {
+    width: 100%;
+  }
+
+  .work-scenes__deployment-photo {
+    position: static;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+  }
+
+  .work-scenes--idea-deployment .work-scenes__copy {
+    position: static;
+    width: 100%;
+    gap: 24px;
+  }
+
+  .work-scenes--idea-deployment .work-scenes__title {
+    white-space: normal;
+  }
+
+  .work-scenes--idea-deployment .work-scenes__title-en,
+  .work-scenes--idea-deployment .work-scenes__title-em {
+    font-size: 40px;
+    letter-spacing: 0;
+  }
+
+  .work-scenes--idea-deployment .work-scenes__desc {
+    gap: 20px;
+  }
+
+  .work-scenes--idea-deployment .work-scenes__desc-kr {
+    width: 100%;
+  }
+
+  .work-scenes__deployment-links {
+    position: static;
+    gap: 12px;
+  }
+
+  .work-scenes__deployment-link {
+    height: 40px;
+    padding: 0 14px;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .work-scenes__deployment-link-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Work cover 3: same static-stack treatment as .work-detail's own mobile
      fallback above. */
   .work-cover3 {
     min-height: auto;
@@ -4148,6 +5384,50 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .clone-coding__frame {
     height: auto;
     aspect-ratio: 726 / 455;
+  }
+
+  .ai-lab {
+    padding: 64px 0;
+  }
+
+  .ai-lab__stage {
+    width: 100%;
+    padding: 0 24px;
+    box-sizing: border-box;
+  }
+
+  .ai-lab__head {
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+
+  .ai-lab__title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .ai-lab__title {
+    white-space: normal;
+  }
+
+  .ai-lab__title-en,
+  .ai-lab__title-em {
+    font-size: clamp(42px, 13vw, 58px);
+  }
+
+  .ai-lab__link {
+    height: 44px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+
+  .ai-lab__links {
+    gap: 12px;
+  }
+
+  .ai-lab__browser {
+    width: 100%;
   }
 
   /* Skill content: same static-stack treatment -- drop the sticky pin

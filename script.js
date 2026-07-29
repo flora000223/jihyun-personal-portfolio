@@ -220,10 +220,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const top = sec.getBoundingClientRect().top + window.scrollY;
       if (top <= line) current = sec;
     });
-    // The work-cover2/work-cover3 static poster sections (see index.html)
-    // have their own ids for scroll-target/testing purposes, but should
-    // still count as "work" for nav highlighting -- data-nav-id overrides
-    // id for that mapping without the sections needing to actually be id="work".
+    // The workDetail2/workDetail3 sections (see index.html) have their own
+    // ids for scroll-target/testing purposes, but should still count as
+    // "work" for nav highlighting -- data-nav-id overrides id for that
+    // mapping without the sections needing to actually be id="work".
     if (current) setActiveNav(current.dataset.navId || current.id);
   };
 
@@ -607,6 +607,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let cardsDarkContribution = 0;
   let workTransitionDarkContribution = 0;
   let workDetailDarkContribution = 0;
+  let workDetail2DarkContribution = 0;
+  let workDetail3DarkContribution = 0;
   let skillTransitionDarkContribution = 0;
   let skillContentDarkContribution = 0;
   let aboutTransitionDarkContribution = 0;
@@ -621,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // against the darkening background for a long stretch instead of
   // becoming legible (white) as soon as darkening starts.
   const applyCombinedDarkState = () => {
-    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution, quickQaDarkContribution);
+    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, workDetail2DarkContribution, workDetail3DarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution, quickQaDarkContribution);
     if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
     if (headerEl) headerEl.classList.toggle('header--inverted', combined > HEADER_DARK_THRESHOLD);
     return combined;
@@ -2398,36 +2400,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /* Work-detail: the cover (project 01/03) stays pinned past its own 100vh
-     of rest. .work-detail__track holds the cover plus every scene after it
-     as side-by-side panels -- a real filmstrip, .work-detail__panel's
+  /* Work-detail: each project's cover stays pinned past its own 100vh of
+     rest. .work-detail__track holds the cover plus every scene after it as
+     side-by-side panels -- a real filmstrip, .work-detail__panel's
      flex:0 0 100% already supports any panel count -- and once pinned,
-     scroll first just pauses at the cover (HOLD1_END), then slides that
-     track left to carry each scene into view in turn (SLIDE1_END,
-     SLIDE2_END, ...). The background crossfades white -> black on its own,
-     in sync with the first slide but as an independent layer
-     (#scrollDarkOverlay, same technique reason-quote/cards-reveal use) --
-     not something carried by the sliding content itself, and it stays
-     black (not re-crossfading) through every scene after that first one.
-     Once each scene is docked, further scroll fills its own
+     scroll first just pauses at the cover, then slides that track left to
+     carry each scene into view in turn. The background crossfades white ->
+     black on its own, in sync with the first slide but as an independent
+     layer (#scrollDarkOverlay, same technique reason-quote/cards-reveal
+     use) -- not something carried by the sliding content itself, and it
+     stays black (not re-crossfading) through every scene after that first
+     one. Once each scene is docked, further scroll fills its own
      .work-scenes__desc-en gray -> white character by character (same
      wrapChars/fillChars technique as .intro-reasons__subtitle), then holds
      before either the next slide or (on the last scene) releasing.
-     STAGES below lists each stage's *end* fraction of the post-dock dwell,
-     in order -- adding an eighth panel later means appending its own
-     slide/fill pair here, adding its .work-detail__panel + .work-scenes__
-     stage in the HTML the same way as scene 6, and growing .work-detail's
-     CSS height to match the new total. */
-  const workDetailEl = document.querySelector('.work-detail');
+     initWorkDetailSequence is one reusable driver for this whole pattern,
+     parameterized per project (rootEl + its own timing config) since
+     project 2 (W:RUN) repeats the exact same cover+scene(s) mechanism as
+     project 1 (ILKW) but with its own panel count/pacing and no glow
+     curve -- see the two call sites below for each project's own numbers. */
+  function initWorkDetailSequence(rootEl, config) {
+    if (!rootEl) return;
 
-  if (workDetailEl) {
-    const trackEl = document.getElementById('workDetailTrack');
-    const sceneDescEnEls = Array.from(document.querySelectorAll('.work-scenes__desc-en'));
-    const sceneVideoEls = Array.from(document.querySelectorAll('.work-scenes__device-media'));
+    const {
+      slideStarts, // fraction of the post-dock dwell where each scene's slide begins, in order
+      slideEnds, // ...where each scene's slide ends
+      fillEnds, // ...where each scene's desc-en fill finishes
+      glowPeaks = null, // optional: see buildGlowPath below -- omit entirely for a project with no glow curve in its markup
+      glowSpeed = 1, // ease-out exponent for glowProgress -- see the comment where it's used
+      setDarkContribution, // callback(value) -- writes this project's own *DarkContribution global and calls applyCombinedDarkState
+    } = config;
 
-    // One path spans all 6 work-scenes panels (see the CSS comment on
-    // .work-detail__glow-curve) so it draws on once, continuously, across
-    // the whole journey rather than resetting per scene.
+    const trackEl = rootEl.querySelector('.work-detail__track');
+    const glowCurveEl = rootEl.querySelector('.work-detail__glow-curve');
+    const coverPanelEl = rootEl.querySelector('.work-detail__panel');
+    // One .work-scenes__stage per scene panel, in DOM order -- used both to
+    // size the scenes array to the actual panel count (rather than assuming
+    // one .work-scenes__desc-en per scene globally) and to look up each
+    // scene's own video, if it has one, scoped to just that stage. Scoping
+    // the video lookup per-stage (rather than one flat, index-zipped list
+    // across the whole document) is what lets a scene contain zero, one, or
+    // even two device mockups without shifting every later scene's video
+    // off by one.
+    const sceneStages = Array.from(rootEl.querySelectorAll('.work-scenes__stage'));
+
+    // One path spans every work-scenes panel in this project (see the CSS
+    // comment on .work-detail__glow-curve) so it draws on once,
+    // continuously, across the whole journey rather than resetting per
+    // scene.
     //
     // GLOW_PEAKS is the only part of this meant to be hand-tuned: one
     // number per scene panel, in scene order, with no path/SVG syntax
@@ -2438,7 +2458,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ends exactly at the shared baseline (see buildGlowPath below), so
     // changing one entry can never break the seam with its neighbors --
     // edit freely.
-    const GLOW_PEAKS = [-190, 170, -265, 195, -255, -205];
     const GLOW_PANEL_WIDTH = 1920; // matches .work-scenes__stage's own 1920-wide design unit
     const GLOW_BASELINE = 150; // vertical center of the curve's viewBox band
     const GLOW_SAMPLE_STEP = 60; // smaller = smoother curve, larger = shorter path string
@@ -2474,29 +2493,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // measurements elsewhere in this file. It has to run after setAttribute
     // (not against whatever static "d" shipped in the markup) since that's
     // the shape actually being drawn now.
-    const glowPath = document.querySelector('.work-detail__glow-curve path');
-    if (glowPath) {
-      glowPath.setAttribute('d', buildGlowPath(GLOW_PEAKS));
+    let glowPath = null;
+    let glowLength = 0;
+    if (glowPeaks) {
+      glowPath = rootEl.querySelector('.work-detail__glow-curve path');
+      if (glowPath) {
+        glowPath.setAttribute('d', buildGlowPath(glowPeaks));
+        glowLength = glowPath.getTotalLength();
+      }
     }
-    const glowLength = glowPath ? glowPath.getTotalLength() : 0;
 
-    // Stage boundaries as fractions of the post-dock dwell, in order:
-    // pause at the cover -> slide to scene 1 -> fill scene 1's desc-en ->
-    // brief hold -> slide to scene 2 -> fill scene 2's desc-en -> final
-    // hold before releasing. Each slide's own [start, end] pair is listed
-    // explicitly (not chained off the previous stage) since a slide does
-    // NOT begin the instant the previous stage ends -- there's a fill and
-    // a hold in between that must finish first.
-    const SLIDE_STARTS = [50 / 1780, 320 / 1780, 590 / 1780, 860 / 1780, 1130 / 1780, 1400 / 1780]; // scene 1-6
-    const SLIDE_ENDS = [140 / 1780, 410 / 1780, 680 / 1780, 950 / 1780, 1220 / 1780, 1490 / 1780]; // scene 1-6
-    const FILL_ENDS = [280 / 1780, 550 / 1780, 820 / 1780, 1090 / 1780, 1360 / 1780, 1630 / 1780]; // scene 1-6
-
-    const scenes = sceneDescEnEls.map((descEnEl, i) => {
-      wrapChars(descEnEl);
+    const scenes = sceneStages.map((stageEl, i) => {
+      const descEnEl = stageEl.querySelector('.work-scenes__desc-en');
+      if (descEnEl) wrapChars(descEnEl);
       return {
-        fillChars: Array.from(descEnEl.querySelectorAll('.fill-char')),
-        slideEnd: SLIDE_ENDS[i],
-        fillEnd: FILL_ENDS[i],
+        panelEl: stageEl.closest('.work-detail__panel'),
+        fillChars: descEnEl ? Array.from(descEnEl.querySelectorAll('.fill-char')) : [],
+        slideEnd: slideEnds[i],
+        fillEnd: fillEnds[i],
         // This scene's video is worth having ready from a bit before its
         // own slide-in completes (giving it the tail of the slide plus
         // fill/hold as a loading buffer) until the next scene's slide-in
@@ -2505,78 +2519,103 @@ document.addEventListener('DOMContentLoaded', () => {
         // pinned at all, so it's already playing by the time the first
         // slide reveals it -- there's no earlier "previous scene" stage
         // to wait out.
-        activeFrom: i === 0 ? 0 : FILL_ENDS[i - 1],
-        activeTo: i < SLIDE_STARTS.length - 1 ? SLIDE_STARTS[i + 1] : Infinity,
-        video: sceneVideoEls[i] || null,
+        activeFrom: i === 0 ? 0 : fillEnds[i - 1],
+        activeTo: i < slideStarts.length - 1 ? slideStarts[i + 1] : Infinity,
+        // An array (not a single element) since COMMUNITY & CREW packs two
+        // device mockups -- and so two videos -- into one .work-scenes__stage;
+        // every other scene just gets a one-element array here.
+        videos: Array.from(stageEl.querySelectorAll('video.work-scenes__device-media')),
         videoStarted: false,
       };
     });
 
-    const getWorkDetailEntryProgress = () => {
-      const rect = workDetailEl.getBoundingClientRect();
+    const getEntryProgress = () => {
+      const rect = rootEl.getBoundingClientRect();
       const vh = window.innerHeight;
       return Math.min(1, Math.max(0, (vh - rect.top) / vh));
     };
 
-    const getWorkDetailExitProgress = () => {
-      const rect = workDetailEl.getBoundingClientRect();
+    const getExitProgress = () => {
+      const rect = rootEl.getBoundingClientRect();
       const vh = window.innerHeight;
       return Math.min(1, Math.max(0, rect.bottom / vh));
     };
 
-    const getWorkDetailDwellProgress = () => {
-      const rect = workDetailEl.getBoundingClientRect();
-      const dwellDist = workDetailEl.offsetHeight - window.innerHeight;
+    const getDwellProgress = () => {
+      const rect = rootEl.getBoundingClientRect();
+      const dwellDist = rootEl.offsetHeight - window.innerHeight;
       return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
     };
 
     const stage = (start, end, p) => Math.min(1, Math.max(0, (p - start) / (end - start)));
 
-    const updateWorkDetail = () => {
+    const update = () => {
       // Mobile fallback (see CSS) drops the pin/slide for a plain static
       // stack already showing the filled end state -- skip the
       // dark-overlay/transform/fill math entirely, same pattern as
       // reason-quote/cards-reveal's own mobile guards.
       if (window.innerWidth <= 768) {
-        workDetailDarkContribution = 0;
-        applyCombinedDarkState();
-        if (trackEl) trackEl.style.transform = 'none';
+        setDarkContribution(0);
+        if (trackEl) {
+          trackEl.style.transform = 'none';
+          trackEl.style.removeProperty('--detail-overlay-x');
+        }
+        if (glowCurveEl) glowCurveEl.style.transform = 'none';
+        if (coverPanelEl) coverPanelEl.style.filter = 'none';
+        scenes.forEach((scene) => {
+          if (scene.panelEl) scene.panelEl.style.transform = 'none';
+        });
         // Mobile shows every scene as a plain static stack with no scroll
         // gating -- just start each video once, the first time this runs.
         scenes.forEach((scene) => {
-          if (scene.video && !scene.videoStarted) {
+          if (scene.videos.length && !scene.videoStarted) {
             scene.videoStarted = true;
-            scene.video.play().catch(() => {});
+            scene.videos.forEach((v) => v.play().catch(() => {}));
           }
         });
         return;
       }
 
-      const entry = getWorkDetailEntryProgress();
-      const exit = getWorkDetailExitProgress();
-      const dwellProgress = entry >= 1 ? getWorkDetailDwellProgress() : 0;
+      const entry = getEntryProgress();
+      const exit = getExitProgress();
+      const dwellProgress = entry >= 1 ? getDwellProgress() : 0;
 
       // Each slide is its own 0->1 ramp over its explicit [start, end]
-      // window (see SLIDE_STARTS/SLIDE_ENDS above -- NOT back-to-back with
+      // window (see slideStarts/slideEnds above -- NOT back-to-back with
       // the previous slide, since a fill and a hold sit in the gap
       // between them); summing them gives the track's total travel in
       // whole panel-widths (0 = cover, 1 = scene 1, 2 = scene 2, ...).
       // Before its own window a ramp is 0, after it it's clamped at 1, so
       // this stays flat during every fill/hold and monotonic overall.
       let totalSlide = 0;
-      SLIDE_STARTS.forEach((start, i) => {
-        totalSlide += stage(start, SLIDE_ENDS[i], dwellProgress);
+      slideStarts.forEach((start, i) => {
+        totalSlide += stage(start, slideEnds[i], dwellProgress);
       });
 
       // Darkness ramps up with the *first* slide (cover is white, every
       // scene after it is black) and then just stays maxed -- no
       // re-crossfading between later, already-black scenes.
       const darkProgress = Math.min(1, totalSlide);
-      workDetailDarkContribution = Math.min(entry >= 1 ? darkProgress : 0, exit);
-      applyCombinedDarkState();
+      setDarkContribution(Math.min(entry >= 1 ? darkProgress : 0, exit));
+      if (coverPanelEl) {
+        const coverBrightness = 1 - 0.78 * darkProgress;
+        coverPanelEl.style.filter = `brightness(${coverBrightness})`;
+      }
 
       if (trackEl) {
-        trackEl.style.transform = `translateX(${-totalSlide * 100}%)`;
+        trackEl.style.transform = 'none';
+        trackEl.style.setProperty('--detail-overlay-x', `${Math.max(0, 1 - totalSlide) * 100}%`);
+      }
+
+      scenes.forEach((scene, i) => {
+        if (scene.panelEl) {
+          const x = (i + 1 - totalSlide) * 100;
+          scene.panelEl.style.transform = `translateX(${x}%)`;
+        }
+      });
+
+      if (glowCurveEl) {
+        glowCurveEl.style.transform = `translateX(${-totalSlide * document.documentElement.clientWidth}px)`;
       }
 
       // Single draw-on reveal across the *entire* work-scenes journey (from
@@ -2586,7 +2625,19 @@ document.addEventListener('DOMContentLoaded', () => {
       // scenes instead of restarting fresh in every panel, so this ties it
       // to one span's worth of progress instead of resetting per scene.
       if (glowPath) {
-        const glowProgress = stage(SLIDE_STARTS[0], FILL_ENDS[FILL_ENDS.length - 1], dwellProgress);
+        // Raw span is the *entire* journey (first slide-in to last fill-end).
+        // A plain linear map of that felt too slow to keep up with scroll,
+        // but speeding it up with a flat multiplier (clamped at 1) made the
+        // streak finish early and then sit dead/static for the rest of the
+        // last scene -- reads as the light stopping partway rather than
+        // reaching the end. This ease-out curve (y = 1-(1-x)^glowSpeed)
+        // fixes both: it's steeper than linear everywhere in between (so it
+        // still catches up quickly), but y(1) is always exactly 1, so it
+        // only ever finishes exactly in sync with the scroll dwell's own
+        // end, never before. Raise glowSpeed for an even faster-feeling
+        // catch-up, lower it (toward 1, which is plain linear) to ease off.
+        const rawGlowProgress = stage(slideStarts[0], fillEnds[fillEnds.length - 1], dwellProgress);
+        const glowProgress = 1 - Math.pow(1 - rawGlowProgress, glowSpeed);
         glowPath.style.strokeDasharray = `${glowLength}`;
         glowPath.style.strokeDashoffset = `${glowLength * (1 - glowProgress)}`;
       }
@@ -2608,10 +2659,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // preload="none" means nothing downloads until .play()/.load() is
         // actually called -- videoStarted tracks whether that's happened
-        // yet so each ~20-30MB clip only starts fetching once its own
-        // scene is actually the one in (or about to be in) view, and
-        // pauses (without re-fetching) once scrolled away from.
-        if (scene.video) {
+        // yet so each clip only starts fetching once its own scene is
+        // actually the one in (or about to be in) view, and pauses
+        // (without re-fetching) once scrolled away from.
+        if (scene.videos.length) {
           const isActive = entry >= 1 && dwellProgress >= scene.activeFrom && dwellProgress < scene.activeTo;
           if (isActive && !scene.videoStarted) {
             scene.videoStarted = true;
@@ -2620,32 +2671,81 @@ document.addEventListener('DOMContentLoaded', () => {
             // mid-clip (e.g. after the user scrolled away and back) could
             // land on any of their scrolled-past, non-full-bleed moments
             // instead of the full-screen opening shot.
-            scene.video.currentTime = 0;
-            scene.video.play().catch(() => {});
+            scene.videos.forEach((v) => {
+              v.currentTime = 0;
+              v.play().catch(() => {});
+            });
           } else if (!isActive && scene.videoStarted) {
             scene.videoStarted = false;
-            scene.video.pause();
+            scene.videos.forEach((v) => v.pause());
           }
         }
       });
     };
 
-    let workDetailTicking = false;
-    const onWorkDetailScroll = () => {
-      if (!workDetailTicking) {
-        workDetailTicking = true;
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
         requestAnimationFrame(() => {
-          updateWorkDetail();
-          workDetailTicking = false;
+          update();
+          ticking = false;
         });
       }
     };
 
-    updateWorkDetail();
-    window.addEventListener('scroll', onWorkDetailScroll, { passive: true });
-    window.addEventListener('resize', updateWorkDetail);
-    window.addEventListener('load', updateWorkDetail);
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', update);
+    window.addEventListener('load', update);
   }
+
+  // Project 01/03 (ILKW web) -- six panels (cover + 5 scenes), full glow
+  // curve. Numbers unchanged from before this was refactored into a
+  // reusable function.
+  initWorkDetailSequence(document.getElementById('work'), {
+    slideStarts: [50 / 1510, 320 / 1510, 590 / 1510, 860 / 1510, 1130 / 1510],
+    slideEnds: [140 / 1510, 410 / 1510, 680 / 1510, 950 / 1510, 1220 / 1510],
+    fillEnds: [280 / 1510, 550 / 1510, 820 / 1510, 1090 / 1510, 1360 / 1510],
+    glowPeaks: [160, -190, -265, 195, -205], // CRAFTING, TYPO, BEFOREAFTER, EDITORIAL, TOGETHER
+    glowSpeed: 0.9,
+    setDarkContribution: (v) => {
+      workDetailDarkContribution = v;
+      applyCombinedDarkState();
+    },
+  });
+
+  // Project 02/03 (W:RUN app) -- five panels (cover + RETENTION scene +
+  // COMMUNITY & CREW scene + SHARE your RUN scene + AI running PARTNER scene), same pin/slide/dark-overlay mechanism as
+  // project 1 but its own (shorter) pacing and no glow curve (its markup
+  // has no .work-detail__glow-curve at all, so glowPeaks is simply
+  // omitted). 1240-unit total = 50 (initial hold) + 4 scene budgets
+  // (slide/fill/hold) + 150 (final hold), matching .work-detail--p2's
+  // expanded height in CSS.
+  initWorkDetailSequence(document.getElementById('workDetail2'), {
+    slideStarts: [50 / 1240, 320 / 1240, 590 / 1240, 860 / 1240],
+    slideEnds: [140 / 1240, 410 / 1240, 680 / 1240, 950 / 1240],
+    fillEnds: [280 / 1240, 550 / 1240, 820 / 1240, 1090 / 1240],
+    glowPeaks: [160, -190, -265, 195], // RETENTION, COMMUNITY, SHARE RUN, AI PARTNER
+    glowSpeed: 0.9,
+    setDarkContribution: (v) => {
+      workDetail2DarkContribution = v;
+      applyCombinedDarkState();
+    },
+  });
+
+  // Project 03/03 (MU:it app) -- cover + USER RESEARCH + ONBOARDING + MATCHING + BEYOND + DEPLOYMENT.
+  initWorkDetailSequence(document.getElementById('workDetail3'), {
+    slideStarts: [50 / 1510, 320 / 1510, 590 / 1510, 860 / 1510, 1130 / 1510],
+    slideEnds: [140 / 1510, 410 / 1510, 680 / 1510, 950 / 1510, 1220 / 1510],
+    fillEnds: [280 / 1510, 550 / 1510, 820 / 1510, 1090 / 1510, 1360 / 1510],
+    glowPeaks: [160, -190, -265, 195, -205], // USER RESEARCH, ONBOARDING, MATCHING, BEYOND, DEPLOYMENT
+    glowSpeed: 0.9,
+    setDarkContribution: (v) => {
+      workDetail3DarkContribution = v;
+      applyCombinedDarkState();
+    },
+  });
 
   // Clone-coding gallery -- each card rises into place once as it scrolls
   // into view (see .clone-coding__card / .is-revealed in style.css).
@@ -2702,6 +2802,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
 
     cloneIntroObserver.observe(cloneIntroEl);
+  }
+
+  // AI Lab -- title fog-in reveal, matching the clone-coding title rhythm.
+  const aiLabHeadEl = document.querySelector('.ai-lab__head');
+  if (aiLabHeadEl) {
+    const aiLabTitleEl = aiLabHeadEl.querySelector('.ai-lab__title');
+    const aiLabSummaryEl = aiLabHeadEl.querySelector('.ai-lab__summary');
+    const aiLabLinksEl = aiLabHeadEl.querySelector('.ai-lab__links');
+
+    if (aiLabTitleEl) {
+      wrapChars(aiLabTitleEl, 'ai-lab__title-char');
+    }
+    const aiLabTitleChars = aiLabTitleEl
+      ? Array.from(aiLabTitleEl.querySelectorAll('.ai-lab__title-char'))
+      : [];
+
+    aiLabTitleChars.forEach((el, i) => {
+      el.style.setProperty('--fog-delay', `${i * 8}ms`);
+    });
+    if (aiLabSummaryEl) {
+      aiLabSummaryEl.style.setProperty('--fog-delay', '35ms');
+    }
+    if (aiLabLinksEl) {
+      aiLabLinksEl.style.setProperty('--fog-delay', '50ms');
+    }
+
+    const aiLabObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        aiLabHeadEl.classList.toggle('is-revealed', entry.isIntersecting);
+      });
+    }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
+
+    aiLabObserver.observe(aiLabHeadEl);
   }
 
   // Skill content -- fog-in reveal for the SKILL title + Korean subtitle,
@@ -3174,30 +3307,4 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(animate);
   }
 
-  // Clone-coding cards: the "view website" badge replaces the pointer
-  // itself and tracks it around inside the frame, rather than sitting
-  // fixed in the center (native cursor hidden via .clone-coding__frame's
-  // cursor:none in style.css).
-  document.querySelectorAll('.clone-coding__frame').forEach((frame) => {
-    const badge = frame.querySelector('.clone-coding__badge');
-    if (!badge) return;
-
-    const moveBadgeTo = (e) => {
-      const rect = frame.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      badge.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-    };
-
-    frame.addEventListener('mouseenter', (e) => {
-      moveBadgeTo(e);
-      badge.classList.add('is-active');
-    });
-
-    frame.addEventListener('mousemove', moveBadgeTo);
-
-    frame.addEventListener('mouseleave', () => {
-      badge.classList.remove('is-active');
-    });
-  });
 });

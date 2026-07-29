@@ -199,12 +199,14 @@
     <section class="work-detail" id="work">
       <div class="work-detail__sticky">
       <div class="work-detail__track" id="workDetailTrack">
-      <svg class="work-detail__glow-curve" viewBox="0 0 11520 289.216" preserveAspectRatio="none" aria-hidden="true">
+      <svg class="work-detail__glow-curve" viewBox="0 0 9600 289.216" preserveAspectRatio="none" aria-hidden="true">
         <!-- Shape (and per-scene bulge amount) is generated at runtime by
              buildGlowPath()/GLOW_PEAKS in script.js -- this "d" is a plain
              flat placeholder overwritten before first paint, not the real
-             curve, so there's nothing here worth hand-editing. -->
-        <path d="M 0,150 L 11520,150" />
+             curve, so there's nothing here worth hand-editing. viewBox width
+             must match GLOW_PANEL_WIDTH(1920) * the number of work-scenes
+             panels (5) or the curve visually falls short of the last panel. -->
+        <path d="M 0,150 L 9600,150" />
       </svg>
       <div class="work-detail__panel">
       <div class="work-detail__stage">
@@ -277,14 +279,55 @@
            than overlaying on top of it -- see .work-detail__track and
            script.js's updateWorkDetail. -->
       <div class="work-detail__panel">
-        <div class="work-scenes__stage work-scenes--typo">
+        <div class="work-scenes__stage work-scenes--crafting">
           <p class="work-scenes__eyebrow">TEAM PROJECT 1</p>
+
+          <!-- Blurred, angled screenshots of ILKW's own site fanned out
+               behind/above the MacBook -- purely decorative, see
+               .work-scenes__card in style.css. -->
+          <div class="work-scenes__card work-scenes__card--1">
+            <img src="images/work-crafting-card-1.png" alt="" aria-hidden="true">
+          </div>
+          <div class="work-scenes__card work-scenes__card--2">
+            <img src="images/work-crafting-card-2.png" alt="" aria-hidden="true">
+          </div>
+          <div class="work-scenes__card work-scenes__card--3">
+            <img src="images/work-crafting-card-3.png" alt="" aria-hidden="true">
+          </div>
 
           <div class="work-scenes__device">
             <div class="work-scenes__device-screen">
               <!-- preload="none": this scene is off-screen until the user scrolls into
                    .work-detail's dwell, so script.js only tells the video to load/play
                    once it's actually about to be seen (see updateWorkDetail). -->
+              <video class="work-scenes__device-media" poster="images/ilkw-video-1-cropped-poster.png" src="images/ilkw-video-1-cropped.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__device-bezel" src="images/work-light-macbook.png" alt="">
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-en">CRAFTING </span><span class="work-scenes__title-em">the</span><span class="work-scenes__title-en"> BRAND </span><span class="work-scenes__title-em">experience</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Restructured the user journey to transform product information into an immersive brand experience through content flow and interaction.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>브랜드 스토리와 공간 경험이 충분히 전달되지 않는 기존 홈페이지의 문제점을 분석하고</p>
+                <p>일광전구라는 브랜드를 자연스럽게 경험할 수 있는 사용자 흐름으로 재구성했습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Third scene, same track pattern as the previous two. -->
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--typo">
+
+
+          <div class="work-scenes__device">
+            <div class="work-scenes__device-screen">
               <video class="work-scenes__device-media" poster="images/work-typo-imac27-poster.png" src="images/work-typo-imac27-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
             </div>
             <img class="work-scenes__device-bezel" src="images/work-typo-imac27.png" alt="">
@@ -302,34 +345,6 @@
               <div class="work-scenes__desc-kr">
                 <p>감각적인 타이포그래피와 인터랙티브한 비주얼을 통해 일광전구의 브랜드 스토리를 소개하고,</p>
                 <p>브랜드의 헤리티지와 정체성을 강조했습니다.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Third scene, same track pattern as the previous two. -->
-      <div class="work-detail__panel">
-        <div class="work-scenes__stage work-scenes--light">
-          <div class="work-scenes__device">
-            <div class="work-scenes__device-screen">
-              <video class="work-scenes__device-media" poster="images/work-light-macbook-poster.png" src="images/work-light-macbook-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
-            </div>
-            <img class="work-scenes__device-bezel" src="images/work-light-macbook.png" alt="">
-          </div>
-
-          <div class="work-scenes__copy">
-            <p class="work-scenes__title"><span class="work-scenes__title-en">LIGHT </span><span class="work-scenes__title-em">interaction</span></p>
-
-            <div class="work-scenes__desc">
-              <div class="work-scenes__desc-en">
-                <p>Interactive lighting effects</p>
-                <p>visualize the movement of light,</p>
-                <p>helping users naturally recognize its presence.</p>
-              </div>
-              <div class="work-scenes__desc-kr">
-                <p>빛의 움직임을 인터랙션으로 시각화하여</p>
-                <p>사용자가 빛의 존재감을 자연스럽게 인식하도록 했습니다.</p>
               </div>
             </div>
           </div>
@@ -370,9 +385,9 @@
         <div class="work-scenes__stage work-scenes--editorial">
           <div class="work-scenes__device">
             <div class="work-scenes__device-screen">
-              <video class="work-scenes__device-media" poster="images/work-editorial-macbook-poster.png" src="images/work-editorial-macbook-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+              <video class="work-scenes__device-media" poster="images/work-editorial-ipad-poster.png" src="images/work-editorial-ipad-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
             </div>
-            <img class="work-scenes__device-bezel" src="images/work-light-macbook.png" alt="">
+            <img class="work-scenes__device-bezel" src="images/work-retention-ipad-bezel.png" alt="">
           </div>
 
           <div class="work-scenes__copy">
@@ -393,36 +408,7 @@
         </div>
       </div>
 
-      <!-- Sixth scene, same track pattern as the previous ones. -->
-      <div class="work-detail__panel">
-        <div class="work-scenes__stage work-scenes--responsive">
-          <div class="work-scenes__device">
-            <div class="work-scenes__device-screen">
-              <video class="work-scenes__device-media" poster="images/work-responsive-iphone-poster.png" src="images/work-responsive-iphone-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
-            </div>
-            <img class="work-scenes__device-bezel" src="images/work-responsive-iphone.png" alt="">
-            <div class="work-scenes__device-island" aria-hidden="true"></div>
-          </div>
-
-          <div class="work-scenes__copy">
-            <p class="work-scenes__title"><span class="work-scenes__title-en">RESPONSIVE </span><span class="work-scenes__title-em">design</span></p>
-
-            <div class="work-scenes__desc">
-              <div class="work-scenes__desc-en">
-                <p>Fully responsive across desktop, tablet, and mobile devices,</p>
-                <p>ensuring a seamless and consistent user experience</p>
-                <p>on every screen.</p>
-              </div>
-              <div class="work-scenes__desc-kr">
-                <p>데스크톱, 태블릿, 모바일 환경에 모두 대응하는 반응형으로 구현하여</p>
-                <p>어떤 화면에서도 일관되고 자연스러운 사용자 경험을 제공합니다.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Seventh scene, same track pattern as the previous ones -- but a
+      <!-- Sixth scene, same track pattern as the previous ones -- but a
            closing/wrap-up scene rather than a device mockup, so it skips
            .work-scenes__device entirely in favor of two plain photo/video
            rects positioned directly on the stage, plus its own link
@@ -471,12 +457,20 @@
       </div>
     </section>
 
-    <!-- Project 02/03 cover -- static poster only (see style.css's
-         .work-cover2 comment); not wired into work-detail's scroll track
-         since this project's own scenes aren't built yet. -->
-    <section class="work-cover2" id="workCover2" data-nav-id="work">
-      <div class="work-cover2__stage">
-        <img class="work-cover2__mockup" src="images/work-werun-mockup.png" alt="W:RUN 앱 UI 화면">
+    <!-- Project 02/03 (W:RUN app) -- same pinned/sliding-track pattern as
+         project 01/03 above (see .work-detail's own comment in style.css),
+         just its own shorter track (cover + RETENTION scene so far) and no
+         glow curve. Driven by the same initWorkDetailSequence() in
+         script.js, called a second time against #workDetail2. -->
+    <section class="work-detail work-detail--p2" id="workDetail2" data-nav-id="work">
+      <div class="work-detail__sticky">
+      <div class="work-detail__track" id="workDetailTrack2">
+      <svg class="work-detail__glow-curve" viewBox="0 0 7680 289.216" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M 0,150 L 7680,150" />
+      </svg>
+      <div class="work-detail__panel">
+      <div class="work-detail__stage">
+        <img class="work-detail__mockup work-detail__mockup--p2" src="images/work-werun-mockup.png" alt="W:RUN 앱 UI 화면">
 
         <div class="work-detail__info">
           <div class="work-detail__head">
@@ -487,11 +481,11 @@
               <p class="work-detail__title"><span class="work-detail__title-en">W:RUN</span><span class="work-detail__title-em"> app</span></p>
 
               <div class="work-detail__links">
-                <a class="work-detail__link" href="#" target="_blank" rel="noopener">
-                  <span>APP</span>
+                <a class="work-detail__link" href="https://ezenteamproject2.vercel.app/" target="_blank" rel="noopener">
+                  <span>WEBSITE</span>
                   <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
                 </a>
-                <a class="work-detail__link" href="#" target="_blank" rel="noopener">
+                <a class="work-detail__link" href="https://www.figma.com/proto/cH2dx12auBMFkl7k0c71JD/%EC%9C%84%EB%9F%B0_%ED%8C%80%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=1-87&amp;viewport=371%2C924%2C0.19&amp;t=yvpTHuz9spNYRSIv-1&amp;scaling=min-zoom&amp;content-scaling=fixed&amp;page-id=0%3A1" target="_blank" rel="noopener">
                   <span>PROPOSAL</span>
                   <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
                 </a>
@@ -539,12 +533,174 @@
           </div>
         </div>
       </div>
+      </div>
+
+      <!-- Next scene sits directly beside the cover in the same track,
+           same reasoning as project 1's own next-scene comment above. -->
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--retention">
+          <p class="work-scenes__eyebrow">TEAM PROJECT 2</p>
+
+          <div class="work-scenes__device work-scenes__device--ipad">
+            <div class="work-scenes__device-screen">
+              <img class="work-scenes__device-media" src="images/work-retention-ipad-screen.png" alt="">
+            </div>
+            <img class="work-scenes__device-bezel work-scenes__device-bezel--ipad" src="images/work-retention-ipad-bezel.png" alt="">
+          </div>
+
+          <div class="work-scenes__device work-scenes__device--phone">
+            <div class="work-scenes__device-screen work-scenes__device-screen--phone">
+              <video class="work-scenes__device-media" poster="images/work-retention-iphone-poster.png" src="images/work-retention-iphone-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__device-bezel work-scenes__device-bezel--phone" src="images/work-retention-iphone-bezel.png" alt="">
+            <div class="work-scenes__device-island" aria-hidden="true"></div>
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-en">RETENSION-FOCUSED</span><span class="work-scenes__title-em"> experience</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Analyzed the limitations of record-centered running apps and designed a retention-focused service structure</p>
+                <p>and user flow to encourage continuous engagement.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>기록 중심 구조인 기존 러닝 앱의 한계를 분석하고</p>
+                <p>사용자의 지속적인 참여를 위한 리텐션 중심의 서비스 구조와 사용자 흐름을 설계했습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Third panel in this track: COMMUNITY & CREW. Two iPhone mockups
+           (not one iPad + one iPhone like RETENTION above) sharing a single
+           bezel asset, each with its own real screen-recording video --
+           see script.js's initWorkDetailSequence, whose per-scene video
+           lookup now collects every video in a stage rather than just the
+           first, exactly so a scene like this one can carry two. -->
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--community">
+          <div class="work-scenes__device work-scenes__device--phone-1">
+            <div class="work-scenes__device-screen work-scenes__device-screen--phone">
+              <video class="work-scenes__device-media" poster="images/work-community-phone1-poster.png" src="images/werun-2.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__device-bezel" src="images/work-community-iphone-bezel.png" alt="">
+            <div class="work-scenes__device-island" aria-hidden="true"></div>
+          </div>
+
+          <div class="work-scenes__device work-scenes__device--phone-2">
+            <div class="work-scenes__device-screen work-scenes__device-screen--phone">
+              <video class="work-scenes__device-media" poster="images/work-community-phone2-poster.png" src="images/werun-2-1.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__device-bezel" src="images/work-community-iphone-bezel.png" alt="">
+            <div class="work-scenes__device-island" aria-hidden="true"></div>
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-en">COMMUNITY </span><span class="work-scenes__title-em">&amp;</span><span class="work-scenes__title-en"> CREW</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Designed a community experience that helps runners connect, interact, and stay</p>
+                <p>motivated through shared goals.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>러너들이 함께 소통하고 목표를 공유하며 지속적으로</p>
+                <p>동기부여를 받을 수 있는 커뮤니티 경험을 설계했습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fourth panel in this track: SHARE your RUN. Same two-iPhone
+           structure as COMMUNITY & CREW, with its own Figma positions and
+           screen recordings (werun-3.mp4, werun-3-1.mp4). -->
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--sharerun">
+          <div class="work-scenes__device work-scenes__device--phone-1">
+            <div class="work-scenes__device-screen work-scenes__device-screen--phone">
+              <video class="work-scenes__device-media" src="images/werun-3.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__device-bezel" src="images/work-community-iphone-bezel.png" alt="">
+            <div class="work-scenes__device-island" aria-hidden="true"></div>
+          </div>
+
+          <div class="work-scenes__device work-scenes__device--phone-2">
+            <div class="work-scenes__device-screen work-scenes__device-screen--phone">
+              <video class="work-scenes__device-media" src="images/werun-3-1.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__device-bezel" src="images/work-community-iphone-bezel.png" alt="">
+            <div class="work-scenes__device-island" aria-hidden="true"></div>
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-en">SHARE </span><span class="work-scenes__title-em">your</span><span class="work-scenes__title-en"> RUN</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Turned running records into shareable cards, encouraging users to celebrate achievements and inspire one another.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>러닝 기록을 공유 가능한 카드 형태로 제작하여</p>
+                <p>성취감을 느끼고 서로에게 동기부여를 줄 수 있도록 설계했습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fifth and final W:RUN detail panel: AI running PARTNER. -->
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--ai-partner">
+          <div class="work-scenes__device work-scenes__device--phone">
+            <div class="work-scenes__device-screen work-scenes__device-screen--phone">
+              <video class="work-scenes__device-media" src="images/werun-4.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__device-bezel" src="images/work-community-iphone-bezel.png" alt="">
+            <div class="work-scenes__device-island" aria-hidden="true"></div>
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-en">AI </span><span class="work-scenes__title-em">running</span><span class="work-scenes__title-en"> PARTNER</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Integrated an AI running partner to provide personalized guidance, motivation, and running recommendations, encouraging long-term engagement with the service.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>API 연결을 통한 AI 러닝 파트너를 도입해 개인 맞춤형 러닝 가이드와 러닝 추천을 제공하고</p>
+                <p>사용자의 지속적인 서비스 이용을 유도했습니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="work-scenes__links">
+            <a class="work-scenes__link" href="https://ezenteamproject2.vercel.app/" target="_blank" rel="noopener">
+              <span>WEBSITE</span>
+              <img class="work-scenes__link-icon" src="images/icon-arrow-right.svg" alt="">
+            </a>
+            <a class="work-scenes__link" href="https://www.figma.com/proto/cH2dx12auBMFkl7k0c71JD/%EC%9C%84%EB%9F%B0_%ED%8C%80%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=1-87&amp;viewport=371%2C924%2C0.19&amp;t=yvpTHuz9spNYRSIv-1&amp;scaling=min-zoom&amp;content-scaling=fixed&amp;page-id=0%3A1" target="_blank" rel="noopener">
+              <span>PROPOSAL</span>
+              <img class="work-scenes__link-icon" src="images/icon-arrow-right.svg" alt="">
+            </a>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
     </section>
 
-    <!-- Project 03/03 cover -- static poster only (see style.css's
-         .work-cover3 comment); not wired into work-detail's scroll track
-         since this project's own scenes aren't built yet. -->
-    <section class="work-cover3" id="workCover3" data-nav-id="work">
+    <!-- Project 03/03 (MU:it app) -- cover + USER RESEARCH process scene,
+         driven by the shared pinned/sliding work-detail sequence. -->
+    <section class="work-detail work-detail--p3" id="workDetail3" data-nav-id="work">
+      <div class="work-detail__sticky">
+      <div class="work-detail__track" id="workDetailTrack3">
+      <svg class="work-detail__glow-curve" viewBox="0 0 9600 289.216" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M 0,150 L 9600,150" />
+      </svg>
+      <div class="work-detail__panel">
       <div class="work-cover3__stage">
         <img class="work-cover3__mockup" src="images/work-muit-mockup.png" alt="MU:it 앱 UI 화면">
 
@@ -557,11 +713,11 @@
               <p class="work-detail__title"><span class="work-detail__title-en">MU:it</span><span class="work-detail__title-em"> app</span></p>
 
               <div class="work-detail__links">
-                <a class="work-detail__link" href="#" target="_blank" rel="noopener">
+                <a class="work-detail__link" href="https://muit-app.vercel.app/" target="_blank" rel="noopener">
                   <span>APP</span>
                   <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
                 </a>
-                <a class="work-detail__link" href="#" target="_blank" rel="noopener">
+                <a class="work-detail__link" href="https://www.figma.com/proto/qRzZGUELmg7uROT616MDIk/%EB%AE%A4%EC%9E%87_%EA%B0%9C%EC%9D%B8%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=80-1863&amp;viewport=-2114%2C4043%2C0.13&amp;t=rYdodlYd3H1WPOpw-1&amp;scaling=min-zoom&amp;content-scaling=fixed&amp;page-id=1%3A22552" target="_blank" rel="noopener">
                   <span>PROPOSAL</span>
                   <img class="work-detail__link-icon" src="images/icon-arrow-right.svg" alt="">
                 </a>
@@ -608,6 +764,171 @@
             </div>
           </div>
         </div>
+      </div>
+      </div>
+
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--user-research">
+          <p class="work-scenes__eyebrow">PERSONAL PROJECT</p>
+
+          <img class="work-scenes__research-img" src="images/user-research.png" alt="MU:it user research process">
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-en">USER RESEARCH</span><span class="work-scenes__title-em"> process</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Conducted user research through<br>surveys, competitor analysis, and the<br>Double Diamond process to define core<br>problems and shape the UX strategy.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>설문조사와 경쟁사 분석, 포지셔닝 맵, 더블 다이아몬드 프로세스를 통해</p>
+                <p>사용자 니즈를 분석하고 핵심 문제를 정의하여 UX 전략을 수립했습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--friendly-onboarding">
+          <div class="work-scenes__onboarding-phone">
+            <div class="work-scenes__onboarding-screen">
+              <video class="work-scenes__device-media work-scenes__onboarding-video" src="images/work-muit-onboarding-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__onboarding-bezel" src="images/work-muit-onboarding-phone.png" alt="">
+            <div class="work-scenes__onboarding-island" aria-hidden="true">
+              <img class="work-scenes__onboarding-camera" src="images/work-muit-onboarding-camera.png" alt="">
+            </div>
+          </div>
+
+          <div class="work-scenes__onboarding-character" aria-hidden="true">
+            <img src="images/work-muit-character.svg" alt="">
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-em">friendly</span><span class="work-scenes__title-en"> ONBOARDING</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>To create a more welcoming and engaging first experience, I created AI-generated characters and incorporated them into the onboarding experience.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>사용자가 서비스를 더욱 친근하게 경험할 수 있도록 생성형 AI를 활용하여</p>
+                <p>서비스 콘셉트에 맞는 캐릭터를 직접 제작하고 온보딩 화면에 적용했습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--personalized-matching">
+          <div class="work-scenes__matching-phone work-scenes__matching-phone--onboarding">
+            <div class="work-scenes__matching-screen">
+              <video class="work-scenes__device-media" src="images/work-muit-matching-onboarding-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__matching-bezel" src="images/work-muit-matching-phone-front.png" alt="">
+            <div class="work-scenes__matching-island" aria-hidden="true">
+              <img class="work-scenes__matching-camera" src="images/work-muit-matching-camera.png" alt="">
+            </div>
+          </div>
+
+          <div class="work-scenes__matching-phone work-scenes__matching-phone--list">
+            <div class="work-scenes__matching-screen">
+              <video class="work-scenes__device-media" src="images/work-muit-matching-list-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__matching-bezel" src="images/work-muit-matching-phone-back.png" alt="">
+            <div class="work-scenes__matching-island" aria-hidden="true">
+              <img class="work-scenes__matching-camera" src="images/work-muit-matching-camera.png" alt="">
+            </div>
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-en">PERSONALIZED </span><span class="work-scenes__title-em">matching</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Delivered personalized teacher recommenda<br>tions based on each learner's instrument, skill level, goals, and preferred lesson style.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>기존의 선생님 탐색의 한계를 개선하기 위해 사용자의 악기, 실력, 학습 목적을</p>
+                <p>반영한 맞춤형 선생님 추천기능을 설계하여 탐색 부담을 줄이고 매칭 효율을 높였습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--beyond-matching">
+          <div class="work-scenes__beyond-phone work-scenes__beyond-phone--music">
+            <div class="work-scenes__beyond-screen">
+              <video class="work-scenes__device-media" src="images/work-muit-beyond-music-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__beyond-bezel" src="images/work-muit-beyond-phone-orange.png" alt="">
+            <div class="work-scenes__beyond-island" aria-hidden="true">
+              <img class="work-scenes__beyond-camera" src="images/work-muit-beyond-camera.png" alt="">
+            </div>
+          </div>
+
+          <div class="work-scenes__beyond-phone work-scenes__beyond-phone--lesson">
+            <div class="work-scenes__beyond-screen">
+              <video class="work-scenes__device-media" src="images/work-muit-beyond-lesson-video.mp4" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none"></video>
+            </div>
+            <img class="work-scenes__beyond-bezel" src="images/work-muit-beyond-phone-white.png" alt="">
+            <div class="work-scenes__beyond-island" aria-hidden="true">
+              <img class="work-scenes__beyond-camera" src="images/work-muit-beyond-camera.png" alt="">
+            </div>
+          </div>
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-em">beyond</span><span class="work-scenes__title-en"> MATCHING</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Expanded the experience beyond teacher matching with lesson management, practice tracking, and personalized music recommendations.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>기존 선생님 매칭 서비스의 일회성 이용 구조를 개선하기 위해</p>
+                <p>매칭 이후에도 레슨 관리와 연습 관리, 그리고 클래식 추천 기능을 설계하여 지속적인 학습 경험을 제공했습니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="work-detail__panel">
+        <div class="work-scenes__stage work-scenes--idea-deployment">
+          <img class="work-scenes__deployment-photo work-scenes__deployment-photo--code" src="images/work-muit-deployment-photo-2.png" alt="MU:it implementation process">
+          <img class="work-scenes__deployment-photo work-scenes__deployment-photo--presentation" src="images/work-muit-deployment-photo-1.png" alt="MU:it presentation process">
+
+          <div class="work-scenes__copy">
+            <p class="work-scenes__title"><span class="work-scenes__title-em">from</span><span class="work-scenes__title-en"> IDEA </span><span class="work-scenes__title-em">to</span><span class="work-scenes__title-en"> DEPLOYMENT</span></p>
+
+            <div class="work-scenes__desc">
+              <div class="work-scenes__desc-en">
+                <p>Handled the entire process independently, from planning to deployment, strengthening my UX/UI fundamentals and learning vibe coding.</p>
+              </div>
+              <div class="work-scenes__desc-kr">
+                <p>기획부터 구현, 배포까지 전 과정을 혼자 수행하며 서비스 제작 전반에 대한 이해를 넓혔습니다.</p>
+                <p>또한 UX/UI 디자인의 기초를 탄탄히 다지고, 바이브 코딩을 활용해 아이디어를 실제 서비스로 구현하는 경험을 쌓았습니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="work-scenes__deployment-links">
+            <a class="work-scenes__deployment-link" href="https://muit-app.vercel.app/" target="_blank" rel="noopener">
+              <span>APP</span>
+              <img class="work-scenes__deployment-link-icon" src="images/work-muit-deployment-arrow-right.svg" alt="">
+            </a>
+            <a class="work-scenes__deployment-link" href="https://www.figma.com/proto/qRzZGUELmg7uROT616MDIk/%EB%AE%A4%EC%9E%87_%EA%B0%9C%EC%9D%B8%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=80-1863&amp;viewport=-2114%2C4043%2C0.13&amp;t=rYdodlYd3H1WPOpw-1&amp;scaling=min-zoom&amp;content-scaling=fixed&amp;page-id=1%3A22552" target="_blank" rel="noopener">
+              <span>PROPOSAL</span>
+              <img class="work-scenes__deployment-link-icon" src="images/work-muit-deployment-arrow-right.svg" alt="">
+            </a>
+          </div>
+        </div>
+      </div>
+      </div>
       </div>
     </section>
 
@@ -733,6 +1054,45 @@
             </a>
             <figcaption class="clone-coding__caption">대방산업</figcaption>
           </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="ai-lab" id="aiLab" data-nav-id="work">
+      <div class="ai-lab__stage">
+        <div class="ai-lab__head">
+          <div class="ai-lab__title-row">
+            <p class="ai-lab__title"><span class="ai-lab__title-en">AI LAB</span><span class="ai-lab__title-em"> font pairing poster studio</span></p>
+            <div class="ai-lab__links">
+              <a class="ai-lab__link" href="#aiLab">
+                <span>PROCESS</span>
+                <img class="ai-lab__link-icon" src="images/icon-arrow-right.svg" alt="">
+              </a>
+              <a class="ai-lab__link" href="https://ai-font-poster-studio.vercel.app/" target="_blank" rel="noopener">
+                <span>OPEN APP</span>
+                <img class="ai-lab__link-icon" src="images/icon-arrow-right.svg" alt="">
+              </a>
+            </div>
+          </div>
+
+          <div class="ai-lab__summary">
+            <p>AI를 활용하여 폰트 페어링과 포스터 콘셉트를 빠르게 실험할 수 있는 인앱 기능을 기획했습니다. <br> 포트폴리오 안에서 바로 실행해볼 수 있도록 실제 배포 앱을 임베드하였습니다.</p>
+          </div>
+        </div>
+
+        <div class="ai-lab__browser" aria-label="AI Font Poster Studio 체험 화면">
+          <div class="ai-lab__screen">
+            <iframe
+              class="ai-lab__iframe"
+              src="https://ai-font-poster-studio.vercel.app/"
+              title="AI Font Poster Studio"
+              loading="lazy"
+              allow="clipboard-write; fullscreen"
+              referrerpolicy="no-referrer-when-downgrade"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+            ></iframe>
+          </div>
+          <img class="ai-lab__bezel" src="images/work-light-macbook.png" alt="">
         </div>
       </div>
     </section>
