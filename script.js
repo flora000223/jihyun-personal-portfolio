@@ -18,16 +18,161 @@ document.addEventListener('DOMContentLoaded', () => {
   syncUFixed();
   window.addEventListener('resize', syncUFixed);
 
-  // Shared with the cards-reveal scroll lock further down: while a card
-  // flip is holding the page in place, a bit of scroll can still leak
-  // through (the lock's own 'scroll' listener then snaps it back) --
-  // each snap-back fires a real 'scroll' event of its own, which the
-  // header's scroll-direction tracking below would otherwise read as a
-  // genuine alternating down/up tick and flicker in response. Setting
-  // this flag while locked, and having the header handler bail out on it
-  // (without even updating its own lastScrollY), makes it ignore that
-  // noise entirely and pick back up cleanly once the lock releases.
-  let isScrollLocked = false;
+  const staffCanvas = document.getElementById('staffCanvas');
+  if (staffCanvas) {
+    const ctx = staffCanvas.getContext('2d');
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let staffFrameId = 0;
+    let staffCanvasActive = true;
+    const initialAnimationOffset = 2000;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const resizeStaffCanvas = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 1.35);
+      width = staffCanvas.clientWidth || window.innerWidth;
+      height = staffCanvas.clientHeight || window.innerHeight;
+      staffCanvas.width = Math.floor(width * dpr);
+      staffCanvas.height = Math.floor(height * dpr);
+      staffCanvas.style.width = `${width}px`;
+      staffCanvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const drawStaffRibbon = (time, config) => {
+      const {
+        centerY,
+        amplitude,
+        frequency,
+        phase,
+        thickness,
+        count,
+        spacing,
+        alpha,
+        hue,
+        lift,
+        highlight,
+      } = config;
+
+      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, `rgba(255,255,255,${alpha * 0.12})`);
+      gradient.addColorStop(0.24, `rgba(255,255,255,${alpha * 0.44})`);
+      gradient.addColorStop(0.52, `rgba(${hue},${alpha * 0.78})`);
+      gradient.addColorStop(0.78, `rgba(255,255,255,${alpha * 0.62})`);
+      gradient.addColorStop(1, `rgba(255,255,255,${alpha * 0.1})`);
+
+      for (let line = 0; line < count; line += 1) {
+        const staffIndex = line % 5;
+        const group = Math.floor(line / 5);
+        const offset = (staffIndex - 2) * spacing + group * spacing * 7.2;
+        const glow = staffIndex === 2 ? 0.22 : 0.08;
+
+        ctx.beginPath();
+        for (let x = -80; x <= width + 80; x += 14) {
+          const nx = x / width;
+          const drift = time * (0.00018 + group * 0.000018);
+          const waveA = Math.sin(nx * Math.PI * frequency + phase + drift * 7) * amplitude;
+          const waveB = Math.sin(nx * Math.PI * (frequency * 0.58) - phase + drift * 4) * amplitude * 0.42;
+          const y = centerY
+            + offset
+            + waveA
+            + waveB
+            + Math.sin(nx * Math.PI * 9 + time * 0.0012 + line) * lift;
+
+          if (x === -80) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = thickness + (staffIndex === 2 ? 0.22 : 0);
+        ctx.shadowBlur = staffIndex === 2 ? 10 : 0;
+        ctx.shadowColor = `rgba(255,255,255,${0.18 + glow})`;
+        ctx.stroke();
+
+        if (highlight && (staffIndex === 1 || staffIndex === 2 || staffIndex === 3)) {
+          const band = (time * 0.000085 + line * 0.013 + group * 0.08) % 1;
+          const light = ctx.createLinearGradient(0, 0, width, 0);
+          const left = Math.max(0, band - 0.11);
+          const coreLeft = Math.max(0, band - 0.026);
+          const coreRight = Math.min(1, band + 0.026);
+          const right = Math.min(1, band + 0.11);
+
+          light.addColorStop(0, 'rgba(255,255,255,0)');
+          light.addColorStop(left, 'rgba(255,255,255,0)');
+          light.addColorStop(coreLeft, 'rgba(255,255,255,0.2)');
+          light.addColorStop(band, 'rgba(255,255,255,0.92)');
+          light.addColorStop(coreRight, 'rgba(255,255,255,0.22)');
+          light.addColorStop(right, 'rgba(255,255,255,0)');
+          light.addColorStop(1, 'rgba(255,255,255,0)');
+
+          ctx.strokeStyle = light;
+          ctx.lineWidth = thickness + 0.82;
+          ctx.shadowBlur = 18;
+          ctx.shadowColor = 'rgba(255,255,255,0.56)';
+          ctx.stroke();
+        }
+      }
+    };
+
+    const requestStaffFrame = () => {
+      if (!reduceMotion && staffCanvasActive && !staffFrameId) {
+        staffFrameId = requestAnimationFrame(renderStaffCanvas);
+      }
+    };
+
+    const renderStaffCanvas = (time = 0) => {
+      staffFrameId = 0;
+      const animationTime = time + initialAnimationOffset;
+      const isMobile = width < 760;
+      ctx.clearRect(0, 0, width, height);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = '#020204';
+      ctx.fillRect(0, 0, width, height);
+      ctx.globalCompositeOperation = 'lighter';
+
+      drawStaffRibbon(animationTime, {
+        centerY: height * 0.42,
+        amplitude: height * (isMobile ? 0.075 : 0.092),
+        frequency: 3.12,
+        phase: 1.4,
+        thickness: 0.9,
+        count: isMobile ? 18 : 25,
+        spacing: Math.max(7, height * 0.011),
+        alpha: 0.68,
+        hue: '238,240,246',
+        lift: 2.1,
+        highlight: true,
+      });
+
+      drawStaffRibbon(animationTime, {
+        centerY: height * 0.63,
+        amplitude: height * (isMobile ? 0.052 : 0.064),
+        frequency: 2.5,
+        phase: -0.95,
+        thickness: 0.72,
+        count: isMobile ? 14 : 20,
+        spacing: Math.max(6, height * 0.009),
+        alpha: 0.3,
+        hue: '205,211,224',
+        lift: 1.7,
+        highlight: false,
+      });
+
+      ctx.globalCompositeOperation = 'source-over';
+      requestStaffFrame();
+    };
+
+    resizeStaffCanvas();
+    window.addEventListener('resize', resizeStaffCanvas);
+    const staffObserver = new IntersectionObserver((entries) => {
+      staffCanvasActive = entries.some((entry) => entry.isIntersecting);
+      if (staffCanvasActive) requestStaffFrame();
+    }, { rootMargin: '120px 0px' });
+    staffObserver.observe(staffCanvas);
+    requestStaffFrame();
+    if (reduceMotion) renderStaffCanvas(initialAnimationOffset);
+  }
 
   const hamburgerBtn = document.getElementById('hamburgerBtn');
   const mobileNav = document.getElementById('mobileNav');
@@ -99,6 +244,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const header = document.querySelector('.header');
   const hero = document.getElementById('intro');
   let lastScrollY = window.scrollY;
+  const updateHeaderHeroState = () => {
+    if (header && hero) {
+      header.classList.toggle('header--hero', window.scrollY < hero.offsetHeight - 80);
+    }
+  };
+  updateHeaderHeroState();
 
   // Clicking a nav link (e.g. WORK) jumps the page via the browser's native
   // #anchor handling. When that jump lands above the current scroll
@@ -110,10 +261,40 @@ document.addEventListener('DOMContentLoaded', () => {
   // smooth-scroll animation).
   let isNavJumping = false;
 
-  const waitForJumpToSettle = () => {
+  // Scroll-jacked sections further down (the SKILL carousel) freeze real
+  // page scrolling while engaged and drive their own animation off raw
+  // wheel/key deltas instead -- window.scrollY genuinely never moves, so
+  // this handler's own scroll-direction comparison below never fires and
+  // the header just sits frozen in whatever state it was in when the lock
+  // engaged. Exposing this lets that section's input handlers nudge the
+  // header the same way a real scroll would, keyed off the same delta
+  // sign they already have on hand, so "scroll down hides it / scroll up
+  // shows it" keeps working even though no real scrolling is happening.
+  const updateHeaderForDelta = (delta) => {
+    if (isNavJumping) {
+      header.classList.remove('header--hidden');
+    } else if (delta > 0) {
+      header.classList.add('header--hidden');
+    } else if (delta < 0) {
+      header.classList.remove('header--hidden');
+    }
+  };
+
+  // SKILL used to install its own scroll clamp; this remains as a harmless
+  // hook for nav clicks so older section code can clean up local state if
+  // needed.
+  let releaseSkillCarouselLock = () => {};
+  let releaseCardsRevealLock = () => {};
+
+  let isScrollLocked = false;
+
+  let navJumpToken = 0;
+  const waitForJumpToSettle = (targetY = null) => {
+    const token = navJumpToken;
     let prevY = window.scrollY;
     let stableFrames = 0;
     const check = () => {
+      if (token !== navJumpToken) return;
       const y = window.scrollY;
       if (y === prevY) {
         stableFrames += 1;
@@ -121,7 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
         stableFrames = 0;
         prevY = y;
       }
-      if (stableFrames >= 3) {
+      const reachedTarget = targetY === null || Math.abs(y - targetY) <= 2;
+      if (stableFrames >= 3 && reachedTarget) {
         isNavJumping = false;
         lastScrollY = window.scrollY;
         return;
@@ -132,10 +314,33 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   navLinks.forEach((link) => {
-    link.addEventListener('click', () => {
+    link.addEventListener('click', (event) => {
+      const hash = link.getAttribute('href');
+      const rawTarget = hash && hash.startsWith('#') ? document.querySelector(hash) : null;
+      const target = hash === '#skill'
+        ? document.getElementById('skillCarouselStage') || rawTarget
+        : rawTarget;
+      if (target) {
+        event.preventDefault();
+      }
+
       isNavJumping = true;
+      navJumpToken += 1;
       header.classList.remove('header--hidden');
-      waitForJumpToSettle();
+      releaseCardsRevealLock();
+      releaseSkillCarouselLock();
+
+      if (target) {
+        const targetY = target.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({
+          top: targetY,
+          behavior: 'smooth',
+        });
+        window.history.pushState(null, '', hash);
+        waitForJumpToSettle(targetY);
+      } else {
+        waitForJumpToSettle();
+      }
     });
   });
 
@@ -143,6 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isScrollLocked) return;
 
     const currentScrollY = window.scrollY;
+    updateHeaderHeroState();
 
     if (isNavJumping) {
       header.classList.remove('header--hidden');
@@ -162,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
      intro-reasons section scrolls into view, interpolating in document
      coordinates between the two resting positions; once it docks, the
      Korean subtitle, photo, and English subtext reveal in sequence. */
-  const heroTitleEl = document.querySelector('.hero__title');
+  const heroTitleEl = document.querySelector('.hero__legacy-title');
   const dockedTitleEl = document.querySelector('.intro-reasons__title');
   const flyingTitleEl = document.getElementById('flyingTitle');
   const introReasons = document.querySelector('.intro-reasons');
@@ -209,17 +415,13 @@ document.addEventListener('DOMContentLoaded', () => {
     fillChars = Array.from(subtitleEl.querySelectorAll('.fill-char'));
   }
 
-  if (heroTitleEl && dockedTitleEl && flyingTitleEl && introReasons) {
+  if (introReasons) {
     document.body.classList.add('js-anim');
 
-    const introStickyEl = document.querySelector('.intro-reasons__sticky');
-    let startPos = { top: 0, left: 0 };
-    let endPos = { top: 0, left: 0 };
     let docked = false;
 
-    const smoothstep = (t) => t * t * (3 - 2 * t);
-
     const measure = () => {
+      return;
       // #flyingTitle lives outside any container-query ancestor (it must,
       // so that position:fixed stays truly viewport-fixed instead of being
       // contained by .intro-reasons' container-type box), so var(--u)'s
@@ -257,26 +459,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const update = () => {
       const progress = getProgress();
-
-      if (progress <= 0) {
-        heroTitleEl.style.opacity = '1';
-        flyingTitleEl.style.opacity = '0';
-        dockedTitleEl.style.opacity = '0';
-      } else if (progress >= 1) {
-        heroTitleEl.style.opacity = '0';
-        flyingTitleEl.style.opacity = '0';
-        dockedTitleEl.style.opacity = '1';
-      } else {
-        heroTitleEl.style.opacity = '0';
-        dockedTitleEl.style.opacity = '0';
-        flyingTitleEl.style.opacity = '1';
-
-        const ease = smoothstep(progress);
-        const top = startPos.top + (endPos.top - startPos.top) * ease;
-        const left = startPos.left + (endPos.left - startPos.left) * ease;
-        flyingTitleEl.style.top = `${top}px`;
-        flyingTitleEl.style.left = `${left}px`;
-      }
 
       if (progress >= 1 && !docked) {
         docked = true;
@@ -377,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // forever, which previously left the hero title stuck visible even
     // after script.js tried to hide it once scrolling into the hand-off,
     // showing it doubled up alongside the flying/docked title.
-    if (getProgress() <= 0) {
+    if (heroTitleEl && getProgress() <= 0) {
       heroTitleEl.style.transition = 'none';
       heroTitleEl.style.opacity = '0';
       heroTitleEl.style.transform = 'translateY(28px)';
@@ -428,6 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let skillTransitionDarkContribution = 0;
   let skillContentDarkContribution = 0;
   let aboutTransitionDarkContribution = 0;
+  let quickQaDarkContribution = 0;
 
   // A direct black<->white swap (.header--inverted, see CSS) once the
   // overlay is dark enough -- not a per-frame RGB blend. Blending toward
@@ -438,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // against the darkening background for a long stretch instead of
   // becoming legible (white) as soon as darkening starts.
   const applyCombinedDarkState = () => {
-    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution);
+    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution, quickQaDarkContribution);
     if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
     if (headerEl) headerEl.classList.toggle('header--inverted', combined > HEADER_DARK_THRESHOLD);
     return combined;
@@ -555,15 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cardSmoothstep = (t) => t * t * (3 - 2 * t);
 
-    // Scroll lock while a card flip/unflip is mid-transition -- freezes the
-    // page outright (rather than the earlier approach of just holding the
-    // real card visible for a timed window) so `entry`/dwellProgress can't
-    // move at all until the 3D flip has actually finished playing, no matter
-    // how hard or fast the user scrolls. wheel/touchmove/most scroll-key
-    // presses are prevented outright (no jump to correct, since the scroll
-    // never happens); the scroll listener is a fallback for inputs those
-    // can't catch (scrollbar-thumb drag, programmatic scroll).
-    const SCROLL_LOCK_MS = 1200; // 0.9s flip transition + up to 0.24s stagger (3rd card) + buffer
+    const SCROLL_LOCK_MS = 1200;
     const SCROLL_LOCK_KEYS = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '];
     let scrollLockActive = false;
     let scrollLockTimer = null;
@@ -574,12 +749,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (SCROLL_LOCK_KEYS.includes(e.key)) e.preventDefault();
     };
     const correctLockedScroll = () => {
-      if (scrollLockActive && window.scrollY !== lockedScrollY) {
+      if (scrollLockActive && !isNavJumping && window.scrollY !== lockedScrollY) {
         window.scrollTo(0, lockedScrollY);
       }
     };
+    const releaseScrollLock = () => {
+      clearTimeout(scrollLockTimer);
+      if (!scrollLockActive) return;
+      scrollLockActive = false;
+      isScrollLocked = false;
+      window.removeEventListener('wheel', preventScroll);
+      window.removeEventListener('touchmove', preventScroll);
+      window.removeEventListener('keydown', preventScrollKey);
+      window.removeEventListener('scroll', correctLockedScroll);
+    };
 
     const engageScrollLock = () => {
+      if (isNavJumping) return;
       clearTimeout(scrollLockTimer);
       if (!scrollLockActive) {
         scrollLockActive = true;
@@ -590,15 +776,9 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('keydown', preventScrollKey);
         window.addEventListener('scroll', correctLockedScroll);
       }
-      scrollLockTimer = setTimeout(() => {
-        scrollLockActive = false;
-        isScrollLocked = false;
-        window.removeEventListener('wheel', preventScroll);
-        window.removeEventListener('touchmove', preventScroll);
-        window.removeEventListener('keydown', preventScrollKey);
-        window.removeEventListener('scroll', correctLockedScroll);
-      }, SCROLL_LOCK_MS);
+      scrollLockTimer = setTimeout(releaseScrollLock, SCROLL_LOCK_MS);
     };
+    releaseCardsRevealLock = releaseScrollLock;
 
     const cardPairs = [
       { chip: document.getElementById('chipMusic'), card: document.getElementById('cardsRevealCard1'), flying: document.getElementById('flyingCard1') },
@@ -720,18 +900,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const ease = cardSmoothstep(entry);
 
-      // Flip state is computed up front (rather than after the pairs loop,
-      // as before) so a just-started flip/unflip can engage the scroll lock
-      // before the pairs loop below reads `entry` -- once locked, `entry`
-      // can't move again until the lock releases (see engageScrollLock),
-      // so the loop's plain entry>=1 / entry<=0 / else branching always sees
-      // a settled state and never cuts to the flying clone mid-flip.
       const dwellProgress = entry >= 1 ? getCardsDwellProgress() : 0;
       const dwellDist = cardsRevealEl.offsetHeight - window.innerHeight;
       const vh = window.innerHeight / 100;
       const flipThreshold = dwellDist > 0 ? (FLIP_TRIGGER_VH * vh) / dwellDist : 1;
       const nowFlipped = entry >= 1 && dwellProgress >= flipThreshold;
-      if (nowFlipped !== cardsFlipped) {
+      const nearViewport = entry > 0 && exit > 0;
+      if (nowFlipped !== cardsFlipped && nearViewport) {
         engageScrollLock();
       }
       cardsFlipped = nowFlipped;
@@ -862,10 +1037,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // progress curve below is eased rather than linear -- feedback was that
     // the dissolve read as a fast "snap" instead of a gentle smoke-like
     // fade. FOG_MAX_BLUR pushed up again per "more blur is fine".
+    // FOG_END pushed further negative still (150 -> -350, ~830px runway):
+    // each char's own fade duration is span / slide-rate, and slide-rate is
+    // fixed by section geometry (scrollToCenter / (SCROLL_PHASE_END *
+    // dwellDist)) -- with the old 330px span that worked out to well under
+    // one scroll gesture per character. Widening the span is what actually
+    // stretches a single char's fade across multiple gestures; changing
+    // SCROLL_PHASE_END alone (see below) only shifts how the *dwell* is
+    // split, it doesn't change how far, in px, a char has to travel to fade.
     const FOG_START = 480; // px from the left edge where the fade begins
-    const FOG_END = 150; // px from the left edge where it's essentially gone
+    const FOG_END = -350; // px from the left edge where it's essentially gone
     const FOG_MAX_BLUR = 65; // px of blur at full dissolve
     const FOG_RISE = 200; // px drifted upward at full dissolve
+    // Blur no longer ramps linearly with progress: below FOG_BLUR_KNEE it
+    // rises gently (FOG_BLUR_KNEE_BLUR px by that point), then steepens for
+    // the remaining stretch to FOG_MAX_BLUR -- an extra "gets much blurrier
+    // right before it's gone" stage layered on the existing fade/rise,
+    // requested after the settle dissolve read as too quick/subtle to
+    // actually see mid-scroll.
+    const FOG_BLUR_KNEE = 0.55;
+    const FOG_BLUR_KNEE_BLUR = 22;
 
     // Eases the 0-1 dissolve progress instead of a straight linear ramp, so
     // it reads as gradually thickening/thinning smoke rather than a hard
@@ -946,7 +1137,13 @@ document.addEventListener('DOMContentLoaded', () => {
           c.el.style.transform = '';
         } else {
           c.el.style.opacity = String(1 - progress);
-          c.el.style.filter = `blur(${progress * FOG_MAX_BLUR}px)`;
+          // See FOG_BLUR_KNEE below -- blur ramps faster than opacity past
+          // that point, so the char reads as thickening into heavy fog
+          // right before it fully vanishes instead of thinning evenly.
+          const blurRamp = progress <= FOG_BLUR_KNEE
+            ? progress * (FOG_BLUR_KNEE_BLUR / FOG_BLUR_KNEE)
+            : FOG_BLUR_KNEE_BLUR + ((progress - FOG_BLUR_KNEE) / (1 - FOG_BLUR_KNEE)) * (FOG_MAX_BLUR - FOG_BLUR_KNEE_BLUR);
+          c.el.style.filter = `blur(${blurRamp}px)`;
           c.el.style.transform = `translateY(${-progress * FOG_RISE}px)`;
         }
       });
@@ -1014,13 +1211,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const contentEnd = titleBaseEl.offsetLeft + titleBaseEl.offsetWidth;
       const scrollToCenter = Math.max(0, contentEnd - centerX);
 
-      // Was 0.85 (settle got only the last 15% of the dwell): on a normal-
-      // speed scroll flick that's so little real scroll distance that the
-      // per-char stagger above (already spread across 0..1 of settleProgress)
-      // collapses into 1-2 rendered frames, reading as "projects" vanishing
-      // in one chunk instead of letter-by-letter. Giving settle more of the
-      // dwell spreads the same stagger over more real scroll input/frames.
-      const SCROLL_PHASE_END = 0.65;
+      // The *primary* per-char dissolve is actually this phase, not settle
+      // below: applyFogChars' positional fade dissolves each char the
+      // instant its slid (x-shifted) screen position crosses FOG_START..
+      // FOG_END, so as the title slides left every char fades in turn, one
+      // at a time, at whatever rate the slide itself moves. That rate is
+      // scrollToCenter / (SCROLL_PHASE_END * dwellDist) -- raising
+      // SCROLL_PHASE_END (more of the dwell spent sliding) directly slows
+      // that rate, i.e. more real scroll input per char dissolved. Was
+      // 0.85, then dropped to 0.65 so settle (below) wouldn't collapse into
+      // 1-2 frames -- but that trade-off was backwards: shrinking this
+      // value speeds the slide up, so the leading chars were dissolving
+      // almost instantly (confirmed: "S" already fully gone after a single
+      // 5-notch wheel burst). Settle only has to carry the handful of
+      // trailing chars that freeze mid-slide, which needs far less of the
+      // dwell than the whole positional cascade does -- so this goes back
+      // up, higher than either previous value, to actually spread every
+      // char's own dissolve across multiple real scroll gestures.
+      const SCROLL_PHASE_END = 0.78;
       const scrollPhaseProgress = Math.min(1, dwellProgress / SCROLL_PHASE_END);
       const x = -scrollToCenter * scrollPhaseProgress;
       // Raw (unstaggered, uneased) 0-1 progress through phase 2 -- each
@@ -1044,7 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // white), same entry/exit-gated pattern as reason-quote/cards-reveal
       // above so the header only inverts back while this section is
       // actually the one on screen.
-      workTransitionDarkContribution = Math.min(entry, exit) * (1 - wipeProgress);
+      workTransitionDarkContribution = 0;
       applyCombinedDarkState();
     };
 
@@ -1102,9 +1310,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // under where "S" actually starts at rest, same margin work-transition
     // keeps for "W".
     const SKILL_FOG_START = 400;
-    const SKILL_FOG_END = 150;
+    // See FOG_END in updateWorkTransition -- widened the same way (150 ->
+    // -350) so each char's own fade spans multiple scroll gestures instead
+    // of finishing inside one.
+    const SKILL_FOG_END = -350;
     const SKILL_FOG_MAX_BLUR = 65;
     const SKILL_FOG_RISE = 200;
+    // See FOG_BLUR_KNEE in updateWorkTransition -- same two-tier blur ramp,
+    // kept in sync.
+    const SKILL_FOG_BLUR_KNEE = 0.55;
+    const SKILL_FOG_BLUR_KNEE_BLUR = 22;
 
     const skillTitleBaseEl = skillScrollerBaseEl.querySelector('.skill-transition__title');
     const skillTitleWipeEl = skillScrollerWipeEl.querySelector('.skill-transition__title');
@@ -1147,7 +1362,11 @@ document.addEventListener('DOMContentLoaded', () => {
           c.el.style.transform = '';
         } else {
           c.el.style.opacity = String(1 - progress);
-          c.el.style.filter = `blur(${progress * SKILL_FOG_MAX_BLUR}px)`;
+          const blurRamp = progress <= SKILL_FOG_BLUR_KNEE
+            ? progress * (SKILL_FOG_BLUR_KNEE_BLUR / SKILL_FOG_BLUR_KNEE)
+            : SKILL_FOG_BLUR_KNEE_BLUR
+              + ((progress - SKILL_FOG_BLUR_KNEE) / (1 - SKILL_FOG_BLUR_KNEE)) * (SKILL_FOG_MAX_BLUR - SKILL_FOG_BLUR_KNEE_BLUR);
+          c.el.style.filter = `blur(${blurRamp}px)`;
           c.el.style.transform = `translateY(${-progress * SKILL_FOG_RISE}px)`;
         }
       });
@@ -1188,10 +1407,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const contentEnd = skillTitleBaseEl.offsetLeft + skillTitleBaseEl.offsetWidth;
       const scrollToCenter = Math.max(0, contentEnd - centerX);
 
-      // See SCROLL_PHASE_END in updateWorkTransition -- widened from 0.85 so
-      // the per-char settle stagger has enough real scroll distance to read
-      // as one-at-a-time instead of "skills" collapsing into a single chunk.
-      const SKILL_SCROLL_PHASE_END = 0.65;
+      // See SCROLL_PHASE_END in updateWorkTransition -- raised to 0.78 to
+      // slow the slide phase itself (the primary per-char positional
+      // dissolve), kept in sync.
+      const SKILL_SCROLL_PHASE_END = 0.78;
       const scrollPhaseProgress = Math.min(1, dwellProgress / SKILL_SCROLL_PHASE_END);
       const x = -scrollToCenter * scrollPhaseProgress;
       const settleProgress = Math.min(1, Math.max(0, (dwellProgress - SKILL_SCROLL_PHASE_END) / (1 - SKILL_SCROLL_PHASE_END)));
@@ -1313,9 +1532,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // for "S". 380 sits just under where "A" starts at rest so the fade
     // zone doesn't reach it until scroll actually pushes it left.
     const ABOUT_FOG_START = 380;
-    const ABOUT_FOG_END = 150;
+    // See FOG_END in updateWorkTransition -- widened the same way (150 ->
+    // -350) so each char's own fade spans multiple scroll gestures instead
+    // of finishing inside one.
+    const ABOUT_FOG_END = -350;
     const ABOUT_FOG_MAX_BLUR = 65;
     const ABOUT_FOG_RISE = 200;
+    // See FOG_BLUR_KNEE in updateWorkTransition -- same two-tier blur ramp,
+    // kept in sync.
+    const ABOUT_FOG_BLUR_KNEE = 0.55;
+    const ABOUT_FOG_BLUR_KNEE_BLUR = 22;
 
     const aboutTitleBaseEl = aboutScrollerBaseEl.querySelector('.about-transition__title');
     const aboutTitleWipeEl = aboutScrollerWipeEl.querySelector('.about-transition__title');
@@ -1358,7 +1584,11 @@ document.addEventListener('DOMContentLoaded', () => {
           c.el.style.transform = '';
         } else {
           c.el.style.opacity = String(1 - progress);
-          c.el.style.filter = `blur(${progress * ABOUT_FOG_MAX_BLUR}px)`;
+          const blurRamp = progress <= ABOUT_FOG_BLUR_KNEE
+            ? progress * (ABOUT_FOG_BLUR_KNEE_BLUR / ABOUT_FOG_BLUR_KNEE)
+            : ABOUT_FOG_BLUR_KNEE_BLUR
+              + ((progress - ABOUT_FOG_BLUR_KNEE) / (1 - ABOUT_FOG_BLUR_KNEE)) * (ABOUT_FOG_MAX_BLUR - ABOUT_FOG_BLUR_KNEE_BLUR);
+          c.el.style.filter = `blur(${blurRamp}px)`;
           c.el.style.transform = `translateY(${-progress * ABOUT_FOG_RISE}px)`;
         }
       });
@@ -1399,10 +1629,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const contentEnd = aboutTitleBaseEl.offsetLeft + aboutTitleBaseEl.offsetWidth;
       const scrollToCenter = Math.max(0, contentEnd - centerX);
 
-      // See SCROLL_PHASE_END in updateWorkTransition -- 0.65 gives the
-      // per-char settle stagger enough real scroll distance to read as
-      // one-at-a-time instead of "more about me" collapsing into a chunk.
-      const ABOUT_SCROLL_PHASE_END = 0.65;
+      // See SCROLL_PHASE_END in updateWorkTransition -- raised to 0.78 to
+      // slow the slide phase itself (the primary per-char positional
+      // dissolve), kept in sync.
+      const ABOUT_SCROLL_PHASE_END = 0.78;
       const scrollPhaseProgress = Math.min(1, dwellProgress / ABOUT_SCROLL_PHASE_END);
       const x = -scrollToCenter * scrollPhaseProgress;
       const settleProgress = Math.min(1, Math.max(0, (dwellProgress - ABOUT_SCROLL_PHASE_END) / (1 - ABOUT_SCROLL_PHASE_END)));
@@ -1464,13 +1694,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (galleryInteractionEl) {
     const subTextItems = [
       {
-        title: 'PHOTOGRAPHY',
-        lines: [
-          '사진의 프레임 안에서 구도와 색감을 익히며,',
-          '일상의 따뜻한 순간과 감정을 바라보는 시선도 함께 넓혀왔습니다.',
-        ],
-      },
-      {
         title: 'TRAVEL',
         lines: ['다양한 환경을 경험하며', '더 넓은 시각으로 세상을 바라갑니다.'],
       },
@@ -1492,15 +1715,34 @@ document.addEventListener('DOMContentLoaded', () => {
           '제 일상 속에서 감각과 영감을 이어주는 소중한 존재입니다.',
         ],
       },
+      {
+        title: 'PHOTOGRAPHY',
+        lines: [
+          '사진의 프레임 안에서 구도와 색감을 익히며,',
+          '일상의 따뜻한 순간과 감정을 바라보는 시선도 함께 넓혀왔습니다.',
+        ],
+      },
     ];
-    const subTextChangePoints = [0.795, 0.82, 0.84, 0.87, 0.9];
+    // ABOUT gallery text timing knobs:
+    // - subTextChangePoints controls when each label appears, in visualProgress.
+    //   Order: TRAVEL, EXHIBITION, CONCERT, MUSIC, PHOTOGRAPHY.
+    //   Move a number lower to show that label earlier, higher to show it later.
+    // - GALLERY_LABEL_SCROLL_SCALE controls the wheel resistance while these
+    //   labels are active. Lower = more held/resistant, higher = freer scroll.
+    const subTextChangePoints = [0.78, 0.83, 0.88, 0.92, 0.98];
+    const GALLERY_LABEL_RESISTANCE_START = subTextChangePoints[0];
+    const GALLERY_LABEL_RESISTANCE_END = 1;
+    const GALLERY_LABEL_SCROLL_SCALE = 0.42;
+    const GALLERY_LABEL_RESISTANCE_RAMP = 0.012;
+    const GALLERY_LABEL_WHEEL_HOLD_MS = 180;
+    const GALLERY_SOFT_STOP_START = 1;
 
     const CARD_COUNT = 24;
     const imageOrder = [
       6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
       18, 19, 20, 21, 22, 23, 24, 1, 2, 3, 4, 5,
     ];
-    const targetImageIndex = imageOrder.indexOf(22);
+    const targetImageIndex = imageOrder.indexOf(3);
     // -0.5 shifts the whole ring by half a card-step so a *gap* between two
     // cards sits on the vertical centerline at rest, matching how the line
     // formation already centers (even card count -> the middle two cards'
@@ -1513,6 +1755,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetOrbitRotation = -Math.PI * 2 + (-Math.PI / 2 - targetImageAngle);
     const orbitScrollStart = 0.66;
     const orbitScrollEnd = 1;
+    const visualHoldStart = 0.965;
     // Scatter/line/ring (progress 0-0.64) scrolls faster now; the zoom-in
     // + arc/orbit phase (0.64-1, where the ring enlarges and settles into
     // an arc) keeps its original scroll speed. The section's own CSS
@@ -1726,6 +1969,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       let smoothScroll = 0;
+      let galleryWheelDirection = 0;
+      let galleryWheelActiveUntil = 0;
+      let galleryWheelTicking = false;
+      let lastGalleryWheelTickAt = null;
       let pointerX = 0;
       let pointerY = 0;
       let hoverActive = false;
@@ -1838,6 +2085,135 @@ document.addEventListener('DOMContentLoaded', () => {
           .forEach((state) => drawCard(state, centerX, centerY));
       };
 
+      const getGalleryScrollState = () => {
+        const height = window.innerHeight;
+        const rect = galleryInteractionEl.getBoundingClientRect();
+        const scrollRange = Math.max(0, galleryInteractionEl.offsetHeight - height);
+        const sectionTop = rect.top + window.scrollY;
+        const current = scrollRange > 0 ? clamp(-rect.top, 0, scrollRange) : 0;
+        return { height, rect, scrollRange, sectionTop, current };
+      };
+
+      const mapScrollFractionToProgress = (scrollFraction) => (
+        scrollFraction <= earlyScrollFraction
+          ? (scrollFraction / earlyScrollFraction) * zoomPhaseStart
+          : zoomPhaseStart + ((scrollFraction - earlyScrollFraction) / (1 - earlyScrollFraction)) * (1 - zoomPhaseStart)
+      );
+
+      const getGalleryVisualProgress = (progress) => {
+        const rawVisualProgress = progress < visualHoldStart
+          ? progress / visualHoldStart
+          : 1;
+        if (GALLERY_SOFT_STOP_START >= 1) {
+          return rawVisualProgress;
+        }
+        const softStopT = clamp((rawVisualProgress - GALLERY_SOFT_STOP_START) / (1 - GALLERY_SOFT_STOP_START));
+        const softStopProgress = softStopT * softStopT * softStopT * (softStopT * (softStopT * 6 - 15) + 10);
+        return rawVisualProgress < GALLERY_SOFT_STOP_START
+          ? rawVisualProgress
+          : GALLERY_SOFT_STOP_START + (1 - GALLERY_SOFT_STOP_START) * softStopProgress;
+      };
+
+      const getGalleryLabelResistance = (visualProgress) => {
+        if (
+          visualProgress < GALLERY_LABEL_RESISTANCE_START - GALLERY_LABEL_RESISTANCE_RAMP
+          || visualProgress > GALLERY_LABEL_RESISTANCE_END + GALLERY_LABEL_RESISTANCE_RAMP
+        ) {
+          return 1;
+        }
+
+        const fadeIn = easeInOut(clamp(
+          (visualProgress - (GALLERY_LABEL_RESISTANCE_START - GALLERY_LABEL_RESISTANCE_RAMP))
+          / GALLERY_LABEL_RESISTANCE_RAMP,
+        ));
+        const fadeOut = GALLERY_LABEL_RESISTANCE_END >= 1
+          ? 1
+          : easeInOut(clamp(
+            ((GALLERY_LABEL_RESISTANCE_END + GALLERY_LABEL_RESISTANCE_RAMP) - visualProgress)
+            / GALLERY_LABEL_RESISTANCE_RAMP,
+          ));
+        const resistanceAmount = Math.min(fadeIn, fadeOut);
+        return lerp(1, GALLERY_LABEL_SCROLL_SCALE, resistanceAmount);
+      };
+
+      const tickGalleryWheel = () => {
+        const now = window.performance.now();
+        if (!galleryWheelDirection || now > galleryWheelActiveUntil) {
+          galleryWheelDirection = 0;
+          galleryWheelTicking = false;
+          lastGalleryWheelTickAt = null;
+          return;
+        }
+
+        const deltaSeconds = lastGalleryWheelTickAt === null
+          ? 1 / 60
+          : Math.min(0.05, Math.max(0.001, (now - lastGalleryWheelTickAt) / 1000));
+        lastGalleryWheelTickAt = now;
+
+        const { height, scrollRange, sectionTop, current } = getGalleryScrollState();
+        if (scrollRange <= 0) {
+          galleryWheelDirection = 0;
+          galleryWheelTicking = false;
+          lastGalleryWheelTickAt = null;
+          return;
+        }
+
+        const direction = galleryWheelDirection;
+        const scrollFraction = scrollRange > 0 ? clamp(current / scrollRange) : 0;
+        const progress = mapScrollFractionToProgress(scrollFraction);
+        const visualProgress = getGalleryVisualProgress(progress);
+        const labelResistance = getGalleryLabelResistance(visualProgress);
+        const step = height * 1.2 * deltaSeconds * labelResistance;
+        const nextLocalScroll = clamp(current + direction * step, 0, scrollRange);
+        window.scrollTo(0, sectionTop + nextLocalScroll);
+
+        if ((nextLocalScroll <= 0 && direction < 0) || (nextLocalScroll >= scrollRange && direction > 0)) {
+          galleryWheelDirection = 0;
+        }
+
+        requestAnimationFrame(tickGalleryWheel);
+      };
+
+      const handleGalleryWheel = (event) => {
+        if (event.ctrlKey || Math.abs(event.deltaY) < 1) return;
+
+        const { height, rect, scrollRange, current } = getGalleryScrollState();
+        if (scrollRange <= 0) return;
+
+        const direction = Math.sign(event.deltaY);
+        const projectedLocalScroll = current + event.deltaY;
+        const pinActive = rect.top <= 0 && rect.bottom >= height;
+        const currentProgress = mapScrollFractionToProgress(clamp(current / scrollRange));
+        const projectedProgress = mapScrollFractionToProgress(clamp(projectedLocalScroll / scrollRange));
+        const currentVisualProgress = getGalleryVisualProgress(currentProgress);
+        const projectedVisualProgress = getGalleryVisualProgress(projectedProgress);
+        const minVisualProgress = Math.min(currentVisualProgress, projectedVisualProgress);
+        const maxVisualProgress = Math.max(currentVisualProgress, projectedVisualProgress);
+        const inLabelResistanceZone = maxVisualProgress >= GALLERY_LABEL_RESISTANCE_START
+          && minVisualProgress <= GALLERY_LABEL_RESISTANCE_END;
+        if (!pinActive || !inLabelResistanceZone) return;
+        if (
+          (direction < 0 && projectedLocalScroll <= 0)
+          || (direction > 0 && projectedLocalScroll >= scrollRange)
+        ) {
+          galleryWheelDirection = 0;
+          galleryWheelTicking = false;
+          lastGalleryWheelTickAt = null;
+          return;
+        }
+
+        event.preventDefault();
+        updateHeaderForDelta(direction);
+
+        galleryWheelDirection = direction;
+        galleryWheelActiveUntil = window.performance.now() + GALLERY_LABEL_WHEEL_HOLD_MS;
+
+        if (!galleryWheelTicking) {
+          galleryWheelTicking = true;
+          requestAnimationFrame(tickGalleryWheel);
+        }
+      };
+
       const layout = () => {
         // clientWidth (not innerWidth) on purpose: innerWidth includes the
         // reserved scrollbar strip, but the sitewide .fixed-grid-lines is
@@ -1856,11 +2232,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetScroll = scrollRange > 0
           ? clamp(-galleryInteractionEl.getBoundingClientRect().top, 0, scrollRange)
           : 0;
+        const targetFraction = scrollRange > 0 ? clamp(targetScroll / scrollRange) : 0;
         smoothScroll = lerp(smoothScroll, targetScroll, 0.075);
         const scrollFraction = scrollRange > 0 ? clamp(smoothScroll / scrollRange) : 0;
-        const progress = scrollFraction <= earlyScrollFraction
-          ? (scrollFraction / earlyScrollFraction) * zoomPhaseStart
-          : zoomPhaseStart + ((scrollFraction - earlyScrollFraction) / (1 - earlyScrollFraction)) * (1 - zoomPhaseStart);
+        const progress = mapScrollFractionToProgress(scrollFraction);
+        const visualProgress = getGalleryVisualProgress(progress);
 
         const mobile = width <= 520;
         const tablet = width <= 900;
@@ -1877,14 +2253,15 @@ document.addEventListener('DOMContentLoaded', () => {
             : Math.min(width * (328 / 1920), height * 0.38);
         const finalRingRadius = baseRadius;
 
-        const makeLine = range(progress, 0.08, 0.29);
-        const ringProgress = range(progress, 0.29, 0.64);
-        const arcZoomIn = range(progress, 0.64, 0.84);
+        const makeLine = range(visualProgress, 0.08, 0.29);
+        const ringProgress = range(visualProgress, 0.29, 0.64);
+        const arcZoomIn = range(visualProgress, 0.64, 0.84);
+        const arcZoomBlend = easeInOut(arcZoomIn);
         const subTextIndex = subTextChangePoints.reduce(
-          (activeIndex, point, i) => (progress >= point ? i : activeIndex),
+          (activeIndex, point, i) => (visualProgress >= point ? i : activeIndex),
           0,
         );
-        const hoverReady = range(progress, 0.72, 0.84);
+        const hoverReady = range(visualProgress, 0.72, 0.84);
         const hoverSearch = { index: -1, distance: Infinity };
 
         if (revealStartedAt === null && imagesSettledAt !== null && sectionEnteredAt !== null) {
@@ -1897,7 +2274,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const now = window.performance.now();
           const revealElapsed = revealStartedAt === null ? 0 : now - revealStartedAt;
           const appearByTime = range(revealElapsed, appearDelay, appearDelay + 720);
-          const appearByScroll = range(progress, 0.025 + revealRank[index] * 0.005, 0.24 + revealRank[index] * 0.005);
+          const appearByScroll = range(visualProgress, 0.025 + revealRank[index] * 0.005, 0.24 + revealRank[index] * 0.005);
           const appear = card.isLoaded ? Math.max(appearByTime, appearByScroll) : 0;
 
           let x = centerX + scatter[index][0] * width;
@@ -1936,7 +2313,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const flipArc = Math.sin(localFlipProgress * Math.PI);
           const radialRotation = normalizeDegrees((ringAngle * 180) / Math.PI + 90);
 
-          if (progress > 0.29) {
+          if (visualProgress > 0.29) {
             x = lerp(lineX, ringX, localFold);
             y = lerp(lineY, ringY, localFold) - flipArc * cardH * 0.14;
           }
@@ -1944,8 +2321,9 @@ document.addEventListener('DOMContentLoaded', () => {
           rotation = lerp(0, radialRotation, localFold * planeOpen);
           flipX = -180 * flipToBack - 180 * flipSettle * planeOpen;
 
-          const zoomIn = arcZoomIn;
-          const orbitProgress = range(progress, orbitScrollStart, orbitScrollEnd);
+          const zoomIn = arcZoomBlend;
+          const orbitRawProgress = clamp((visualProgress - orbitScrollStart) / (orbitScrollEnd - orbitScrollStart));
+          const orbitProgress = orbitRawProgress;
           const zoomScale = lerp(1, mobile ? 2.4 : 3.05, zoomIn);
           const zoomRotation = orbitProgress * targetOrbitRotation;
           const zoomAngle = ringAngle + zoomRotation;
@@ -2001,9 +2379,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ringLabel) ringLabel.textContent = '';
         if (ringHint) ringHint.textContent = '';
 
-        galleryInteractionEl.classList.toggle('is-vision', progress > 0.67);
-        galleryInteractionEl.classList.toggle('is-intro-ready', progress > 0.52);
-        galleryInteractionEl.classList.toggle('is-vision-copy-ready', progress >= subTextChangePoints[0]);
+        galleryInteractionEl.classList.toggle('is-vision', visualProgress > 0.67);
+        galleryInteractionEl.classList.toggle('is-intro-ready', visualProgress > 0.52);
+        galleryInteractionEl.classList.toggle('is-vision-copy-ready', visualProgress >= subTextChangePoints[0]);
       };
 
       const animate = () => {
@@ -2014,6 +2392,7 @@ document.addEventListener('DOMContentLoaded', () => {
       galleryStage.addEventListener('pointermove', updatePointerFromEvent);
       galleryStage.addEventListener('pointerleave', handlePointerLeave);
       window.addEventListener('pointermove', updatePointerFromEvent);
+      window.addEventListener('wheel', handleGalleryWheel, { passive: false });
       window.addEventListener('resize', layout);
       animate();
     }
@@ -2358,22 +2737,441 @@ document.addEventListener('DOMContentLoaded', () => {
     skillIntroObserver.observe(skillIntroEl);
   }
 
-  // Skill content icons -- each icon rises into place once as it scrolls
-  // into view beside the sticky-pinned .skill-content__columns, same
-  // one-time reveal mechanics as .clone-coding__card (unobserve after
-  // the first reveal; see .skill-content__icon.is-revealed in style.css).
-  const skillIconEls = document.querySelectorAll('.skill-content__icon');
-  if (skillIconEls.length) {
-    const skillIconObserver = new IntersectionObserver((entries) => {
+  // Quick Q&A -- title fog-in reveal plus accessible accordion behavior.
+  const quickQaEl = document.querySelector('.quick-qa');
+  if (quickQaEl) {
+    const quickQaTitleEl = quickQaEl.querySelector('.quick-qa__title');
+    const quickQaSubtitleEl = quickQaEl.querySelector('.quick-qa__subtitle');
+    const quickQaItems = Array.from(quickQaEl.querySelectorAll('.quick-qa__item'));
+
+    if (quickQaTitleEl) {
+      wrapChars(quickQaTitleEl, 'quick-qa__title-char');
+    }
+    const quickQaTitleChars = quickQaTitleEl
+      ? Array.from(quickQaTitleEl.querySelectorAll('.quick-qa__title-char'))
+      : [];
+
+    quickQaTitleChars.forEach((el, i) => {
+      el.style.setProperty('--fog-delay', `${i * 25}ms`);
+    });
+    if (quickQaSubtitleEl) {
+      const titleEnd = quickQaTitleChars.length * 25;
+      quickQaSubtitleEl.style.setProperty('--fog-delay', `${titleEnd + 150}ms`);
+    }
+
+    const updateQuickQaDarkState = () => {
+      const rect = quickQaEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const entry = Math.min(1, Math.max(0, (vh - rect.top) / vh));
+      const exit = Math.min(1, Math.max(0, rect.bottom / vh));
+      quickQaDarkContribution = Math.min(entry, exit);
+      applyCombinedDarkState();
+    };
+
+    const setQuickQaItem = (item, open) => {
+      const button = item.querySelector('.quick-qa__question');
+      const answer = item.querySelector('.quick-qa__answer');
+      const inner = item.querySelector('.quick-qa__answer-inner');
+      if (!button || !answer || !inner) return;
+
+      item.classList.toggle('is-open', open);
+      button.setAttribute('aria-expanded', String(open));
+
+      if (open) {
+        answer.hidden = false;
+        void answer.offsetHeight;
+        answer.style.maxHeight = `${inner.scrollHeight}px`;
+      } else {
+        answer.style.maxHeight = '0px';
+        answer.addEventListener('transitionend', function onEnd(event) {
+          if (event.propertyName !== 'max-height') return;
+          answer.removeEventListener('transitionend', onEnd);
+          if (!item.classList.contains('is-open')) answer.hidden = true;
+        });
+      }
+    };
+
+    quickQaItems.forEach((item) => {
+      const button = item.querySelector('.quick-qa__question');
+      const answer = item.querySelector('.quick-qa__answer');
+      if (!button || !answer) return;
+      answer.hidden = true;
+      answer.style.maxHeight = '0px';
+      button.addEventListener('click', () => {
+        setQuickQaItem(item, !item.classList.contains('is-open'));
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      quickQaItems.forEach((item) => {
+        if (!item.classList.contains('is-open')) return;
+        const answer = item.querySelector('.quick-qa__answer');
+        const inner = item.querySelector('.quick-qa__answer-inner');
+        if (answer && inner) answer.style.maxHeight = `${inner.scrollHeight}px`;
+      });
+    });
+
+    const quickQaObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-revealed');
-          skillIconObserver.unobserve(entry.target);
-        }
+        quickQaEl.classList.toggle('is-revealed', entry.isIntersecting);
       });
     }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
 
-    skillIconEls.forEach((icon) => skillIconObserver.observe(icon));
+    quickQaObserver.observe(quickQaEl);
+    updateQuickQaDarkState();
+    window.addEventListener('scroll', updateQuickQaDarkState, { passive: true });
+    window.addEventListener('resize', updateQuickQaDarkState);
+    window.addEventListener('load', updateQuickQaDarkState);
+  }
+
+  // Skill content carousel -- the pin sticks while wheel/key input drives the
+  // orbit, then releases back to normal page scroll at either end.
+  const skillCarouselStageEl = document.getElementById('skillCarouselStage');
+  const skillCarouselPinEl = document.getElementById('skillCarouselPin');
+  const skillCarouselEl = document.getElementById('skillCarousel');
+
+  if (skillCarouselStageEl && skillCarouselPinEl && skillCarouselEl) {
+    const items = [
+      { src: 'images/gemini.svg', alt: 'Gemini' },
+      { src: 'images/gpt.svg', alt: 'GPT' },
+      { src: 'images/css.svg', alt: 'CSS' },
+      { src: 'images/html.svg', alt: 'HTML' },
+      { src: 'images/photoshop.svg', alt: 'Photoshop' },
+      { src: 'images/midjourney.svg', alt: 'Midjourney' },
+      { src: 'images/claude.svg', alt: 'Claude' },
+      { src: 'images/javascript.svg', alt: 'JavaScript' },
+      { src: 'images/illustrator.svg', alt: 'Illustrator' },
+      { src: 'images/figma.svg', alt: 'Figma' },
+    ];
+
+    const cardCount = items.length;
+
+    // ---- Tunable knobs -----------------------------------------------
+    const SCROLL_SPEED = 0.002;
+    // CARD_SPACING_SCALE: multiplies every breakpoint's orbit radius in
+    // getLayout() below. 1 = original spacing; lower shrinks the gaps
+    // between cards (tighter cluster), higher spreads them further apart.
+    const CARD_SPACING_SCALE = 0.87;
+    // --------------------------------------------------------------------
+    const scrollSpeed = SCROLL_SPEED;
+    const dragSpeed = 0.008;
+    const fullTurn = Math.PI * 2;
+    const enterDelay = 105;
+    const enterDuration = 980;
+    const enterScrollDelay = 0.11;
+    const enterScrollDuration = 1.1;
+    const exitScrollDelay = 0.15;
+    const exitScrollDuration = 1.35;
+    const minScrollPosition = -(enterScrollDuration + enterScrollDelay * (cardCount - 1));
+    const maxScrollPosition = fullTurn + exitScrollDuration + exitScrollDelay * (cardCount - 1);
+
+    let rotation = 0;
+    let targetRotation = 0;
+    let scrollPosition = 0;
+    let animatedScrollPosition = 0;
+    let pointerStartX = 0;
+    let dragStartRotation = 0;
+    let isDragging = false;
+    let isEngaged = false;
+    let hasEntered = false;
+    let entranceStartTime = null;
+    let wasNearViewport = false;
+
+    function resetCarouselState(position = 0) {
+      rotation = position;
+      targetRotation = position;
+      scrollPosition = position;
+      animatedScrollPosition = position;
+      pointerStartX = 0;
+      dragStartRotation = 0;
+      isDragging = false;
+      isEngaged = false;
+      hasEntered = position !== 0;
+      entranceStartTime = position === 0 ? null : performance.now() - enterDuration - enterDelay * cardCount;
+      isScrollLocked = false;
+      lockedScrollY = window.scrollY;
+    }
+
+    releaseSkillCarouselLock = () => {
+      resetCarouselState();
+      lastScrollY = window.scrollY;
+    };
+
+    const cards = items.map((item, index) => {
+      const card = document.createElement('div');
+      card.className = 'skill-content__carousel-card';
+      card.dataset.index = index;
+      card.innerHTML = `<img src="${item.src}" alt="${item.alt}" draggable="false">`;
+      skillCarouselEl.append(card);
+      return card;
+    });
+
+    function getLayout() {
+      // The pin's own rendered width, not window.innerWidth: .skill-content__stage
+      // caps at min(100cqw, 1920px), so on an ultra-wide monitor the two
+      // diverge -- basing the orbit radius on the wider window figure while
+      // the stage itself stays capped and centered made the carousel read
+      // as oversized and shifted off to one side instead of centered.
+      const width = skillCarouselPinEl.clientWidth;
+
+      if (width <= 430) {
+        return { radiusX: width * 0.39 * CARD_SPACING_SCALE, depth: 190 };
+      }
+
+      if (width <= 768) {
+        return { radiusX: width * 0.36 * CARD_SPACING_SCALE, depth: 260 };
+      }
+
+      if (width <= 1280) {
+        return { radiusX: Math.min(width * 0.3, 380) * CARD_SPACING_SCALE, depth: 360 };
+      }
+
+      return { radiusX: Math.min(width * 0.29, 460) * CARD_SPACING_SCALE, depth: 440 };
+    }
+
+    function clamp01(value) {
+      return Math.max(0, Math.min(1, value));
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function easeOutCubic(value) {
+      return 1 - Math.pow(1 - value, 3);
+    }
+
+    function smoothstep(value) {
+      return value * value * (3 - 2 * value);
+    }
+
+    let lockedScrollY = 0;
+
+    function lockPageScroll() {
+      lockedScrollY = window.scrollY;
+    }
+
+    function unlockPageScroll() {}
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (isEngaged && !isNavJumping && window.scrollY !== lockedScrollY) {
+          window.scrollTo(0, lockedScrollY);
+        }
+      },
+      { passive: true },
+    );
+
+    function engageAtRect(stageRect) {
+      const topOvershoot = -stageRect.top;
+      const bottomOvershoot = stageRect.bottom - window.innerHeight;
+      if (topOvershoot <= bottomOvershoot) {
+        window.scrollBy(0, stageRect.top);
+      } else {
+        window.scrollBy(0, stageRect.bottom - window.innerHeight);
+      }
+      lockPageScroll();
+      isEngaged = true;
+      isScrollLocked = true;
+      if (!hasEntered) {
+        hasEntered = true;
+        entranceStartTime = performance.now();
+      }
+    }
+
+    function syncScrollLock() {
+      const viewportBuffer = window.innerHeight * 0.1;
+      const visibilityRect = skillCarouselStageEl.getBoundingClientRect();
+      const nearViewport = visibilityRect.bottom > -viewportBuffer
+        && visibilityRect.top < window.innerHeight + viewportBuffer;
+      if (wasNearViewport && !nearViewport) {
+        resetCarouselState(visibilityRect.bottom <= -viewportBuffer ? maxScrollPosition : 0);
+      }
+      wasNearViewport = nearViewport;
+
+      if (isEngaged || isNavJumping) return;
+      const stageRect = skillCarouselStageEl.getBoundingClientRect();
+      const nowEngaged = stageRect.top <= 0 && stageRect.bottom > window.innerHeight;
+      if (!nowEngaged) return;
+      engageAtRect(stageRect);
+    }
+
+    function releaseEngagement(rawDelta) {
+      unlockPageScroll();
+      isEngaged = false;
+      isScrollLocked = false;
+      lastScrollY = window.scrollY;
+      const stageRect = skillCarouselStageEl.getBoundingClientRect();
+      if (rawDelta > 0) {
+        window.scrollBy(0, stageRect.bottom - window.innerHeight + 1);
+      } else if (rawDelta < 0) {
+        window.scrollBy(0, stageRect.top - 1);
+      }
+    }
+
+    function render() {
+      const { radiusX, depth } = getLayout();
+      const step = (Math.PI * 2) / cards.length;
+      const now = performance.now();
+      const elapsedSinceEntrance = entranceStartTime === null ? -Infinity : now - entranceStartTime;
+
+      cards.forEach((card, index) => {
+        const angle = rotation + index * step;
+        const x = Math.sin(angle) * radiusX;
+        const z = Math.cos(angle);
+        const scale = 0.62 + ((z + 1) / 2) * 0.42;
+        const rotateY = -Math.sin(angle) * 68;
+        const baseOpacity = 0.36 + ((z + 1) / 2) * 0.64;
+        const timedEnterProgress = easeOutCubic(
+          clamp01((elapsedSinceEntrance - index * enterDelay) / enterDuration),
+        );
+        const reversedIndex = cards.length - 1 - index;
+        const reverseEnterProgress = smoothstep(
+          clamp01((-animatedScrollPosition - reversedIndex * enterScrollDelay) / enterScrollDuration),
+        );
+        const enterProgress = Math.min(timedEnterProgress, 1 - reverseEnterProgress);
+        const rawExitProgress = clamp01(
+          (animatedScrollPosition - fullTurn - index * exitScrollDelay) / exitScrollDuration,
+        );
+        const exitProgress = smoothstep(rawExitProgress);
+        const wave = Math.sin(index * 1.37) * 0.5 + 0.5;
+        const enterCurve = 1 - enterProgress;
+        const exitCurve = exitProgress;
+        const diagonalLean = index % 2 === 0 ? -1 : 1;
+        const introX = (-110 + diagonalLean * 18 + wave * 26) * enterCurve;
+        const introY = (-190 - wave * 42) * enterCurve;
+        const introZ = -depth * 0.28 * enterCurve;
+        const outroX = (118 + diagonalLean * 16 + wave * 22) * exitCurve;
+        const outroY = (170 + wave * 38) * exitCurve;
+        const outroZ = -depth * 0.12 * exitCurve;
+        const y = introY + outroY;
+        const exitOpacity = 1 - exitProgress;
+        const opacity = baseOpacity * enterProgress * exitOpacity;
+        const spinIn = (1 - enterProgress) * (index % 2 === 0 ? -7 : 7);
+        const spinOut = exitProgress * (index % 2 === 0 ? 8 : -8);
+
+        card.style.transform = [
+          'translate(-50%, -50%)',
+          `translate3d(${x + introX + outroX}px, ${y}px, ${z * depth + introZ + outroZ}px)`,
+          `rotateY(${rotateY + spinIn + spinOut}deg)`,
+          `rotateZ(${spinIn * 0.22 + spinOut * 0.2}deg)`,
+          `scale(${scale * (0.82 + enterProgress * 0.18) * (1 - exitProgress * 0.18)})`,
+        ].join(' ');
+        card.style.opacity = opacity.toFixed(3);
+        card.style.zIndex = z >= 0 ? Math.round(10 + z * 90) : Math.round(1 + (z + 1) * 3);
+      });
+    }
+
+    function animate() {
+      syncScrollLock();
+      const scrollDelta = scrollPosition - animatedScrollPosition;
+      animatedScrollPosition += clamp(scrollDelta * 0.12, -0.09, 0.09);
+      rotation += (targetRotation - rotation) * 0.12;
+      render();
+      requestAnimationFrame(animate);
+    }
+
+    function applyRawDelta(rawDelta) {
+      const delta = rawDelta * scrollSpeed;
+      const next = clamp(scrollPosition + delta, minScrollPosition, maxScrollPosition);
+      const atBound = next === scrollPosition
+        && ((delta > 0 && scrollPosition >= maxScrollPosition) || (delta < 0 && scrollPosition <= minScrollPosition));
+      if (atBound) return false;
+
+      scrollPosition = next;
+      targetRotation = scrollPosition;
+      return true;
+    }
+
+    function tryProactiveEntry(rawDelta) {
+      if (isNavJumping) return false;
+      const stageRect = skillCarouselStageEl.getBoundingClientRect();
+      if (stageRect.top > 0 && rawDelta > 0 && rawDelta >= stageRect.top) {
+        resetCarouselState(0);
+        window.scrollBy(0, stageRect.top);
+        engageAtRect(skillCarouselStageEl.getBoundingClientRect());
+        return true;
+      }
+      const belowThreshold = stageRect.bottom - window.innerHeight;
+      if (belowThreshold <= 0 && rawDelta < 0 && rawDelta <= belowThreshold) {
+        resetCarouselState(maxScrollPosition);
+        window.scrollBy(0, belowThreshold);
+        engageAtRect(skillCarouselStageEl.getBoundingClientRect());
+        return true;
+      }
+      return false;
+    }
+
+    window.addEventListener(
+      'wheel',
+      (event) => {
+        const rawDelta = event.deltaY + event.deltaX;
+        if (!isEngaged) {
+          if (tryProactiveEntry(rawDelta)) event.preventDefault();
+          return;
+        }
+        event.preventDefault();
+        updateHeaderForDelta(rawDelta);
+        if (applyRawDelta(rawDelta)) return;
+        releaseEngagement(rawDelta);
+      },
+      { passive: false },
+    );
+
+    const SKILL_SCROLL_LOCK_KEYS = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '];
+    const SCROLL_KEY_DELTA = { ArrowDown: 80, PageDown: 500, ' ': 500, ArrowUp: -80, PageUp: -500 };
+
+    window.addEventListener('keydown', (event) => {
+      if (!SKILL_SCROLL_LOCK_KEYS.includes(event.key)) return;
+      const rawDelta = SCROLL_KEY_DELTA[event.key];
+      if (!isEngaged) {
+        if (rawDelta !== undefined && tryProactiveEntry(rawDelta)) event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      if (rawDelta === undefined) return;
+      updateHeaderForDelta(rawDelta);
+      if (applyRawDelta(rawDelta)) return;
+      releaseEngagement(rawDelta);
+    });
+
+    window.addEventListener(
+      'touchmove',
+      (event) => {
+        if (!isEngaged) return;
+        event.preventDefault();
+      },
+      { passive: false },
+    );
+
+    skillCarouselPinEl.addEventListener('pointerdown', (event) => {
+      if (!isEngaged) return;
+      isDragging = true;
+      pointerStartX = event.clientX;
+      dragStartRotation = targetRotation;
+      skillCarouselPinEl.setPointerCapture(event.pointerId);
+    });
+
+    skillCarouselPinEl.addEventListener('pointermove', (event) => {
+      if (!isDragging) return;
+      targetRotation = dragStartRotation + (event.clientX - pointerStartX) * dragSpeed;
+    });
+
+    skillCarouselPinEl.addEventListener('pointerup', (event) => {
+      isDragging = false;
+      skillCarouselPinEl.releasePointerCapture(event.pointerId);
+    });
+
+    skillCarouselPinEl.addEventListener('pointercancel', () => {
+      isDragging = false;
+    });
+
+    window.addEventListener('resize', render);
+
+    syncScrollLock();
+    render();
+    requestAnimationFrame(animate);
   }
 
   // Clone-coding cards: the "view website" badge replaces the pointer

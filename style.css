@@ -256,6 +256,10 @@ button {
   filter: invert(1);
 }
 
+.header--hero .logo {
+  filter: invert(1);
+}
+
 .nav {
   display: flex;
   align-items: center;
@@ -282,6 +286,11 @@ button {
   color: #ffffff;
 }
 
+.header--hero .nav__link.is-active,
+.header--hero .nav__link:hover {
+  color: #ffffff;
+}
+
 .hamburger {
   display: none;
   flex-direction: column;
@@ -296,8 +305,12 @@ button {
   display: block;
   width: 100%;
   height: 2px;
-  background: #000000;
+  background: #ffffff;
   transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.header--hero .hamburger span {
+  background: #ffffff;
 }
 
 .hamburger.is-open span:nth-child(1) {
@@ -470,125 +483,68 @@ button {
   height: 100vh;
   overflow: hidden;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
+  isolation: isolate;
+  background: #020204;
+  color: #ffffff;
   container-type: inline-size;
 }
 
-/* .hero__stage keeps a fixed 16:9 ratio (bounded by width), so a normal
-   browser window -- always a little wider-than-16:9 once you subtract the
-   browser chrome's height from the viewport -- looks right bottom-anchored,
-   matching how this was designed/reviewed. Only when the viewport itself
-   turns taller than 16:9 (e.g. entering F11 fullscreen removes the chrome
-   and hands that height back, and on some laptop panels that pushes the
-   ratio past 16:9) does bottom-anchoring leave a big gap above the title;
-   in that case only, anchor to the top instead so the gap moves below. */
-@media (max-aspect-ratio: 16/9) {
-  .hero {
-    align-items: flex-start;
-  }
+.hero::before,
+.hero::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.hero::before {
+  z-index: 0;
+  background:
+    radial-gradient(circle at 66% 45%, rgba(255, 255, 255, 0.11), transparent 20rem),
+    radial-gradient(circle at 31% 44%, rgba(210, 218, 232, 0.055), transparent 18rem),
+    radial-gradient(ellipse at 57% 50%, rgba(255, 255, 255, 0.045), transparent 36rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 34%),
+    #020204;
+}
+
+.hero::after {
+  z-index: 2;
+  opacity: 0.12;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");
+}
+
+.hero__staff-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .hero__stage {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   width: min(100cqw, 1920px);
-  aspect-ratio: 1920 / 1080;
+  height: 100vh;
   margin: 0 auto;
-}
-
-.hero__letters {
-  position: absolute;
-  inset: 0;
-  transform: translateX(calc(0.05 * var(--u)));
-}
-
-.letter {
-  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.letter img {
-  width: 100%;
-  height: 100%;
-}
-
-.letter--j {
-  left: calc(0.169 * var(--u));
-  top: calc(21.9922 * var(--u));
-  width: calc(16.3899 * var(--u));
-  height: calc(19.8192 * var(--u));
-}
-.letter--j img {
-  width: calc(11.3966 * var(--u));
-  height: calc(17.0019 * var(--u));
-  transform: rotate(-19.37deg);
-}
-
-.letter--h {
-  left: calc(1.9792 * var(--u));
-  top: calc(39.6411 * var(--u));
-  width: calc(14.0923 * var(--u));
-  height: calc(16.5999 * var(--u));
-}
-
-.letter--y {
-  left: calc(18.4113 * var(--u));
-  top: calc(24.8552 * var(--u));
-  width: calc(20.1752 * var(--u));
-  height: calc(19.2964 * var(--u));
-}
-.letter--y img {
-  width: calc(15.3738 * var(--u));
-  height: calc(16.6407 * var(--u));
-  transform: rotate(74.27deg);
-}
-
-.letter--n {
-  left: calc(35.7292 * var(--u));
-  top: calc(39.6354 * var(--u));
-  width: calc(14.2341 * var(--u));
-  height: calc(16.6402 * var(--u));
-}
-
-.letter--i {
-  left: calc(14.1823 * var(--u));
-  top: calc(23.1901 * var(--u));
-  width: calc(9.0426 * var(--u));
-  height: calc(17.1155 * var(--u));
-}
-.letter--i img {
-  width: calc(4.1865 * var(--u));
-  height: calc(16.6407 * var(--u));
-  transform: rotate(-162.31deg);
-}
-
-.letter--u {
-  left: calc(13.8545 * var(--u));
-  top: calc(37.2917 * var(--u));
-  width: calc(21.8859 * var(--u));
-  height: calc(21.0801 * var(--u));
-}
-.letter--u img {
-  width: calc(13.9085 * var(--u));
-  height: calc(17.0019 * var(--u));
-  transform: rotate(55.61deg);
-}
-
 .hero__title {
-  position: absolute;
-  left: calc(49.6 * var(--u));
-  top: calc(15.8333 * var(--u));
-  width: calc(41.4583 * var(--u));
   margin: 0;
   font-family: 'Neue Montreal', 'Helvetica Neue', Arial, sans-serif;
   font-weight: 400;
-  font-size: calc(5.7292 * var(--u));
+  font-size: clamp(48px, calc(5.7292 * var(--u)), 110px);
   line-height: 1.1;
-  letter-spacing: calc(-0.11458 * var(--u));
-  color: #000000;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -600,6 +556,12 @@ button {
   font-family: 'Cardinal Fruit', Georgia, serif;
   font-style: italic;
   font-weight: 400;
+}
+
+@media (max-width: 760px) {
+  .hero__title {
+    font-size: clamp(34px, 13vw, 64px);
+  }
 }
 
 /* ==========================================================================
@@ -670,18 +632,6 @@ button {
   left: calc(16.3542 * var(--u));
   top: calc(15.6771 * var(--u));
   width: calc(41.4583 * var(--u));
-}
-
-/* The floating clone shown only mid-scroll, positioned in real px by
-   script.js as it interpolates between the hero title and .intro-reasons__title. */
-.flying-title {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: calc(41.4583 * var(--u));
-  z-index: 50;
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* Three floating clones (one per reason-quote chip) shown only while
@@ -811,6 +761,13 @@ button {
    blink where neither title was drawn for a moment. */
 body.js-anim .intro-reasons__title {
   opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+body.js-anim .intro-reasons.is-docked .intro-reasons__title {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 
@@ -1248,7 +1205,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   font-weight: 400;
-  font-size: calc(1.25 * var(--u));
+  font-size: calc(1.2 * var(--u));
   line-height: 1.4;
   letter-spacing: calc(-0.025 * var(--u));
   color: #ffffff;
@@ -1278,8 +1235,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    배경/검은 글자로 반전. */
 .work-transition {
   position: relative;
-  height: 350vh;
-  background: #000000;
+  /* 440vh, not 350vh: this is purely scroll-linked (no scroll-jack lock),
+     so a fast/aggressive scroll gesture could blow through the fog-char
+     dissolve's whole dwell distance almost too quickly to see it. More
+     dwell height means more physical scroll distance is needed to reach
+     the same visual progress, slowing the felt pace without touching the
+     per-frame animation logic itself. Same reasoning applies to
+     .skill-transition and .about-transition below, which mirror this
+     exact interaction -- keep all three in sync if retuning further. */
+  height: 440vh;
+  background: #ffffff;
   container-type: inline-size;
 }
 
@@ -1306,7 +1271,38 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .work-transition__base {
-  background: #000000;
+  background: #ffffff;
+}
+
+.work-transition__base::before {
+  position: absolute;
+  top: 0;
+  left: calc(16.6667 * var(--u));
+  right: calc(16.6667 * var(--u));
+  height: 100%;
+  z-index: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-left: 1px solid var(--color-line);
+  border-right: 1px solid var(--color-line);
+  background:
+    linear-gradient(to right,
+      transparent calc(25% - 0.5px),
+      var(--color-line) calc(25% - 0.5px),
+      var(--color-line) calc(25% + 0.5px),
+      transparent calc(25% + 0.5px)),
+    linear-gradient(to right,
+      transparent calc(50% - 0.5px),
+      var(--color-line) calc(50% - 0.5px),
+      var(--color-line) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)),
+    linear-gradient(to right,
+      transparent calc(75% - 0.5px),
+      var(--color-line) calc(75% - 0.5px),
+      var(--color-line) calc(75% + 0.5px),
+      transparent calc(75% + 0.5px));
+  content: "";
+  pointer-events: none;
 }
 
 .work-transition__wipe {
@@ -1319,6 +1315,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .work-transition__scroller {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   white-space: nowrap;
@@ -1364,7 +1362,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .work-transition__base .work-transition__title {
-  color: #ffffff;
+  color: #000000;
 }
 
 .work-transition__wipe .work-transition__title {
@@ -1424,7 +1422,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    before it). */
 .skill-transition {
   position: relative;
-  height: 350vh;
+  /* See .work-transition's comment above -- same reasoning, kept in sync. */
+  height: 440vh;
   background: #ffffff;
   container-type: inline-size;
 }
@@ -1547,7 +1546,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    updateWorkTransition. */
 .about-transition {
   position: relative;
-  height: 350vh;
+  /* See .work-transition's comment above -- same reasoning, kept in sync. */
+  height: 440vh;
   background: #000000;
   container-type: inline-size;
 }
@@ -1661,16 +1661,14 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* ==========================================================================
-   Skill content — Figma node 2832-1904. Black-bg section following
-   .skill-transition's wipe-to-black: centered SKILL title + Korean
-   subtitle (fog-in reveal, same IntersectionObserver + wrapChars +
-   --fog-delay pattern as .clone-coding__intro -- see script.js), then a
-   DESIGN/FRONTEND/AI three-column list that pins at viewport-center
-   (position: sticky, same top: 50vh / translateY(-50%) trick as
-   .clone-coding__intro) while the two flanking icon clusters rise up
-   into place beside it -- same one-time IntersectionObserver reveal as
-   .clone-coding__card, applied per icon. Icons use the project's own
-   local SVGs instead of Figma's exported assets.
+   Skill content — Figma node 3202-702. Black-bg section following
+   .skill-transition's wipe-to-black: one merged, centered block (SKILL
+   title + Korean subtitle, fog-in reveal via IntersectionObserver +
+   wrapChars + --fog-delay, same pattern as .clone-coding__intro -- see
+   script.js) sitting 76px above the DESIGN/FRONTEND/AI three-column
+   list, exactly as grouped in Figma. This whole block pins at
+   viewport-center inside the scroll-jacked .skill-content__pin while a
+   3D icon carousel orbits around it (see .skill-content__stage below).
    ========================================================================== */
 .skill-content {
   position: relative;
@@ -1686,14 +1684,10 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .skill-content__intro {
-  position: relative;
-  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: calc(0.8333 * var(--u));
-  width: min(100cqw, 1920px);
-  margin: calc(13.4375 * var(--u)) auto 0;
   text-align: center;
 }
 
@@ -1753,104 +1747,117 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-/* Stage below the intro: .skill-content__columns is the only in-flow
-   child (icons are position: absolute), so this height alone controls
-   how long the sticky pin holds -- same technique as
-   .clone-coding__stage / .clone-coding__intro. margin-top is viewport-
-   relative (not the --u scale) and must clear at least half a viewport
-   height -- the column's sticky offset (top: 50vh) engages the moment
-   its static position scrolls within 50vh of the top, so anything
-   shorter lets it snap to center while .skill-content__intro is still
-   on screen above it. */
+/* Stage below the intro: a scroll-jacked pin track, same shape as
+   .about-transition/.clone-coding__stage's own sticky-pin sections
+   elsewhere in this file. .skill-content__stage is just the tall
+   in-flow track that reserves scroll budget; .skill-content__pin is the
+   position: sticky child that actually holds still at the top of the
+   viewport (see .about-transition__sticky for the same top: 0 pattern)
+   while script.js intercepts wheel input and spins the carousel instead
+   of letting the page scroll. Once the carousel's rotation hits either
+   end of its range, script.js stops calling preventDefault, so the next
+   bit of scroll drains the track's remaining height and the section
+   un-sticks normally -- see the "engaged" bookkeeping there. */
 .skill-content__stage {
   position: relative;
   width: min(100cqw, 1920px);
-  height: calc(90 * var(--u));
-  margin: 60vh auto 0;
+  height: 160vh;
+  margin: calc(6.25 * var(--u)) auto 0;
 }
 
-.skill-content__icons {
-  position: absolute;
+/* This is the clone's own .carousel-stage (perspective/transform-style
+   for the 3D scene, ported 1:1 -- see PORTFOLIO-INTEGRATION.md), just
+   relocated onto the sticky pin instead of the scroll-track wrapper. */
+.skill-content__pin {
+  --card-width: clamp(70px, 7.4vw, 112px);
+  --card-height: var(--card-width);
+  --card-radius: 22px;
+  position: sticky;
   top: 0;
-  bottom: 0;
+  height: 100vh;
+  overflow: hidden;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  user-select: none;
+  touch-action: none;
+}
+
+.skill-content__carousel {
+  position: absolute;
+  left: 50%;
+  top: 57%;
+  /* No z-index here on purpose: a fixed value would create its own
+     stacking context and cap every card underneath it, regardless of
+     each card's own z-index (see .skill-content__carousel-card below).
+     Leaving this z-index: auto lets each card's inline z-index compete
+     directly with .skill-content__body's z-index: 5, so near-side cards
+     (10-100) paint in front of the text and far-side cards (1-4) paint
+     behind it. */
+  width: min(80vw, 920px);
+  height: var(--card-height);
+  transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+/* One card per icon, positioned/rotated/scaled entirely by script.js
+   every frame (translate3d + rotateY + rotateZ + scale, driven by its
+   orbit angle and scroll-tied enter/exit progress) -- only the static
+   look (size, shape, shadow) lives here. */
+.skill-content__carousel-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--card-width);
+  height: var(--card-height);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--card-radius);
+  background: #ffffff;
+  box-shadow:
+    0 18px 38px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+}
+
+.skill-content__carousel-card img {
+  display: block;
+  width: 64%;
+  height: 64%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Figma node 3202-702: title+subtitle and the DESIGN/FRONTEND/AI columns
+   are one merged, centered block (76px gap between the two groups) that
+   the carousel orbits around -- not a separate title sitting above the
+   stage. Centered over the stage the same way the old __columns rule
+   used to be on its own: z-index: 5 is the load-bearing value -- script.js
+   gives each card a z-index of ~10-100 while it's on the near side of the
+   orbit and ~1-4 while on the far side, so this value has to land between
+   those two ranges for cards to correctly pass in front of the text on
+   the way round and disappear behind it on the way back. */
+.skill-content__body {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: calc(10.4167 * var(--u));
-  z-index: 0;
+  gap: calc(3.9583 * var(--u));
+  pointer-events: none;
 }
 
-.skill-content__icons--left {
-  left: calc(18 * var(--u));
-}
-
-.skill-content__icons--right {
-  right: calc(18 * var(--u));
-}
-
-/* Each icon starts lower + faded and rises into place once it scrolls
-   into view, staying there -- same one-time reveal mechanics as
-   .clone-coding__card (script.js observes + unobserves per icon).
-   position: relative + the nth-child(odd/even) left offsets below zigzag
-   the cluster instead of stacking every icon on one straight line;
-   transition-delay staggers each icon's rise so they pop up one after
-   another rather than all at once. */
-.skill-content__icon {
-  display: block;
-  object-fit: contain;
-  position: relative;
-  opacity: 0;
-  transform: translateY(calc(2.5 * var(--u)));
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-}
-
-.skill-content__icon.is-revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.skill-content__icon:nth-child(odd) { left: calc(-2.0833 * var(--u)); }
-.skill-content__icon:nth-child(even) { left: calc(2.0833 * var(--u)); }
-
-.skill-content__icon:nth-child(1) { transition-delay: 0s; }
-.skill-content__icon:nth-child(2) { transition-delay: 0.09s; }
-.skill-content__icon:nth-child(3) { transition-delay: 0.18s; }
-.skill-content__icon:nth-child(4) { transition-delay: 0.27s; }
-.skill-content__icon:nth-child(5) { transition-delay: 0.36s; }
-
-@media (prefers-reduced-motion: reduce) {
-  .skill-content__icon {
-    transition: none;
-  }
-}
-
-.skill-content__icon--figma { width: calc(3.0385 * var(--u)); height: calc(4.5578 * var(--u)); }
-.skill-content__icon--illustrator { width: calc(3.8969 * var(--u)); height: calc(3.7775 * var(--u)); }
-.skill-content__icon--javascript { width: calc(4.5302 * var(--u)); height: calc(5.1885 * var(--u)); }
-.skill-content__icon--claude { width: calc(4.3286 * var(--u)); height: calc(4.3286 * var(--u)); }
-.skill-content__icon--midjourney { width: calc(4.6498 * var(--u)); height: calc(4.6498 * var(--u)); }
-.skill-content__icon--photoshop { width: calc(3.8176 * var(--u)); height: calc(3.7132 * var(--u)); }
-.skill-content__icon--html { width: calc(4.5302 * var(--u)); height: calc(5.0509 * var(--u)); }
-.skill-content__icon--css { width: calc(4.5302 * var(--u)); height: calc(5.3230 * var(--u)); }
-.skill-content__icon--gpt { width: calc(4.6804 * var(--u)); height: calc(4.6804 * var(--u)); }
-.skill-content__icon--gemini { width: calc(5.2157 * var(--u)); height: calc(5.2157 * var(--u)); }
-
-/* The columns block itself: stays in normal flow until its sticky offset
-   engages, then holds at viewport-center for the rest of the stage's
-   height, same trick as .clone-coding__intro (position: sticky; top:
-   50vh; transform: translateY(-50%) instead of top: 50% so the offset
-   resolves against the viewport, not the stage's own box). */
 .skill-content__columns {
-  position: sticky;
-  top: 50vh;
-  transform: translateY(-50%);
-  z-index: 1;
   display: flex;
   justify-content: center;
   gap: calc(3.6458 * var(--u));
   width: calc(28.8542 * var(--u));
-  margin: 0 auto;
   text-align: left;
 }
 
@@ -3127,7 +3134,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    ========================================================================== */
 .gallery-interaction {
   position: relative;
-  height: 1081vh;
+  height: 1260vh;
   container-type: inline-size;
 }
 
@@ -3225,6 +3232,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-weight: 500;
   font-size: 36px;
   line-height: normal;
+  transition: color 220ms linear;
 }
 
 .gallery-interaction__vision-description {
@@ -3236,6 +3244,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   line-height: 1.4;
   letter-spacing: -0.32px;
   white-space: nowrap;
+  transition: color 220ms linear;
 }
 
 .gallery-interaction__vision-description p {
@@ -3316,7 +3325,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 @media (max-width: 520px) {
   .gallery-interaction {
-    height: 950vh;
+    height: 1110vh;
   }
 
   .gallery-interaction__copy {
@@ -3333,6 +3342,242 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
   .gallery-interaction__copy--vision {
     bottom: clamp(78px, 11vh, 104px);
+  }
+}
+
+/* ==========================================================================
+   Quick Q&A — Figma node 2832-1509
+   ========================================================================== */
+.quick-qa {
+  position: relative;
+  z-index: 40;
+  min-height: 100vh;
+  padding: calc(12.5 * var(--u)) calc(7.8125 * var(--u)) calc(10.4167 * var(--u));
+  background: #000000;
+  color: #ffffff;
+  container-type: inline-size;
+}
+
+.quick-qa__inner {
+  width: min(100%, calc(84.375 * var(--u)));
+  margin: 0 auto;
+}
+
+.quick-qa__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(0.8333 * var(--u));
+  margin-bottom: calc(15.1042 * var(--u));
+  text-align: center;
+}
+
+.quick-qa__title {
+  margin: 0;
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(5.2083 * var(--u));
+  line-height: normal;
+  letter-spacing: calc(-0.1042 * var(--u));
+  white-space: nowrap;
+}
+
+.quick-qa__title em {
+  font-family: 'Cardinal Fruit', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.quick-qa__title-char {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(18px);
+  transform: translateY(calc(0.6 * var(--u)));
+  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.quick-qa.is-revealed .quick-qa__title-char {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+.quick-qa__subtitle {
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(0.8333 * var(--u));
+  line-height: 1.4;
+  letter-spacing: calc(-0.0167 * var(--u));
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  filter: blur(16px);
+  transform: translateY(calc(0.5 * var(--u)));
+  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition-delay: var(--fog-delay, 0s);
+}
+
+.quick-qa.is-revealed .quick-qa__subtitle {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+.quick-qa__subtitle strong,
+.quick-qa__answer strong {
+  font-weight: 600;
+}
+
+.quick-qa__list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4.1667 * var(--u));
+}
+
+.quick-qa__item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.quick-qa__question {
+  width: 100%;
+  min-height: calc(2.6042 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(2.0833 * var(--u));
+  padding: 0 0 calc(0.8333 * var(--u));
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 600;
+  font-size: calc(1.6667 * var(--u));
+  line-height: 1.4;
+  letter-spacing: calc(-0.0333 * var(--u));
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick-qa__question span:first-child {
+  min-width: 0;
+}
+
+.quick-qa__arrow {
+  flex: 0 0 auto;
+  width: calc(2.6042 * var(--u));
+  height: calc(2.6042 * var(--u));
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  transition: transform 0.35s ease;
+}
+
+.quick-qa__arrow img {
+  width: calc(1.5625 * var(--u));
+  height: calc(1.5625 * var(--u));
+  display: block;
+}
+
+.quick-qa__item.is-open .quick-qa__arrow {
+  transform: rotate(90deg);
+}
+
+.quick-qa__answer {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.45s ease, opacity 0.35s ease;
+}
+
+.quick-qa__item.is-open .quick-qa__answer {
+  opacity: 1;
+}
+
+.quick-qa__answer-inner {
+  padding: 0 0 calc(1.0938 * var(--u));
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(1.0417 * var(--u));
+  line-height: 1.5;
+  letter-spacing: calc(-0.0208 * var(--u));
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.quick-qa__answer-inner p {
+  margin: 0;
+}
+
+.quick-qa__answer-inner p + p {
+  margin-top: calc(0.2083 * var(--u));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-qa__title-char,
+  .quick-qa__subtitle,
+  .quick-qa__answer,
+  .quick-qa__arrow {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .quick-qa {
+    padding: 144px 32px 120px;
+  }
+
+  .quick-qa__inner {
+    width: 100%;
+  }
+
+  .quick-qa__intro {
+    margin-bottom: 120px;
+  }
+
+  .quick-qa__title {
+    font-size: 64px;
+  }
+
+  .quick-qa__question {
+    font-size: 24px;
+  }
+
+  .quick-qa__answer-inner {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 520px) {
+  .quick-qa {
+    padding: 120px 20px 96px;
+  }
+
+  .quick-qa__intro {
+    margin-bottom: 92px;
+  }
+
+  .quick-qa__title {
+    font-size: 44px;
+  }
+
+  .quick-qa__subtitle {
+    font-size: 14px;
+  }
+
+  .quick-qa__list {
+    gap: 40px;
+  }
+
+  .quick-qa__question {
+    align-items: flex-start;
+    font-size: 20px;
+  }
+
+  .quick-qa__arrow {
+    width: 38px;
+    height: 38px;
   }
 }
 
@@ -3905,23 +4150,41 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     aspect-ratio: 726 / 455;
   }
 
-  /* Skill content: same static-stack treatment -- drop the absolute
-     "constellation" icon clusters (purely decorative, aria-hidden) and
-     the sticky-pin behavior, stacking title/subtitle/columns in a plain
-     centered column instead. */
+  /* Skill content: same static-stack treatment -- drop the sticky pin
+     (no scroll-jacking on mobile) and the 3D icon carousel (purely
+     decorative, aria-hidden), stacking title/subtitle/columns in a
+     plain centered column instead. */
   .skill-content__stage {
     width: 100%;
     height: auto;
     margin: 0;
     padding: 0 24px 64px;
     box-sizing: border-box;
+  }
+
+  .skill-content__pin {
+    position: static;
+    height: auto;
+    overflow: visible;
+    perspective: none;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
 
-  .skill-content__icons {
+  .skill-content__carousel {
     display: none;
+  }
+
+  .skill-content__body {
+    position: static;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    pointer-events: auto;
   }
 
   .skill-content__intro {
@@ -3932,8 +4195,6 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   .skill-content__columns {
-    position: static;
-    transform: none;
     width: 100%;
     max-width: 360px;
     margin: 48px auto 0;

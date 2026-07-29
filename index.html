@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PORTFOLIO — 박지현</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260729y">
 </head>
 <body>
 
@@ -45,51 +45,12 @@
 
   <main>
     <section class="hero" id="intro">
+      <canvas id="staffCanvas" class="hero__staff-canvas" aria-hidden="true"></canvas>
       <div class="hero__stage">
-        <div class="hero__letters" aria-hidden="true">
-          <div class="letter letter--j"><img src="images/letter-j.svg" alt=""></div>
-          <div class="letter letter--i"><img src="images/letter-i.svg" alt=""></div>
-          <div class="letter letter--y"><img src="images/letter-y.svg" alt=""></div>
-          <div class="letter letter--h"><img src="images/letter-h.svg" alt=""></div>
-          <div class="letter letter--u"><img src="images/letter-u.svg" alt=""></div>
-          <div class="letter letter--n"><img src="images/letter-n.svg" alt=""></div>
-        </div>
-
         <h1 class="hero__title">
-          <span class="hero__title-line">DESIGNING</span>
-          <span class="hero__title-line">REASONS TO <em>stay</em></span>
+          <span class="hero__title-line">CREATING HARMONY</span>
+          <span class="hero__title-line"><em>through</em> DESIGN</span>
         </h1>
-      </div>
-    </section>
-
-    <section class="intro-reasons">
-      <div class="intro-reasons__sticky">
-        <div class="intro-reasons__stage">
-          <div class="stay-title intro-reasons__title" aria-hidden="true">
-            <span class="stay-title-line">DESIGNING</span>
-            <span class="stay-title-line">REASONS TO <em>stay</em></span>
-          </div>
-
-          <p class="intro-reasons__subtitle intro-reasons__reveal">
-            <strong>[머물고 싶은 이유]</strong>를 고민하는 디자이너 <strong>박지현</strong>
-          </p>
-
-          <div class="intro-reasons__photo intro-reasons__reveal">
-            <img src="images/portrait-intro.jpg" alt="디자이너 박지현 프로필 사진">
-          </div>
-
-          <div class="intro-reasons__text intro-reasons__reveal">
-            <p class="intro-reasons__text-line intro-reasons__text-en">
-              I believe every great experience gives people a reason to stay longer.<br>
-              By understanding those reasons from the user&#39;s perspective,<br>
-              I design experiences that people want to come back to.
-            </p>
-            <p class="intro-reasons__text-line intro-reasons__text-kr">
-              좋은 경험에는 언제나 오래 머물고 싶은 이유가 있습니다.<br>
-              사용자의 관점에서 그 이유를 고민하고, 다시 찾고 싶은 경험을 설계합니다.
-            </p>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -172,8 +133,39 @@
           <div class="cards-reveal__text-position">
             <div class="cards-reveal__text cards-reveal__reveal">
               <p class="cards-reveal__text-line">피아노를 전공하며 항상 <strong>청중</strong>의 입장에서 고민하고 연주했던 경험은</p>
-              <p class="cards-reveal__text-line"><strong>사용자</strong>의 문제를 이해하고 경험을 설계하는 디자인이라는 <strong>새로운 무대</strong>로 이어지고 있습니다.</p>
+              <p class="cards-reveal__text-line"><strong>사용자</strong>의 문제를 이해하고 경험을 설계하는 <strong>디자인</strong>이라는 <strong>새로운 무대</strong>로 이어지고 있습니다.</p>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="intro-reasons">
+      <div class="intro-reasons__sticky">
+        <div class="intro-reasons__stage">
+          <div class="stay-title intro-reasons__title" aria-hidden="true">
+            <span class="stay-title-line">DESIGNING</span>
+            <span class="stay-title-line">REASONS TO <em>stay</em></span>
+          </div>
+
+          <p class="intro-reasons__subtitle intro-reasons__reveal">
+            <strong>[머물고 싶은 이유]</strong>를 고민하는 디자이너 <strong>박지현</strong>
+          </p>
+
+          <div class="intro-reasons__photo intro-reasons__reveal">
+            <img src="images/portrait-intro.jpg" alt="디자이너 박지현 프로필 사진">
+          </div>
+
+          <div class="intro-reasons__text intro-reasons__reveal">
+            <p class="intro-reasons__text-line intro-reasons__text-en">
+              I believe every great experience gives people a reason to stay longer.<br>
+              By understanding those reasons from the user&#39;s perspective,<br>
+              I design experiences that people want to come back to.
+            </p>
+            <p class="intro-reasons__text-line intro-reasons__text-kr">
+              좋은 경험에는 언제나 오래 머물고 싶은 이유가 있습니다.<br>
+              사용자의 관점에서 그 이유를 고민하고, 다시 찾고 싶은 경험을 설계합니다.
+            </p>
           </div>
         </div>
       </div>
@@ -785,60 +777,51 @@
          Icons use the project's own local SVGs (already placed by the
          user) rather than Figma's exported assets. -->
     <section class="skill-content" id="skill">
-      <div class="skill-content__intro">
-        <p class="skill-content__title">SKILL</p>
-        <p class="skill-content__subtitle">다양한 디자인 툴과 AI 도구를 활용하여<br>효율적인 프로세스와 완성도 높은 결과물을 만들어갑니다.</p>
-      </div>
+      <div class="skill-content__stage" id="skillCarouselStage">
+        <div class="skill-content__pin" id="skillCarouselPin">
+          <div class="skill-content__carousel" id="skillCarousel" aria-hidden="true"></div>
 
-      <div class="skill-content__stage">
-        <div class="skill-content__icons skill-content__icons--left" aria-hidden="true">
-          <img class="skill-content__icon skill-content__icon--figma" src="images/figma.svg" alt="">
-          <img class="skill-content__icon skill-content__icon--illustrator" src="images/illustrator.svg" alt="">
-          <img class="skill-content__icon skill-content__icon--javascript" src="images/javascript.svg" alt="">
-          <img class="skill-content__icon skill-content__icon--claude" src="images/claude.svg" alt="">
-          <img class="skill-content__icon skill-content__icon--midjourney" src="images/midjourney.svg" alt="">
-        </div>
-        <div class="skill-content__icons skill-content__icons--right" aria-hidden="true">
-          <img class="skill-content__icon skill-content__icon--photoshop" src="images/photoshop.svg" alt="">
-          <img class="skill-content__icon skill-content__icon--html" src="images/html.svg" alt="">
-          <img class="skill-content__icon skill-content__icon--css" src="images/css.svg" alt="">
-          <img class="skill-content__icon skill-content__icon--gpt" src="images/gpt.svg" alt="">
-          <img class="skill-content__icon skill-content__icon--gemini" src="images/gemini.svg" alt="">
-        </div>
+          <div class="skill-content__body">
+            <div class="skill-content__intro">
+              <p class="skill-content__title">SKILL</p>
+              <p class="skill-content__subtitle">다양한 디자인 툴과 AI 도구를 활용하여<br>효율적인 프로세스와 완성도 높은 결과물을 만들어갑니다.</p>
+            </div>
 
-        <div class="skill-content__columns">
-          <div class="skill-content__column">
-            <p class="skill-content__column-title">DESIGN</p>
-            <ul class="skill-content__column-list">
-              <li>Figma</li>
-              <li>Photoshop</li>
-              <li>Illustrator</li>
-            </ul>
-          </div>
-          <div class="skill-content__column">
-            <p class="skill-content__column-title">FRONTEND</p>
-            <ul class="skill-content__column-list">
-              <li>HTML</li>
-              <li>CSS</li>
-              <li>JavaScript</li>
-              <li>JQuery</li>
-              <li>React</li>
-              <li>TypeScript</li>
-              <li>Tailwind CSS</li>
-              <li>GSAP</li>
-            </ul>
-          </div>
-          <div class="skill-content__column">
-            <p class="skill-content__column-title skill-content__column-title--ai">AI</p>
-            <ul class="skill-content__column-list">
-              <li>ChatGPT</li>
-              <li>Claude</li>
-              <li>Gemini</li>
-              <li>Perplexity</li>
-              <li>Midjourney</li>
-              <li>Gamma</li>
-              <li>Figma MCP</li>
-            </ul>
+            <div class="skill-content__columns">
+              <div class="skill-content__column">
+                <p class="skill-content__column-title">DESIGN</p>
+                <ul class="skill-content__column-list">
+                  <li>Figma</li>
+                  <li>Photoshop</li>
+                  <li>Illustrator</li>
+                </ul>
+              </div>
+              <div class="skill-content__column">
+                <p class="skill-content__column-title">FRONTEND</p>
+                <ul class="skill-content__column-list">
+                  <li>HTML</li>
+                  <li>CSS</li>
+                  <li>JavaScript</li>
+                  <li>JQuery</li>
+                  <li>React</li>
+                  <li>TypeScript</li>
+                  <li>Tailwind CSS</li>
+                  <li>GSAP</li>
+                </ul>
+              </div>
+              <div class="skill-content__column">
+                <p class="skill-content__column-title skill-content__column-title--ai">AI</p>
+                <ul class="skill-content__column-list">
+                  <li>ChatGPT</li>
+                  <li>Claude</li>
+                  <li>Gemini</li>
+                  <li>Perplexity</li>
+                  <li>Midjourney</li>
+                  <li>Gamma</li>
+                  <li>Figma MCP</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -902,13 +885,79 @@
         </div>
       </div>
     </section>
+
+    <section class="quick-qa" id="quickQa">
+      <div class="quick-qa__inner">
+        <div class="quick-qa__intro">
+          <h2 class="quick-qa__title"><em>quick</em> Q&amp;A</h2>
+          <p class="quick-qa__subtitle">
+            디자인을 대하는 <strong>태도</strong>와 중요하게 생각하는 <strong>가치</strong>를 담은<br>
+            짧은 <strong>질의응답</strong>으로 프로젝트 너머의 디자이너 <strong>박지현</strong>을 소개합니다.
+          </p>
+        </div>
+
+        <div class="quick-qa__list">
+          <article class="quick-qa__item">
+            <button class="quick-qa__question" type="button" aria-expanded="false">
+              <span>왜 피아노 전공에서 UX/UI 디자인으로 진로를 바꾸게 되었나요?</span>
+              <span class="quick-qa__arrow" aria-hidden="true"><img src="images/quick-qa-arrow.svg" alt=""></span>
+            </button>
+            <div class="quick-qa__answer" hidden>
+              <div class="quick-qa__answer-inner">
+                <p>피아노를 전공하면서도 <strong>연주회 포스터</strong>를 직접 제작할 만큼 디자인에 관심이 많았습니다.</p>
+                <p>이후 UX/UI 디자인을 접하며, <strong>청중</strong>이 어떻게 느끼고 몰입할지를 항상 고민하는 연주와 <strong>사용자의 경험</strong>을 설계하는 디자인은 본질적으로 닮아 있다고 생각했습니다.</p>
+                <p>사용자의 <strong>행동</strong>과 <strong>감정</strong>을 고려해 더 나은 경험을 만들어가는 과정은 저에게 <strong>새로운 형태의 창작</strong>으로 다가왔고, 큰 흥미와 매력을 느껴 <strong>UX/UI 디자이너</strong>의 길을 선택하게 되었습니다.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="quick-qa__item">
+            <button class="quick-qa__question" type="button" aria-expanded="false">
+              <span>비전공자로서 본인만의 강점은 무엇인가요?</span>
+              <span class="quick-qa__arrow" aria-hidden="true"><img src="images/quick-qa-arrow.svg" alt=""></span>
+            </button>
+            <div class="quick-qa__answer" hidden>
+              <div class="quick-qa__answer-inner">
+                <p>피아노를 전공하며 오랜 시간 쌓아온 <strong>집요함</strong>과 <strong>책임감</strong>이 가장 큰 강점이라고 생각합니다.</p>
+                <p>항상 <strong>150%</strong>를 준비해야 하는 무대를 수없이 경험하며, 더욱 치밀하게 완성하기 위해 작은 부분까지 반복해서 <strong>연습</strong>했던 경험은 <strong>디자인</strong>에서도 그대로 이어졌습니다.</p>
+                <p><strong>문제를 끝까지 해결하려는 끈기</strong>와 <strong>디테일</strong>을 놓치지 않는 태도, 그리고 지속적으로 배우고 겸손하게 <strong>성장하려는 자세</strong>가 저만의 경쟁력이라고 생각합니다.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="quick-qa__item">
+            <button class="quick-qa__question" type="button" aria-expanded="false">
+              <span>디자인할 때 가장 중요하게 생각하는 것은 무엇인가요?</span>
+              <span class="quick-qa__arrow" aria-hidden="true"><img src="images/quick-qa-arrow.svg" alt=""></span>
+            </button>
+            <div class="quick-qa__answer" hidden>
+              <div class="quick-qa__answer-inner">
+                <p>디자인도 <strong>잘 읽히는 글</strong>처럼 한눈에 이해되는 <strong>명확함</strong>과 <strong>직관성</strong>이 중요하다고 생각합니다.</p>
+                <p>사용자가 어디를 눌러야 하는지, 어떤 정보가 중요한지 고민하지 않아도 <strong>자연스럽게</strong> 파악할 수 있어야 합니다.</p>
+                <p><strong>시각적 위계</strong>와 <strong>정보 구조</strong>를 명확하게 구성하여, 사용자가 <strong>쉽고 편안하게</strong> 서비스를 이용할 수 있는 경험을 만드는 디자이너가 되고 싶습니다.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="quick-qa__item">
+            <button class="quick-qa__question" type="button" aria-expanded="false">
+              <span>어떤 디자이너로 성장하고 싶나요?</span>
+              <span class="quick-qa__arrow" aria-hidden="true"><img src="images/quick-qa-arrow.svg" alt=""></span>
+            </button>
+            <div class="quick-qa__answer" hidden>
+              <div class="quick-qa__answer-inner">
+                <p>결과물에 앞서 항상 '<strong>왜?</strong>'를 고민하는 디자이너가 되고 싶습니다.</p>
+                <p>사용자가 왜 이런 행동을 하는지, 왜 이 문제가 발생했는지, 왜 이 기능이 필요한지를 끊임없이 <strong>질문</strong>하며 <strong>문제의 본질</strong>을 이해하려고 합니다.</p>
+                <p>단순히 보기 좋은 화면을 만드는 것이 아니라, <strong>명확한 근거</strong>와 <strong>의도</strong>를 바탕으로 더 나은 사용자 경험을 설계하는 디자이너로 성장하고 싶습니다.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="contact"><p class="section__placeholder">CONTACT — 준비중</p></section>
   </main>
-
-  <div class="stay-title flying-title" id="flyingTitle" aria-hidden="true">
-    <span class="stay-title-line">DESIGNING</span>
-    <span class="stay-title-line">REASONS TO <em>stay</em></span>
-  </div>
 
   <div class="flying-card flying-card--photo" id="flyingCard1" aria-hidden="true">
     <img src="images/piano.png" alt="">
@@ -916,6 +965,6 @@
   <div class="flying-card flying-card--placeholder" id="flyingCard2" aria-hidden="true"></div>
   <div class="flying-card flying-card--placeholder" id="flyingCard3" aria-hidden="true"></div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=20260729y"></script>
 </body>
 </html>
