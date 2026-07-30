@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!ctx) return;
     let width = 0;
     let height = 0;
+    let ribbonWidth = 0;
     let dpr = 1;
     let staffFrameId = 0;
     let staffCanvasActive = true;
@@ -59,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         highlight,
       } = config;
 
-      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      const gradient = ctx.createLinearGradient(0, 0, ribbonWidth, 0);
       gradient.addColorStop(0, `rgba(255,255,255,${alpha * 0.12})`);
       gradient.addColorStop(0.24, `rgba(255,255,255,${alpha * 0.44})`);
       gradient.addColorStop(0.52, `rgba(${hue},${alpha * 0.78})`);
@@ -73,8 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const glow = staffIndex === 2 ? 0.22 : 0.08;
 
         ctx.beginPath();
-        for (let x = -80; x <= width + 80; x += 14) {
-          const nx = x / width;
+        for (let x = -80; x <= ribbonWidth + 80; x += 14) {
+          const nx = x / ribbonWidth;
           const drift = time * (0.00018 + group * 0.000018);
           const waveA = Math.sin(nx * Math.PI * frequency + phase + drift * 7) * amplitude;
           const waveB = Math.sin(nx * Math.PI * (frequency * 0.58) - phase + drift * 4) * amplitude * 0.42;
@@ -129,11 +130,18 @@ document.addEventListener('DOMContentLoaded', () => {
       staffFrameId = 0;
       const animationTime = time + initialAnimationOffset;
       const isMobile = width < 760;
+      const mobileCropWidth = options.mobileCropWidth ?? 1180;
+      ribbonWidth = isMobile && options.mobileCrop !== false
+        ? Math.max(mobileCropWidth, width * 2.8)
+        : width;
+      const cropX = Math.max(0, (ribbonWidth - width) / 2);
       ctx.clearRect(0, 0, width, height);
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = background;
       ctx.fillRect(0, 0, width, height);
       ctx.globalCompositeOperation = 'lighter';
+      ctx.save();
+      ctx.translate(-cropX, 0);
 
       drawStaffRibbon(animationTime, {
         centerY: height * (options.primaryCenterY ?? 0.42),
@@ -163,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         highlight: false,
       });
 
+      ctx.restore();
       ctx.globalCompositeOperation = 'source-over';
       requestStaffFrame();
     };
@@ -180,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initStaffCanvas(document.getElementById('staffCanvas'));
   initStaffCanvas(document.getElementById('footerStaffCanvas'), {
+    mobileCrop: false,
     initialAnimationOffset: 6200,
     primaryCenterY: 0.48,
     secondaryCenterY: 0.68,
@@ -695,6 +705,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.innerWidth <= 768) {
         reasonDarkContribution = 0;
         applyCombinedDarkState();
+        const mobileEntry = getReasonEntryProgress();
+        const shouldRevealMobileChips = mobileEntry > 0.42;
+        reasonSequence.forEach((el) => {
+          if (el.classList.contains('media-chip')) {
+            el.classList.toggle('is-revealed', shouldRevealMobileChips);
+          }
+        });
         return;
       }
 
@@ -1189,8 +1206,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.innerWidth <= 768) {
         workTransitionDarkContribution = 0;
         applyCombinedDarkState();
-        applyFogChars(fogCharsBase, 0);
-        applyFogChars(fogCharsWipe, 0);
+        [...fogCharsBase, ...fogCharsWipe].forEach((c) => {
+          c.el.style.opacity = '';
+          c.el.style.filter = '';
+          c.el.style.transform = '';
+        });
         return;
       }
 
@@ -1296,6 +1316,19 @@ document.addEventListener('DOMContentLoaded', () => {
     updateWorkTransition();
     window.addEventListener('scroll', onWorkTransitionScroll, { passive: true });
     window.addEventListener('resize', onWorkTransitionResize);
+  }
+
+  const mobileTransitionFogEls = Array.from(document.querySelectorAll('.work-transition, .skill-transition, .about-transition'));
+  if (mobileTransitionFogEls.length) {
+    const mobileTransitionFogObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-mobile-fog-visible');
+        }
+      });
+    }, { threshold: 0.35 });
+
+    mobileTransitionFogEls.forEach((el) => mobileTransitionFogObserver.observe(el));
   }
 
   // Skill-transition: 1:1 mirror of the work-transition block above (same
@@ -1407,10 +1440,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updateSkillTransition = () => {
       if (window.innerWidth <= 768) {
-        skillTransitionDarkContribution = 0;
+        const entry = getSkillTransitionEntryProgress();
+        const exit = getSkillTransitionExitProgress();
+        skillTransitionDarkContribution = Math.min(entry, exit);
         applyCombinedDarkState();
-        applySkillFogChars(skillFogCharsBase, 0);
-        applySkillFogChars(skillFogCharsWipe, 0);
+        [...skillFogCharsBase, ...skillFogCharsWipe].forEach((c) => {
+          c.el.style.opacity = '';
+          c.el.style.filter = '';
+          c.el.style.transform = '';
+        });
         return;
       }
 
@@ -1631,8 +1669,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.innerWidth <= 768) {
         aboutTransitionDarkContribution = 0;
         applyCombinedDarkState();
-        applyAboutFogChars(aboutFogCharsBase, 0);
-        applyAboutFogChars(aboutFogCharsWipe, 0);
+        [...aboutFogCharsBase, ...aboutFogCharsWipe].forEach((c) => {
+          c.el.style.opacity = '';
+          c.el.style.filter = '';
+          c.el.style.transform = '';
+        });
         return;
       }
 
@@ -2577,6 +2618,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (coverPanelEl) coverPanelEl.style.filter = 'none';
         scenes.forEach((scene) => {
           if (scene.panelEl) scene.panelEl.style.transform = 'none';
+          scene.fillChars.forEach((span) => {
+            span.style.color = '#ffffff';
+            span.style.opacity = '1';
+            span.style.filter = 'none';
+            span.style.transform = 'none';
+          });
         });
         // Mobile shows every scene as a plain static stack with no scroll
         // gating -- just start each video once, the first time this runs.
@@ -2662,6 +2709,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const startRGB = [0x45, 0x45, 0x45];
           const n = scene.fillChars.length;
           scene.fillChars.forEach((span, i) => {
+            span.style.removeProperty('opacity');
+            span.style.removeProperty('filter');
+            span.style.removeProperty('transform');
             const t = Math.min(1, Math.max(0, fillProgress * n - i));
             const r = Math.round(startRGB[0] + (255 - startRGB[0]) * t);
             const g = Math.round(startRGB[1] + (255 - startRGB[1]) * t);
@@ -2859,6 +2909,109 @@ document.addEventListener('DOMContentLoaded', () => {
       aiLabTryButtonEl.addEventListener('click', () => {
         aiLabBrowserEl.classList.add('is-unlocked');
         if (aiLabTryOverlayEl) aiLabTryOverlayEl.setAttribute('aria-hidden', 'true');
+      });
+    }
+  }
+
+  const aiLabEl = document.querySelector('.ai-lab');
+  if (aiLabEl && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const aiLabCursorEl = aiLabEl.querySelector('.ai-lab__cursor-card');
+    const aiLabCursorCopyEl = aiLabEl.querySelector('.ai-lab__cursor-copy');
+    const aiLabLinksEl = aiLabEl.querySelector('.ai-lab__links');
+    const aiLabAppUrl = aiLabCursorEl ? aiLabCursorEl.dataset.appUrl : '';
+    const aiLabCopyText = aiLabCursorCopyEl ? aiLabCursorCopyEl.dataset.text || '' : '';
+    const aiLabCopyChars = aiLabCursorCopyEl
+      ? aiLabCopyText.split('').map((char, index) => {
+        const span = document.createElement('span');
+        span.className = 'ai-lab__cursor-copy-char';
+        span.textContent = char === ' ' ? '\u00a0' : char;
+        span.style.setProperty('--trail-index', index);
+        aiLabCursorCopyEl.appendChild(span);
+        return span;
+      })
+      : [];
+    let aiLabCursorRaf = 0;
+    let aiLabCursorX = -999;
+    let aiLabCursorY = -999;
+    let aiLabIsOverBrowser = false;
+    let aiLabPressTimer = null;
+
+    const isNearAiLabLinks = (event) => {
+      if (!aiLabLinksEl) return false;
+      const rect = aiLabLinksEl.getBoundingClientRect();
+      const gap = 28;
+      return event.clientX >= rect.left - gap
+        && event.clientX <= rect.right + gap
+        && event.clientY >= rect.top - gap
+        && event.clientY <= rect.bottom + gap;
+    };
+
+    const updateAiLabCursorVisibility = (event) => {
+      aiLabEl.classList.toggle('is-cursor-hidden', aiLabIsOverBrowser || isNearAiLabLinks(event));
+    };
+
+    const setAiLabCursor = (event) => {
+      aiLabCursorX = event.clientX;
+      aiLabCursorY = event.clientY;
+      updateAiLabCursorVisibility(event);
+      if (!aiLabCursorEl || aiLabCursorRaf) return;
+
+      aiLabCursorRaf = window.requestAnimationFrame(() => {
+        aiLabCursorEl.style.transform = `translate3d(${aiLabCursorX}px, ${aiLabCursorY}px, 0) translate(-50%, -50%) rotate(-5deg)`;
+        if (aiLabCursorCopyEl) {
+          aiLabCursorCopyEl.style.transform = `translate3d(${aiLabCursorX + 26}px, ${aiLabCursorY + 18}px, 0)`;
+        }
+        aiLabCursorRaf = 0;
+      });
+    };
+
+    aiLabEl.addEventListener('mouseenter', (event) => {
+      setAiLabCursor(event);
+      aiLabEl.classList.add('is-cursor-active');
+    });
+
+    aiLabEl.addEventListener('mousemove', (event) => {
+      setAiLabCursor(event);
+    });
+
+    aiLabEl.addEventListener('mouseleave', () => {
+      aiLabEl.classList.remove('is-cursor-active', 'is-cursor-hidden');
+      if (aiLabCursorRaf) {
+        window.cancelAnimationFrame(aiLabCursorRaf);
+        aiLabCursorRaf = 0;
+      }
+    });
+
+    aiLabEl.addEventListener('pointerdown', (event) => {
+      if (event.target.closest('a, button, iframe, .ai-lab__browser')) return;
+      if (isNearAiLabLinks(event)) return;
+      if (aiLabCursorEl) aiLabCursorEl.classList.add('is-pressed');
+    });
+
+    aiLabEl.addEventListener('click', (event) => {
+      if (event.target.closest('a, button, iframe, .ai-lab__browser')) return;
+      if (isNearAiLabLinks(event)) return;
+      if (aiLabAppUrl) {
+        window.open(aiLabAppUrl, '_blank', 'noopener');
+        if (aiLabCursorEl) {
+          aiLabCursorEl.classList.add('is-pressed');
+          window.clearTimeout(aiLabPressTimer);
+          aiLabPressTimer = window.setTimeout(() => {
+            aiLabCursorEl.classList.remove('is-pressed');
+          }, 180);
+        }
+      }
+    });
+
+    if (aiLabBrowserEl) {
+      aiLabBrowserEl.addEventListener('mouseenter', () => {
+        aiLabIsOverBrowser = true;
+        aiLabEl.classList.add('is-cursor-hidden');
+      });
+
+      aiLabBrowserEl.addEventListener('mouseleave', () => {
+        aiLabIsOverBrowser = false;
+        aiLabEl.classList.remove('is-cursor-hidden');
       });
     }
   }
@@ -3158,6 +3311,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const visibilityRect = skillCarouselStageEl.getBoundingClientRect();
       const nearViewport = visibilityRect.bottom > -viewportBuffer
         && visibilityRect.top < window.innerHeight + viewportBuffer;
+      if (window.innerWidth <= 768) {
+        const mobileReveal = visibilityRect.top < window.innerHeight * 0.62
+          && visibilityRect.bottom > window.innerHeight * 0.28;
+        if (mobileReveal && !hasEntered) {
+          hasEntered = true;
+          entranceStartTime = performance.now();
+        }
+        isEngaged = false;
+        isScrollLocked = false;
+        wasNearViewport = mobileReveal;
+        return;
+      }
       if (wasNearViewport && !nearViewport) {
         resetCarouselState(visibilityRect.bottom <= -viewportBuffer ? maxScrollPosition : 0);
       }
@@ -3258,6 +3423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function tryProactiveEntry(rawDelta) {
+      if (window.innerWidth <= 768) return false;
       if (isNavJumping) return false;
       const stageRect = skillCarouselStageEl.getBoundingClientRect();
       if (stageRect.top > 0 && rawDelta > 0 && rawDelta >= stageRect.top) {

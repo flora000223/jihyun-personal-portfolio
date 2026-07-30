@@ -17,7 +17,7 @@
 <meta name="twitter:title" content="JIHYUN Portfolio">
 <meta name="twitter:description" content="JIHYUN personal portfolio">
 <meta name="twitter:image" content="https://jihyun-personal-portfolio.vercel.app/images/og-hero.png?v=20260729-hero">
-<link rel="stylesheet" href="style.css?v=20260729y">
+<link rel="stylesheet" href="style.css?v=20260730-mobile-grid-lines">
 </head>
 <body>
 
@@ -74,6 +74,7 @@
             <p class="line">
               <span class="word">FROM</span>
               <span class="word"><em>music</em></span>
+              <span class="reason-quote__mobile-break" aria-hidden="true"></span>
               <span class="media-chip media-chip--photo" id="chipMusic"><img src="images/piano.png" alt="피아노 연주 사진"></span>
               <span class="word">TO</span>
             </p>
@@ -92,6 +93,7 @@
             <p class="line">
               <span class="word"><em>experiences</em></span>
               <span class="media-chip media-chip--placeholder" id="chipExperiences" aria-hidden="true"></span>
+              <span class="reason-quote__mobile-break" aria-hidden="true"></span>
               <span class="word">FOR</span>
               <span class="word"><em>people</em>.</span>
             </p>
@@ -954,11 +956,11 @@
           <div class="ai-lab__title-row">
             <p class="ai-lab__title"><span class="ai-lab__title-en">AI LAB</span><span class="ai-lab__title-em"> font pairing poster studio</span></p>
             <div class="ai-lab__links">
-              <a class="ai-lab__link" href="#aiLab">
+              <a class="ai-lab__link ai-lab__link--process" href="#aiLab">
                 <span>PROCESS</span>
                 <img class="ai-lab__link-icon" src="images/icon-arrow-right.svg" alt="">
               </a>
-              <a class="ai-lab__link" href="https://ai-font-poster-studio.vercel.app/" target="_blank" rel="noopener">
+              <a class="ai-lab__link ai-lab__link--open" href="https://ai-font-poster-studio.vercel.app/" target="_blank" rel="noopener">
                 <span>OPEN APP</span>
                 <img class="ai-lab__link-icon" src="images/icon-arrow-right.svg" alt="">
               </a>
@@ -970,23 +972,42 @@
           </div>
         </div>
 
-        <div class="ai-lab__browser" aria-label="AI Font Poster Studio 체험 화면">
-          <div class="ai-lab__screen">
-            <iframe
-              class="ai-lab__iframe"
-              src="https://ai-font-poster-studio.vercel.app/"
-              title="AI Font Poster Studio"
-              loading="lazy"
-              allow="clipboard-write; fullscreen"
-              referrerpolicy="no-referrer-when-downgrade"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
-            ></iframe>
-            <div class="ai-lab__try-overlay" aria-hidden="false">
-              <button class="ai-lab__try-button" type="button">체험해보기</button>
+        <div class="ai-lab__mockups" aria-label="AI Font Poster Studio 디바이스 목업">
+          <div class="ai-lab__device ai-lab__browser ai-lab__device--macbook" aria-label="AI Font Poster Studio 체험 화면">
+            <div class="ai-lab__screen">
+              <iframe
+                class="ai-lab__iframe"
+                src="https://ai-font-poster-studio.vercel.app/"
+                title="AI Font Poster Studio"
+                loading="lazy"
+                allow="clipboard-write; fullscreen"
+                referrerpolicy="no-referrer-when-downgrade"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+              ></iframe>
+              <div class="ai-lab__try-overlay" aria-hidden="false">
+                <button class="ai-lab__try-button" type="button">체험해보기</button>
+              </div>
+            </div>
+            <img class="ai-lab__bezel" src="images/work-light-macbook.png" alt="">
+          </div>
+
+          <div class="ai-lab__device ai-lab__device--ipad" aria-label="AI Font Poster Studio iPad 화면">
+            <img class="ai-lab__ipad-bezel" src="images/ai-lab-ipad-device.png" alt="">
+            <img class="ai-lab__ipad-device" src="images/ai-ipad.png" alt="">
+          </div>
+
+          <div class="ai-lab__device ai-lab__device--mobile" aria-label="AI Font Poster Studio 모바일 화면">
+            <img class="ai-lab__phone-screen" src="images/ai-lab-mobile.png" alt="">
+            <img class="ai-lab__phone-bezel" src="images/ai-lab-phone-bezel.png" alt="">
+            <div class="ai-lab__phone-island" aria-hidden="true">
+              <img class="ai-lab__phone-camera" src="images/ai-lab-phone-camera.png" alt="">
             </div>
           </div>
-          <img class="ai-lab__bezel" src="images/work-light-macbook.png" alt="">
         </div>
+        <div class="ai-lab__cursor-card" data-app-url="https://ai-font-poster-studio.vercel.app/" aria-hidden="true">
+          <img class="ai-lab__cursor-image" src="images/ai-lab-cursor.png" alt="">
+        </div>
+        <div class="ai-lab__cursor-copy" data-text="click to open app" aria-hidden="true"></div>
       </div>
     </section>
 
@@ -1381,6 +1402,6 @@
   <div class="flying-card flying-card--placeholder" id="flyingCard2" aria-hidden="true"></div>
   <div class="flying-card flying-card--placeholder" id="flyingCard3" aria-hidden="true"></div>
 
-  <script src="script.js?v=20260729y"></script>
+  <script src="script.js?v=20260730-mobile-grid-lines"></script>
 </body>
 </html>
