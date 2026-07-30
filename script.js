@@ -18,16 +18,20 @@ document.addEventListener('DOMContentLoaded', () => {
   syncUFixed();
   window.addEventListener('resize', syncUFixed);
 
-  const staffCanvas = document.getElementById('staffCanvas');
-  if (staffCanvas) {
+  const initStaffCanvas = (staffCanvas, options = {}) => {
+    if (!staffCanvas) return;
     const ctx = staffCanvas.getContext('2d');
+    if (!ctx) return;
     let width = 0;
     let height = 0;
     let dpr = 1;
     let staffFrameId = 0;
     let staffCanvasActive = true;
-    const initialAnimationOffset = 2000;
+    const initialAnimationOffset = options.initialAnimationOffset ?? 2000;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const background = options.background ?? '#020204';
+    const primaryAlpha = options.primaryAlpha ?? 0.68;
+    const secondaryAlpha = options.secondaryAlpha ?? 0.3;
 
     const resizeStaffCanvas = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 1.35);
@@ -127,33 +131,33 @@ document.addEventListener('DOMContentLoaded', () => {
       const isMobile = width < 760;
       ctx.clearRect(0, 0, width, height);
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = '#020204';
+      ctx.fillStyle = background;
       ctx.fillRect(0, 0, width, height);
       ctx.globalCompositeOperation = 'lighter';
 
       drawStaffRibbon(animationTime, {
-        centerY: height * 0.42,
+        centerY: height * (options.primaryCenterY ?? 0.42),
         amplitude: height * (isMobile ? 0.075 : 0.092),
         frequency: 3.12,
         phase: 1.4,
         thickness: 0.9,
         count: isMobile ? 18 : 25,
         spacing: Math.max(7, height * 0.011),
-        alpha: 0.68,
+        alpha: primaryAlpha,
         hue: '238,240,246',
         lift: 2.1,
         highlight: true,
       });
 
       drawStaffRibbon(animationTime, {
-        centerY: height * 0.63,
+        centerY: height * (options.secondaryCenterY ?? 0.63),
         amplitude: height * (isMobile ? 0.052 : 0.064),
         frequency: 2.5,
         phase: -0.95,
         thickness: 0.72,
         count: isMobile ? 14 : 20,
         spacing: Math.max(6, height * 0.009),
-        alpha: 0.3,
+        alpha: secondaryAlpha,
         hue: '205,211,224',
         lift: 1.7,
         highlight: false,
@@ -172,7 +176,16 @@ document.addEventListener('DOMContentLoaded', () => {
     staffObserver.observe(staffCanvas);
     requestStaffFrame();
     if (reduceMotion) renderStaffCanvas(initialAnimationOffset);
-  }
+  };
+
+  initStaffCanvas(document.getElementById('staffCanvas'));
+  initStaffCanvas(document.getElementById('footerStaffCanvas'), {
+    initialAnimationOffset: 6200,
+    primaryCenterY: 0.48,
+    secondaryCenterY: 0.68,
+    primaryAlpha: 0.42,
+    secondaryAlpha: 0.2,
+  });
 
   const hamburgerBtn = document.getElementById('hamburgerBtn');
   const mobileNav = document.getElementById('mobileNav');
@@ -2726,7 +2739,7 @@ document.addEventListener('DOMContentLoaded', () => {
     slideStarts: [50 / 1240, 320 / 1240, 590 / 1240, 860 / 1240],
     slideEnds: [140 / 1240, 410 / 1240, 680 / 1240, 950 / 1240],
     fillEnds: [280 / 1240, 550 / 1240, 820 / 1240, 1090 / 1240],
-    glowPeaks: [160, -190, -265, 195], // RETENTION, COMMUNITY, SHARE RUN, AI PARTNER
+    glowPeaks: [-280, 190, -265, 195], // RETENTION, COMMUNITY, SHARE RUN, AI PARTNER
     glowSpeed: 0.9,
     setDarkContribution: (v) => {
       workDetail2DarkContribution = v;
@@ -2835,6 +2848,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
 
     aiLabObserver.observe(aiLabHeadEl);
+  }
+
+  const aiLabBrowserEl = document.querySelector('.ai-lab__browser');
+  if (aiLabBrowserEl) {
+    const aiLabTryOverlayEl = aiLabBrowserEl.querySelector('.ai-lab__try-overlay');
+    const aiLabTryButtonEl = aiLabBrowserEl.querySelector('.ai-lab__try-button');
+
+    if (aiLabTryButtonEl) {
+      aiLabTryButtonEl.addEventListener('click', () => {
+        aiLabBrowserEl.classList.add('is-unlocked');
+        if (aiLabTryOverlayEl) aiLabTryOverlayEl.setAttribute('aria-hidden', 'true');
+      });
+    }
   }
 
   // Skill content -- fog-in reveal for the SKILL title + Korean subtitle,
@@ -2955,6 +2981,20 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', updateQuickQaDarkState, { passive: true });
     window.addEventListener('resize', updateQuickQaDarkState);
     window.addEventListener('load', updateQuickQaDarkState);
+  }
+
+  const footerTopButton = document.querySelector('.site-footer__top');
+  if (footerTopButton) {
+    footerTopButton.addEventListener('click', () => {
+      isNavJumping = true;
+      navJumpToken += 1;
+      header.classList.remove('header--hidden');
+      releaseCardsRevealLock();
+      releaseSkillCarouselLock();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.history.pushState(null, '', '#intro');
+      waitForJumpToSettle(0);
+    });
   }
 
   // Skill content carousel -- the pin sticks while wheel/key input drives the
