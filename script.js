@@ -1,4 +1,26 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Mobile browsers (iOS Safari especially) fire several 'resize' events back
+  // to back for a single user action -- URL bar show/hide while scrolling,
+  // on-screen keyboard open/close, orientation change settling. Most resize
+  // handlers below read layout (getBoundingClientRect etc.) and write styles
+  // immediately/synchronously, so an unthrottled burst means that same
+  // expensive read/write work runs several times in a row within one frame.
+  // Wrapping a handler in rafCoalesce collapses any such burst down to a
+  // single call on the next animation frame -- same end result, once the
+  // burst settles, just without the redundant work in between. This does not
+  // touch any handler's own existing trailing setTimeout "re-settle" logic.
+  const rafCoalesce = (fn) => {
+    let scheduled = false;
+    return (...args) => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        fn(...args);
+      });
+    };
+  };
+
   // --u-fixed used to be a pure-CSS min(1vw, 19.2px), while --u (used by
   // every container-type: inline-size section, including the work-transition
   // wipe's own local grid copy) is min(1cqw, 19.2px) -- 1cqw there resolves
@@ -16,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.style.setProperty('--u-fixed', `${u}px`);
   };
   syncUFixed();
-  window.addEventListener('resize', syncUFixed);
+  window.addEventListener('resize', rafCoalesce(syncUFixed));
 
   const initStaffCanvas = (staffCanvas, options = {}) => {
     if (!staffCanvas) return;
@@ -177,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     resizeStaffCanvas();
-    window.addEventListener('resize', resizeStaffCanvas);
+    window.addEventListener('resize', rafCoalesce(resizeStaffCanvas));
     const staffObserver = new IntersectionObserver((entries) => {
       staffCanvasActive = entries.some((entry) => entry.isIntersecting);
       if (staffCanvasActive) requestStaffFrame();
@@ -189,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initStaffCanvas(document.getElementById('staffCanvas'));
   initStaffCanvas(document.getElementById('footerStaffCanvas'), {
-    mobileCrop: false,
     initialAnimationOffset: 6200,
     primaryCenterY: 0.48,
     secondaryCenterY: 0.68,
@@ -229,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // A mid-viewport IntersectionObserver band would flag #work active as soon
-  // as its top crosses the vertical center of the screen — but #intro's
+  // as its top crosses the vertical center of the screen ??but #intro's
   // sibling .intro-reasons block (the long scroll-dwell section right after
   // the hero) is still tall enough to still be filling most of the screen
   // at that point. So instead: the active section is whichever one's top
@@ -253,16 +274,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sectionEls.length) {
     updateActiveNav();
     window.addEventListener('scroll', updateActiveNav, { passive: true });
-    window.addEventListener('resize', updateActiveNav);
+    window.addEventListener('resize', rafCoalesce(updateActiveNav));
   }
 
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) {
+    if (window.innerWidth > 1024) {
       closeMobileNav();
     }
   });
 
-  /* Header visibility: stays visible while scrolling down, hides while scrolling up —
+  /* Header visibility: stays visible while scrolling down, hides while scrolling up ??
      except over the hero section, where it always stays visible. */
   const header = document.querySelector('.header');
   const hero = document.getElementById('intro');
@@ -448,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // #flyingTitle lives outside any container-query ancestor (it must,
       // so that position:fixed stays truly viewport-fixed instead of being
       // contained by .intro-reasons' container-type box), so var(--u)'s
-      // cqw component can't resolve there — copy the resolved px value
+      // cqw component can't resolve there ??copy the resolved px value
       // from a container-query descendant instead.
       flyingTitleEl.style.setProperty('--u', getComputedStyle(dockedTitleEl).getPropertyValue('--u'));
 
@@ -483,10 +504,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const update = () => {
       const progress = getProgress();
 
-      if (progress >= 1 && !docked) {
+      // Mobile drops the sticky pin entirely (see .intro-reasons height:auto
+      // in CSS), so there's no dwell to scrub the reveal against -- it just
+      // needs to feel like it fires promptly as the section scrolls in,
+      // rather than waiting for the section's top edge to fully reach the
+      // viewport top like the desktop hand-off does.
+      const dockThreshold = window.innerWidth <= 1024 ? 0.55 : 1;
+      const undockThreshold = window.innerWidth <= 1024 ? 0.45 : 0.9;
+
+      if (progress >= dockThreshold && !docked) {
         docked = true;
         introReasons.classList.add('is-docked');
-      } else if (progress < 0.9 && docked) {
+      } else if (progress < undockThreshold && docked) {
         docked = false;
         introReasons.classList.remove('is-docked');
       }
@@ -604,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', rafCoalesce(onResize));
     window.addEventListener('load', () => {
       measure();
       update();
@@ -651,6 +680,67 @@ document.addEventListener('DOMContentLoaded', () => {
     if (headerEl) headerEl.classList.toggle('header--inverted', combined > HEADER_DARK_THRESHOLD);
     return combined;
   };
+
+  const readColor = (value) => {
+    const match = value.match(/rgba?\(([^)]+)\)/);
+    if (!match) return null;
+    const parts = match[1].split(',').map((part) => Number.parseFloat(part.trim()));
+    return {
+      r: parts[0] || 0,
+      g: parts[1] || 0,
+      b: parts[2] || 0,
+      a: parts.length > 3 ? parts[3] : 1,
+    };
+  };
+
+  const updateMobileHeaderSurface = () => {
+    if (!headerEl || window.innerWidth > 1024) {
+      if (headerEl) headerEl.classList.remove('header--surface-dark');
+      return;
+    }
+
+    if (darkOverlayEl && Number.parseFloat(getComputedStyle(darkOverlayEl).opacity || '0') > HEADER_DARK_THRESHOLD) {
+      headerEl.classList.add('header--surface-dark');
+      return;
+    }
+
+    const x = Math.min(window.innerWidth - 1, Math.max(1, window.innerWidth / 2));
+    const y = Math.min(window.innerHeight - 1, 34);
+    const stack = document.elementsFromPoint(x, y);
+    let isDarkSurface = false;
+
+    for (const startEl of stack) {
+      if (!startEl || headerEl.contains(startEl) || startEl.classList.contains('fixed-grid-lines')) continue;
+      let el = startEl;
+      while (el && el !== document.documentElement) {
+        const color = readColor(getComputedStyle(el).backgroundColor);
+        if (color && color.a > 0.5) {
+          const brightness = (color.r * 299 + color.g * 587 + color.b * 114) / 1000;
+          isDarkSurface = brightness < 90;
+          break;
+        }
+        el = el.parentElement;
+      }
+      break;
+    }
+
+    headerEl.classList.toggle('header--surface-dark', isDarkSurface);
+  };
+
+  let mobileHeaderSurfaceTicking = false;
+  const requestMobileHeaderSurfaceUpdate = () => {
+    if (mobileHeaderSurfaceTicking) return;
+    mobileHeaderSurfaceTicking = true;
+    requestAnimationFrame(() => {
+      mobileHeaderSurfaceTicking = false;
+      updateMobileHeaderSurface();
+    });
+  };
+
+  updateMobileHeaderSurface();
+  window.addEventListener('scroll', requestMobileHeaderSurfaceUpdate, { passive: true });
+  window.addEventListener('resize', requestMobileHeaderSurfaceUpdate);
+  window.addEventListener('load', updateMobileHeaderSurface);
 
   /* Reason-quote: personal statement that scrolls in right after
      intro-reasons. The *whole viewport* (not just this section's own box)
@@ -702,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // inversion and reveal-threshold math entirely, and clear any
       // inline styles left over from a wider viewport instead of letting
       // them fight the CSS override.
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 1024) {
         reasonDarkContribution = 0;
         applyCombinedDarkState();
         const mobileEntry = getReasonEntryProgress();
@@ -749,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateReasonQuote();
     window.addEventListener('scroll', onReasonScroll, { passive: true });
-    window.addEventListener('resize', updateReasonQuote);
+    window.addEventListener('resize', rafCoalesce(updateReasonQuote));
     window.addEventListener('load', updateReasonQuote);
   }
 
@@ -914,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateCardsReveal = () => {
       // Mobile fallback (see CSS) shows the three cards already stacked
       // at rest -- skip the flight/dark math entirely.
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 1024) {
         cardsDarkContribution = 0;
         applyCombinedDarkState();
         cardPairs.forEach((pair) => {
@@ -1027,11 +1117,25 @@ document.addEventListener('DOMContentLoaded', () => {
     measureCardFlight();
     updateCardsReveal();
     window.addEventListener('scroll', onCardsScroll, { passive: true });
-    window.addEventListener('resize', onCardsResize);
+    window.addEventListener('resize', rafCoalesce(onCardsResize));
     window.addEventListener('load', () => {
       measureCardFlight();
       updateCardsReveal();
     });
+
+    // Mobile card flip: updateCardsReveal's own mobile branch above skips
+    // the scroll-scrubbed is-flipped toggle entirely (no pinned dwell to
+    // scrub against under 768px), so drive a quick one-shot flip off
+    // viewport entry instead -- same replay-on-every-reentry pattern as
+    // the fog-in observers further down this file.
+    const cardsMobileFlipObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (window.innerWidth > 1024) return;
+        cardsRevealEl.classList.toggle('is-mobile-flipped', entry.isIntersecting);
+      });
+    }, { threshold: 0.35, rootMargin: '0px 0px -10% 0px' });
+
+    cardsMobileFlipObserver.observe(cardsRevealEl);
   }
 
   /* Work transition: "WORK selected projects" title screen between
@@ -1048,7 +1152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const wipeEl = document.getElementById('workTransitionWipe');
 
     // The wipe's reveal window sits centered on the dwell's own middle
-    // third, not near the end -- "가로로 흐르다가 중간에 반전" means the
+    // third, not near the end -- "媛濡쒕줈 ?먮Ⅴ?ㅺ? 以묎컙??諛섏쟾" means the
     // title should already be well underway scrolling by the time the
     // invert starts, and still have room to keep scrolling after it ends.
     const WIPE_START = 0.4;
@@ -1203,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Mobile fallback (see CSS): static stacked end-state, no pin/scrub.
       // Also clears any fog-char styles left over from a desktop-width
       // scroll before the viewport was resized down.
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 1024) {
         workTransitionDarkContribution = 0;
         applyCombinedDarkState();
         [...fogCharsBase, ...fogCharsWipe].forEach((c) => {
@@ -1315,18 +1419,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateWorkTransition();
     window.addEventListener('scroll', onWorkTransitionScroll, { passive: true });
-    window.addEventListener('resize', onWorkTransitionResize);
+    window.addEventListener('resize', rafCoalesce(onWorkTransitionResize));
   }
 
+  const isMobileFogViewport = () => window.innerWidth <= 1024;
   const mobileTransitionFogEls = Array.from(document.querySelectorAll('.work-transition, .skill-transition, .about-transition'));
   if (mobileTransitionFogEls.length) {
     const mobileTransitionFogObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-mobile-fog-visible');
-        }
+        if (!isMobileFogViewport()) return;
+        entry.target.classList.toggle('is-mobile-fog-visible', entry.isIntersecting);
       });
-    }, { threshold: 0.35 });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
 
     mobileTransitionFogEls.forEach((el) => mobileTransitionFogObserver.observe(el));
   }
@@ -1429,6 +1533,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const getSkillTransitionExitProgress = () => {
       const rect = skillTransitionEl.getBoundingClientRect();
       const vh = window.innerHeight;
+      // Mobile: same fix as skill-content's exit progress below -- a
+      // vh-wide margin means this stays nonzero well past skill-transition's
+      // own footprint (it's much shorter than a full viewport, ~52svh), so
+      // it was still feeding the shared overlay dark all the way through
+      // skill-content and bleeding into about-transition/gallery below.
+      if (window.innerWidth <= 1024) {
+        return rect.bottom > 80 ? 1 : 0;
+      }
       return Math.min(1, Math.max(0, rect.bottom / vh));
     };
 
@@ -1439,7 +1551,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateSkillTransition = () => {
-      if (window.innerWidth <= 768) {
+      // Mobile fallback (see CSS): static stacked end-state, no pin/scrub --
+      // same "reveal as one whole block" pattern as work-transition/
+      // about-transition (.is-mobile-fog-visible, toggled once by
+      // mobileTransitionFogObserver above), not a continuous per-char
+      // scroll-driven dissolve. Also clears any fog-char styles left over
+      // from a desktop-width scroll before the viewport was resized down.
+      if (window.innerWidth <= 1024) {
         const entry = getSkillTransitionEntryProgress();
         const exit = getSkillTransitionExitProgress();
         skillTransitionDarkContribution = Math.min(entry, exit);
@@ -1509,7 +1627,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateSkillTransition();
     window.addEventListener('scroll', onSkillTransitionScroll, { passive: true });
-    window.addEventListener('resize', onSkillTransitionResize);
+    window.addEventListener('resize', rafCoalesce(onSkillTransitionResize));
   }
 
   /* Skill-content: solid black section right after the skill-transition
@@ -1533,6 +1651,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const getSkillContentExitProgress = () => {
       const rect = skillContentEl.getBoundingClientRect();
       const vh = window.innerHeight;
+      // Mobile: skill-content already paints its own solid black background,
+      // so this contribution's only real job here is keeping the header
+      // inverted while the header still physically overlaps skill-content's
+      // remaining black sliver -- it should NOT also fade the shared
+      // full-viewport overlay across the rest of the (already-visible,
+      // meant to stay plain white) about-transition/gallery content below.
+      // A step tied to the header's own height removes that gradual wash
+      // entirely instead of merely shortening it.
+      if (window.innerWidth <= 1024) {
+        return rect.bottom > 80 ? 1 : 0;
+      }
       return Math.min(1, Math.max(0, rect.bottom / vh));
     };
 
@@ -1556,7 +1685,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateSkillContentDark();
     window.addEventListener('scroll', onSkillContentScroll, { passive: true });
-    window.addEventListener('resize', updateSkillContentDark);
+    window.addEventListener('resize', rafCoalesce(updateSkillContentDark));
   }
 
   /* About transition: "ABOUT more about me" title screen right after
@@ -1666,7 +1795,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateAboutTransition = () => {
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 1024) {
         aboutTransitionDarkContribution = 0;
         applyCombinedDarkState();
         [...aboutFogCharsBase, ...aboutFogCharsWipe].forEach((c) => {
@@ -1734,7 +1863,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateAboutTransition();
     window.addEventListener('scroll', onAboutTransitionScroll, { passive: true });
-    window.addEventListener('resize', onAboutTransitionResize);
+    window.addEventListener('resize', rafCoalesce(onAboutTransitionResize));
   }
 
   /* Gallery interaction ("WHAT shapes ME"): ported from the standalone
@@ -1788,7 +1917,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const subTextChangePoints = [0.78, 0.83, 0.88, 0.92, 0.98];
     const GALLERY_LABEL_RESISTANCE_START = subTextChangePoints[0];
     const GALLERY_LABEL_RESISTANCE_END = 1;
-    const GALLERY_LABEL_SCROLL_SCALE = 0.42;
+    const GALLERY_LABEL_SCROLL_SCALE = 0.72;
     const GALLERY_LABEL_RESISTANCE_RAMP = 0.012;
     const GALLERY_LABEL_WHEEL_HOLD_MS = 180;
     const GALLERY_SOFT_STOP_START = 1;
@@ -1823,7 +1952,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const earlyPhaseSpeedup = 1.25;
     const earlyScrollFraction = (zoomPhaseStart / earlyPhaseSpeedup)
       / (zoomPhaseStart / earlyPhaseSpeedup + (1 - zoomPhaseStart));
-    const cardImageSources = imageOrder.map((n) => `images/card-${String(n).padStart(2, '0')}.jpg`);
+    const cardImageSources = imageOrder.map((n) => `images/card-${String(n).padStart(2, '0')}.webp`);
 
     const scatter = [
       [-0.438, 0.059], [-0.401, -0.393], [-0.362, -0.165], [-0.325, -0.275],
@@ -2296,12 +2425,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const mobile = width <= 520;
         const tablet = width <= 900;
-        const cardW = mobile ? 30 : tablet ? width * 0.031 : Math.min(59, Math.max(38, width * (59 / 1920)));
+        const cardW = width <= 768 ? 30 : tablet ? width * 0.031 : Math.min(59, Math.max(38, width * (59 / 1920)));
         const cardH = cardW * (77 / 59);
-        const cardGap = mobile ? 6 : width * (14 / 1920);
+        const cardGap = width <= 768 ? 6 : width * (14 / 1920);
         const centerX = width * 0.5;
         const centerY = height * 0.5;
-        const arcSceneLift = height * (mobile ? 0.1 : tablet ? 0.115 : 0.13);
+        const arcSceneLift = height * (mobile ? 0.05 : tablet ? 0.115 : 0.13);
         const baseRadius = mobile
           ? Math.min(width, height) * 0.32
           : tablet
@@ -2335,6 +2464,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
           let x = centerX + scatter[index][0] * width;
           let y = centerY + scatter[index][1] * height;
+          // scatter[10]/[11] sit only 0.037 of width apart (same y) -- on
+          // desktop/tablet cardW scales down with width so that's still a
+          // clear gap, but mobile's cardW is a flat 30px that doesn't shrink
+          // with the viewport, so on any mobile width under ~810px that gap
+          // is narrower than the two cards' combined half-widths and they
+          // visibly overlap in the scatter phase. Nudge just this one pair
+          // further apart on mobile rather than touching the shared array
+          // (which desktop's line/ring math also reads).
+          if (width <= 768 && (index === 10 || index === 11)) {
+            x += (index === 10 ? -1 : 1) * width * 0.045;
+          }
           let z = 0;
           let rotation = 0;
           let flipX = 0;
@@ -2383,7 +2523,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const zoomScale = lerp(1, mobile ? 2.4 : 3.05, zoomIn);
           const zoomRotation = orbitProgress * targetOrbitRotation;
           const zoomAngle = ringAngle + zoomRotation;
-          const zoomCenterY = centerY + finalRingRadius * zoomIn * (mobile ? 1.9 : 3.15) - arcSceneLift * zoomIn;
+          const zoomCenterY = centerY + finalRingRadius * zoomIn * (mobile ? 2.1 : 3.15) - arcSceneLift * zoomIn;
           const zoomX = centerX + Math.cos(zoomAngle) * finalRingRadius * zoomScale;
           const zoomY = zoomCenterY + Math.sin(zoomAngle) * finalRingRadius * zoomScale;
           const zoomCardRotation = normalizeDegrees((zoomAngle * 180) / Math.PI + 90);
@@ -2482,6 +2622,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fillEnds, // ...where each scene's desc-en fill finishes
       glowPeaks = null, // optional: see buildGlowPath below -- omit entirely for a project with no glow curve in its markup
       glowSpeed = 1, // ease-out exponent for glowProgress -- see the comment where it's used
+      sceneBackgrounds = ['#000000'], // one color per scene panel; blended while sliding between scenes
       setDarkContribution, // callback(value) -- writes this project's own *DarkContribution global and calls applyCombinedDarkState
     } = config;
 
@@ -2583,6 +2724,28 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     });
 
+    // Mobile is a plain static stack (see CSS) with no scroll-driven
+    // gating, so instead of starting every scene's video at once on load
+    // (which was saturating mobile bandwidth with several 20-40MB clips
+    // simultaneously -- the actual cause of some clips "never" playing),
+    // each scene's video only starts once that scene's own panel actually
+    // scrolls near the viewport.
+    if ('IntersectionObserver' in window) {
+      const mobileVideoObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting || window.innerWidth > 1024) return;
+          const scene = scenes.find((s) => s.panelEl === entry.target);
+          if (!scene || scene.videoStarted || !scene.videos.length) return;
+          scene.videoStarted = true;
+          scene.videos.forEach((v) => v.play().catch(() => {}));
+          mobileVideoObserver.unobserve(entry.target);
+        });
+      }, { rootMargin: '400px 0px', threshold: 0 });
+      scenes.forEach((scene) => {
+        if (scene.panelEl && scene.videos.length) mobileVideoObserver.observe(scene.panelEl);
+      });
+    }
+
     const getEntryProgress = () => {
       const rect = rootEl.getBoundingClientRect();
       const vh = window.innerHeight;
@@ -2602,22 +2765,61 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const stage = (start, end, p) => Math.min(1, Math.max(0, (p - start) / (end - start)));
+    const sceneBgColors = sceneBackgrounds
+      .map((hex) => {
+        const clean = String(hex).replace('#', '').trim();
+        if (clean.length !== 6) return null;
+        return [
+          parseInt(clean.slice(0, 2), 16),
+          parseInt(clean.slice(2, 4), 16),
+          parseInt(clean.slice(4, 6), 16),
+        ];
+      })
+      .filter(Boolean);
+    const sceneBgAt = (slideAmount) => {
+      if (!sceneBgColors.length) return '#000000';
+      const sceneProgress = Math.min(sceneBgColors.length - 1, Math.max(0, slideAmount - 1));
+      const fromIndex = Math.floor(sceneProgress);
+      const toIndex = Math.min(sceneBgColors.length - 1, fromIndex + 1);
+      const rawT = sceneProgress - fromIndex;
+      const t = rawT * rawT * (3 - 2 * rawT);
+      const from = sceneBgColors[fromIndex];
+      const to = sceneBgColors[toIndex];
+      const mixed = from.map((channel, i) => Math.round(channel + (to[i] - channel) * t));
+      return `rgb(${mixed[0]}, ${mixed[1]}, ${mixed[2]})`;
+    };
 
     const update = () => {
       // Mobile fallback (see CSS) drops the pin/slide for a plain static
       // stack already showing the filled end state -- skip the
       // dark-overlay/transform/fill math entirely, same pattern as
       // reason-quote/cards-reveal's own mobile guards.
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 1024) {
         setDarkContribution(0);
         if (trackEl) {
           trackEl.style.transform = 'none';
           trackEl.style.removeProperty('--detail-overlay-x');
+          trackEl.style.removeProperty('--detail-scene-bg');
         }
         if (glowCurveEl) glowCurveEl.style.transform = 'none';
         if (coverPanelEl) coverPanelEl.style.filter = 'none';
-        scenes.forEach((scene) => {
+        scenes.forEach((scene, i) => {
           if (scene.panelEl) scene.panelEl.style.transform = 'none';
+          if (scene.panelEl) scene.panelEl.style.removeProperty('--scene-divider-opacity');
+          // Desktop reaches each scene's own sceneBackgrounds color by
+          // crossfading --detail-scene-bg as it scrolls there; the mobile
+          // static stack has no scroll-driven crossfade to do that, so
+          // (CSS otherwise hardcodes every scene panel to plain black,
+          // which is why a per-project background color only ever showed
+          // up on desktop) paint each panel with its own scene color here.
+          const bg = sceneBgColors[Math.min(i, sceneBgColors.length - 1)];
+          if (bg) {
+            const rgb = `rgb(${bg[0]}, ${bg[1]}, ${bg[2]})`;
+            if (scene.panelEl) scene.panelEl.style.backgroundColor = rgb;
+            scene.panelEl.querySelectorAll('.work-scenes__stage').forEach((stageEl) => {
+              stageEl.style.backgroundColor = rgb;
+            });
+          }
           scene.fillChars.forEach((span) => {
             span.style.color = '#ffffff';
             span.style.opacity = '1';
@@ -2625,14 +2827,8 @@ document.addEventListener('DOMContentLoaded', () => {
             span.style.transform = 'none';
           });
         });
-        // Mobile shows every scene as a plain static stack with no scroll
-        // gating -- just start each video once, the first time this runs.
-        scenes.forEach((scene) => {
-          if (scene.videos.length && !scene.videoStarted) {
-            scene.videoStarted = true;
-            scene.videos.forEach((v) => v.play().catch(() => {}));
-          }
-        });
+        // Video starts are handled by mobileVideoObserver above instead of
+        // being fired here -- see its comment.
         return;
       }
 
@@ -2665,12 +2861,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (trackEl) {
         trackEl.style.transform = 'none';
         trackEl.style.setProperty('--detail-overlay-x', `${Math.max(0, 1 - totalSlide) * 100}%`);
+        trackEl.style.setProperty('--detail-scene-bg', sceneBgAt(totalSlide));
       }
 
       scenes.forEach((scene, i) => {
+        const slideProgress = stage(slideStarts[i], slideEnds[i], dwellProgress);
         if (scene.panelEl) {
           const x = (i + 1 - totalSlide) * 100;
           scene.panelEl.style.transform = `translateX(${x}%)`;
+          scene.panelEl.style.setProperty('--scene-divider-opacity', `${Math.sin(slideProgress * Math.PI).toFixed(3)}`);
         }
       });
 
@@ -2706,17 +2905,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const fillProgress = stage(scene.slideEnd, scene.fillEnd, dwellProgress);
 
         if (scene.fillChars.length) {
-          const startRGB = [0x45, 0x45, 0x45];
           const n = scene.fillChars.length;
           scene.fillChars.forEach((span, i) => {
             span.style.removeProperty('opacity');
             span.style.removeProperty('filter');
             span.style.removeProperty('transform');
             const t = Math.min(1, Math.max(0, fillProgress * n - i));
-            const r = Math.round(startRGB[0] + (255 - startRGB[0]) * t);
-            const g = Math.round(startRGB[1] + (255 - startRGB[1]) * t);
-            const b = Math.round(startRGB[2] + (255 - startRGB[2]) * t);
-            span.style.color = `rgb(${r}, ${g}, ${b})`;
+            const alpha = 0.2 + 0.8 * t;
+            span.style.color = `rgba(255, 255, 255, ${alpha.toFixed(3)})`;
           });
         }
 
@@ -2770,6 +2966,7 @@ document.addEventListener('DOMContentLoaded', () => {
     slideStarts: [50 / 1510, 320 / 1510, 590 / 1510, 860 / 1510, 1130 / 1510],
     slideEnds: [140 / 1510, 410 / 1510, 680 / 1510, 950 / 1510, 1220 / 1510],
     fillEnds: [280 / 1510, 550 / 1510, 820 / 1510, 1090 / 1510, 1360 / 1510],
+    sceneBackgrounds: ['#666666', '#4d4d4d', '#333333', '#1a1a1a', '#000000'],
     glowPeaks: [160, -190, -265, 195, -205], // CRAFTING, TYPO, BEFOREAFTER, EDITORIAL, TOGETHER
     glowSpeed: 0.9,
     setDarkContribution: (v) => {
@@ -2789,6 +2986,7 @@ document.addEventListener('DOMContentLoaded', () => {
     slideStarts: [50 / 1240, 320 / 1240, 590 / 1240, 860 / 1240],
     slideEnds: [140 / 1240, 410 / 1240, 680 / 1240, 950 / 1240],
     fillEnds: [280 / 1240, 550 / 1240, 820 / 1240, 1090 / 1240],
+    sceneBackgrounds: ['#666666', '#444444', '#222222', '#000000'],
     glowPeaks: [-280, 190, -265, 195], // RETENTION, COMMUNITY, SHARE RUN, AI PARTNER
     glowSpeed: 0.9,
     setDarkContribution: (v) => {
@@ -2802,6 +3000,7 @@ document.addEventListener('DOMContentLoaded', () => {
     slideStarts: [50 / 1510, 320 / 1510, 590 / 1510, 860 / 1510, 1130 / 1510],
     slideEnds: [140 / 1510, 410 / 1510, 680 / 1510, 950 / 1510, 1220 / 1510],
     fillEnds: [280 / 1510, 550 / 1510, 820 / 1510, 1090 / 1510, 1360 / 1510],
+    sceneBackgrounds: ['#666666', '#4d4d4d', '#333333', '#1a1a1a', '#000000'],
     glowPeaks: [160, -190, -265, 195, -205], // USER RESEARCH, ONBOARDING, MATCHING, BEYOND, DEPLOYMENT
     glowSpeed: 0.9,
     setDarkContribution: (v) => {
@@ -2846,16 +3045,19 @@ document.addEventListener('DOMContentLoaded', () => {
       ? Array.from(cloneTitleEl.querySelectorAll('.clone-coding__title-char'))
       : [];
 
-    const chipsEnd = cloneChipEls.length * 60;
+    const cloneDelayStep = isMobileFogViewport() ? 8 : 60;
+    const cloneTitleDelayStep = isMobileFogViewport() ? 8 : 25;
+    const cloneGroupGap = isMobileFogViewport() ? 35 : 150;
+    const chipsEnd = cloneChipEls.length * cloneDelayStep;
     cloneChipEls.forEach((el, i) => {
-      el.style.setProperty('--fog-delay', `${i * 60}ms`);
+      el.style.setProperty('--fog-delay', `${i * cloneDelayStep}ms`);
     });
     titleChars.forEach((el, i) => {
-      el.style.setProperty('--fog-delay', `${chipsEnd + 150 + i * 25}ms`);
+      el.style.setProperty('--fog-delay', `${chipsEnd + cloneGroupGap + i * cloneTitleDelayStep}ms`);
     });
     if (cloneSubtitleEl) {
-      const titleEnd = titleChars.length * 25;
-      cloneSubtitleEl.style.setProperty('--fog-delay', `${chipsEnd + 150 + titleEnd + 150}ms`);
+      const titleEnd = titleChars.length * cloneTitleDelayStep;
+      cloneSubtitleEl.style.setProperty('--fog-delay', `${chipsEnd + cloneGroupGap + titleEnd + cloneGroupGap}ms`);
     }
 
     const cloneIntroObserver = new IntersectionObserver((entries) => {
@@ -3032,12 +3234,13 @@ document.addEventListener('DOMContentLoaded', () => {
       ? Array.from(skillTitleEl.querySelectorAll('.skill-content__title-char'))
       : [];
 
+    const skillFogDelayStep = isMobileFogViewport() ? 8 : 25;
     skillTitleChars.forEach((el, i) => {
-      el.style.setProperty('--fog-delay', `${i * 25}ms`);
+      el.style.setProperty('--fog-delay', `${i * skillFogDelayStep}ms`);
     });
     if (skillSubtitleEl) {
-      const titleEnd = skillTitleChars.length * 25;
-      skillSubtitleEl.style.setProperty('--fog-delay', `${titleEnd + 150}ms`);
+      const titleEnd = skillTitleChars.length * skillFogDelayStep;
+      skillSubtitleEl.style.setProperty('--fog-delay', `${titleEnd + (isMobileFogViewport() ? 35 : 150)}ms`);
     }
 
     const skillIntroObserver = new IntersectionObserver((entries) => {
@@ -3063,18 +3266,26 @@ document.addEventListener('DOMContentLoaded', () => {
       ? Array.from(quickQaTitleEl.querySelectorAll('.quick-qa__title-char'))
       : [];
 
+    const quickQaFogDelayStep = isMobileFogViewport() ? 8 : 25;
     quickQaTitleChars.forEach((el, i) => {
-      el.style.setProperty('--fog-delay', `${i * 25}ms`);
+      el.style.setProperty('--fog-delay', `${i * quickQaFogDelayStep}ms`);
     });
     if (quickQaSubtitleEl) {
-      const titleEnd = quickQaTitleChars.length * 25;
-      quickQaSubtitleEl.style.setProperty('--fog-delay', `${titleEnd + 150}ms`);
+      const titleEnd = quickQaTitleChars.length * quickQaFogDelayStep;
+      quickQaSubtitleEl.style.setProperty('--fog-delay', `${titleEnd + (isMobileFogViewport() ? 35 : 150)}ms`);
     }
 
     const updateQuickQaDarkState = () => {
       const rect = quickQaEl.getBoundingClientRect();
       const vh = window.innerHeight;
-      const entry = Math.min(1, Math.max(0, (vh - rect.top) / vh));
+      // Mobile: the section right before this one (the about gallery) is a
+      // long, transparent-background pinned dwell -- ramping this a full
+      // viewport-height early (like desktop) let the overlay visibly tint
+      // over its still fully-on-screen white content. Desktop doesn't hit
+      // this because whatever precedes each ramp there is already
+      // dark/opaque by the time its own early ramp starts.
+      const entryMargin = window.innerWidth <= 1024 ? 200 : vh;
+      const entry = Math.min(1, Math.max(0, (entryMargin - rect.top) / entryMargin));
       const exit = Math.min(1, Math.max(0, rect.bottom / vh));
       quickQaDarkContribution = Math.min(entry, exit);
       applyCombinedDarkState();
@@ -3114,14 +3325,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    window.addEventListener('resize', () => {
+    window.addEventListener('resize', rafCoalesce(() => {
       quickQaItems.forEach((item) => {
         if (!item.classList.contains('is-open')) return;
         const answer = item.querySelector('.quick-qa__answer');
         const inner = item.querySelector('.quick-qa__answer-inner');
         if (answer && inner) answer.style.maxHeight = `${inner.scrollHeight}px`;
       });
-    });
+    }));
 
     const quickQaObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -3132,7 +3343,7 @@ document.addEventListener('DOMContentLoaded', () => {
     quickQaObserver.observe(quickQaEl);
     updateQuickQaDarkState();
     window.addEventListener('scroll', updateQuickQaDarkState, { passive: true });
-    window.addEventListener('resize', updateQuickQaDarkState);
+    window.addEventListener('resize', rafCoalesce(updateQuickQaDarkState));
     window.addEventListener('load', updateQuickQaDarkState);
   }
 
@@ -3147,6 +3358,200 @@ document.addEventListener('DOMContentLoaded', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       window.history.pushState(null, '', '#intro');
       waitForJumpToSettle(0);
+    });
+  }
+
+  const portfolioChatbotEl = document.getElementById('portfolioChatbot');
+  if (portfolioChatbotEl) {
+    const chatbotToggle = portfolioChatbotEl.querySelector('.portfolio-chatbot__toggle');
+    const chatbotPanel = portfolioChatbotEl.querySelector('.portfolio-chatbot__panel');
+    const chatbotClose = portfolioChatbotEl.querySelector('.portfolio-chatbot__close');
+    const chatbotMessages = portfolioChatbotEl.querySelector('.portfolio-chatbot__messages');
+    const chatbotForm = portfolioChatbotEl.querySelector('.portfolio-chatbot__form');
+    const chatbotInput = portfolioChatbotEl.querySelector('.portfolio-chatbot__input');
+    const chatbotMailForm = portfolioChatbotEl.querySelector('.portfolio-chatbot__mail');
+    const chatbotChips = Array.from(portfolioChatbotEl.querySelectorAll('[data-chat-question]'));
+    let chatbotSeeded = false;
+
+    const chatbotInfo = {
+      education: '피아노 전공을 바탕으로 UX/UI 디자인을 공부하며, 청중을 이해하던 경험을 사용자 경험 설계로 확장하고 있습니다.',
+      major: '전공은 피아노입니다. 현재는 UX/UI 디자인, 서비스 기획, React 기반 화면 구현까지 함께 다룹니다.',
+      age: '나이 정보는 아직 포트폴리오 공개 데이터로 입력하지 않았어요. 공개해도 되는 정확한 값만 넣어두면 챗봇 답변에 바로 반영할 수 있습니다.',
+      mbti: 'MBTI도 아직 입력 전입니다. 정확한 유형을 알려주면 이 답변을 바로 바꿔둘 수 있어요.',
+      hobby: '취미와 관심사는 여행, 전시 관람, 콘서트, 음악 감상, 사진입니다. 일상의 경험을 디자인을 바라보는 시선으로 연결하는 편입니다.',
+      philosophy: '디자인은 보기 좋은 화면을 넘어서, 사용자가 어디로 가야 하는지 자연스럽게 이해하게 만드는 명확한 경험이어야 한다고 생각합니다.',
+      projects: '대표 프로젝트는 ILKW 웹 리뉴얼, W:RUN 러닝 팬덤 앱, MU:it 클래식 음악 레슨 매칭 앱, AI Font Poster Studio입니다.',
+    };
+
+    const posterItems = [
+      {
+        title: '연주회 포스터 작업',
+        src: 'images/piano.webp',
+        desc: '피아노 전공 경험에서 출발한 음악 기반 디자인 작업입니다.',
+      },
+      {
+        title: '음악 경험 아카이브',
+        src: 'images/reason-music.webp',
+        desc: '공연과 음악에서 받은 감각을 시각 언어로 확장한 작업입니다.',
+      },
+    ];
+
+    const escapeHtml = (value) => String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const getChatbotAnswer = (rawQuestion) => {
+      const question = rawQuestion.trim().toLowerCase();
+      if (!question) return { text: '궁금한 내용을 한 단어로만 적어도 괜찮아요. 예: 학력, MBTI, 포스터' };
+      if (question.includes('학력') || question.includes('학교') || question.includes('education')) {
+        return { text: chatbotInfo.education };
+      }
+      if (question.includes('전공') || question.includes('피아노') || question.includes('major')) {
+        return { text: chatbotInfo.major };
+      }
+      if (question.includes('나이') || question.includes('age')) {
+        return { text: chatbotInfo.age };
+      }
+      if (question.includes('mbti')) {
+        return { text: chatbotInfo.mbti };
+      }
+      if (question.includes('취미') || question.includes('관심') || question.includes('hobby')) {
+        return { text: chatbotInfo.hobby };
+      }
+      if (question.includes('철학') || question.includes('가치') || question.includes('디자인')) {
+        return { text: chatbotInfo.philosophy };
+      }
+      if (question.includes('프로젝트') || question.includes('작업') || question.includes('work')) {
+        return { text: chatbotInfo.projects };
+      }
+      if (question.includes('포스터') || question.includes('연주회') || question.includes('poster')) {
+        return {
+          text: '연주회 포스터 관련 작업을 아래에 모아 보여드릴게요.',
+          posters: posterItems,
+        };
+      }
+      if (question.includes('연락') || question.includes('메일') || question.includes('contact')) {
+        return { text: '메일은 flora000223@naver.com, 연락처는 010-8379-0023입니다.' };
+      }
+      if (question.includes('상담') || question.includes('피드백') || question.includes('문의')) {
+        return { text: '아래 상담/피드백 폼에 내용을 남기면 메일 작성창이 바로 열립니다. 메일 앱에서 전송 버튼만 눌러주세요.' };
+      }
+      return {
+        text: '저는 박지현의 학력, 전공, 나이, MBTI, 취미, 디자인 철학, 프로젝트, 연주회 포스터에 대해 답할 수 있어요.',
+      };
+    };
+
+    const appendChatbotMessage = (type, answer) => {
+      if (!chatbotMessages) return;
+      const message = document.createElement('div');
+      message.className = `portfolio-chatbot__message portfolio-chatbot__message--${type}`;
+      const paragraphs = String(answer.text || '')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => `<p>${escapeHtml(line)}</p>`)
+        .join('');
+      message.innerHTML = paragraphs;
+
+      if (answer.posters) {
+        const grid = document.createElement('div');
+        grid.className = 'portfolio-chatbot__poster-grid';
+        answer.posters.forEach((poster) => {
+          const card = document.createElement('figure');
+          card.className = 'portfolio-chatbot__poster';
+          card.innerHTML = `
+            <img src="${escapeHtml(poster.src)}" alt="${escapeHtml(poster.title)}">
+            <span>${escapeHtml(poster.title)}<br>${escapeHtml(poster.desc)}</span>
+          `;
+          grid.append(card);
+        });
+        message.append(grid);
+      }
+
+      chatbotMessages.append(message);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    };
+
+    const openChatbot = () => {
+      if (!chatbotPanel || !chatbotToggle) return;
+      chatbotPanel.hidden = false;
+      chatbotToggle.setAttribute('aria-expanded', 'true');
+      chatbotToggle.setAttribute('aria-label', '챗봇 닫기');
+      if (!chatbotSeeded) {
+        chatbotSeeded = true;
+        appendChatbotMessage('bot', {
+          text: '안녕하세요. 저는 지현 포트폴리오 챗봇입니다. 학력, 전공, 취미, 디자인 철학, 프로젝트와 포스터 작업을 가볍게 안내해드릴게요.',
+        });
+      }
+      if (chatbotInput) chatbotInput.focus();
+    };
+
+    const closeChatbot = () => {
+      if (!chatbotPanel || !chatbotToggle) return;
+      chatbotPanel.hidden = true;
+      chatbotToggle.setAttribute('aria-expanded', 'false');
+      chatbotToggle.setAttribute('aria-label', '챗봇 열기');
+    };
+
+    const askChatbot = (question) => {
+      appendChatbotMessage('user', { text: question });
+      appendChatbotMessage('bot', getChatbotAnswer(question));
+    };
+
+    if (chatbotToggle) {
+      chatbotToggle.addEventListener('click', () => {
+        if (chatbotPanel && chatbotPanel.hidden) openChatbot();
+        else closeChatbot();
+      });
+    }
+
+    if (chatbotClose) chatbotClose.addEventListener('click', closeChatbot);
+
+    chatbotChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        openChatbot();
+        askChatbot(chip.dataset.chatQuestion || chip.textContent || '');
+      });
+    });
+
+    if (chatbotForm && chatbotInput) {
+      chatbotForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const question = chatbotInput.value.trim();
+        if (!question) return;
+        chatbotInput.value = '';
+        askChatbot(question);
+      });
+    }
+
+    if (chatbotMailForm) {
+      chatbotMailForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(chatbotMailForm);
+        const type = formData.get('mailType') || '포트폴리오 문의';
+        const sender = String(formData.get('sender') || '').trim();
+        const message = String(formData.get('message') || '').trim();
+        if (!message) return;
+
+        const subject = `[포트폴리오] ${type}`;
+        const body = [
+          `문의 유형: ${type}`,
+          sender ? `보낸 사람: ${sender}` : '보낸 사람: 미입력',
+          '',
+          '문의 내용:',
+          message,
+        ].join('\n');
+        window.location.href = `mailto:flora000223@naver.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        appendChatbotMessage('bot', {
+          text: '메일 작성창을 열었어요. 내용 확인 후 메일 앱에서 전송 버튼을 눌러주시면 됩니다.',
+        });
+      });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && chatbotPanel && !chatbotPanel.hidden) closeChatbot();
     });
   }
 
@@ -3232,6 +3637,83 @@ document.addEventListener('DOMContentLoaded', () => {
       return card;
     });
 
+    // Mobile only: the desktop orbit (render() below) keeps writing
+    // transform/opacity/zIndex to every card regardless of viewport --
+    // CSS cancels that with !important on mobile and switches the cards
+    // to position: absolute instead. This positions each card's top/
+    // left/right so it sits level with its own matching word inside the
+    // DESIGN/FRONTEND/AI lists (e.g. the Photoshop icon next to the
+    // "Photoshop" list item), rather than being evenly spread down the
+    // column independent of the text. item.alt is "GPT" (its filename/
+    // accessible name) but the visible list item reads "ChatGPT", so
+    // that one pair needs an explicit remap; every other icon's alt
+    // matches its list item's text exactly.
+    const skillMobileLabelByAlt = {
+      GPT: 'ChatGPT',
+    };
+
+    function positionSkillMobileCards() {
+      if (window.innerWidth > 1024) return;
+      const pinRect = skillCarouselPinEl.getBoundingClientRect();
+      const listItems = Array.from(document.querySelectorAll('.skill-content__column-list li'));
+
+      // On mobile the three word lists (DESIGN/FRONTEND/AI) stack as
+      // separate blocks, each with its own title + gap before it, so each
+      // side's 5 icons -- which are matched across all three lists -- land
+      // at naturally uneven gaps (small within a list, a big jump crossing
+      // into the next list's block). Snapping each icon to its own word
+      // looked closer but left the icon stack itself visibly uneven, so
+      // instead: keep the icons in the same top-to-bottom order as their
+      // matched words, but respace them at a constant pitch across that
+      // same overall span.
+      const sides = [[], []];
+      cards.forEach((card, index) => {
+        const label = skillMobileLabelByAlt[items[index].alt] || items[index].alt;
+        const li = listItems.find((el) => el.textContent.trim() === label);
+        if (!li) return;
+        const liRect = li.getBoundingClientRect();
+        const naturalCenter = liRect.top - pinRect.top + liRect.height / 2;
+        sides[index < 5 ? 0 : 1].push({ card, naturalCenter, index });
+      });
+
+      sides.forEach((group) => group.sort((a, b) => a.naturalCenter - b.naturalCenter));
+
+      // Use one shared pitch for both sides (the wider of the two natural
+      // spans) so the left and right icon stacks line up with identical
+      // gaps instead of each side spacing itself out independently.
+      const steps = sides.map((group) => {
+        if (group.length < 2) return 0;
+        const first = group[0].naturalCenter;
+        const last = group[group.length - 1].naturalCenter;
+        return (last - first) / (group.length - 1);
+      });
+      const sharedStep = Math.max(...steps);
+
+      sides.forEach((group) => {
+        if (!group.length) return;
+        const mid = (group[0].naturalCenter + group[group.length - 1].naturalCenter) / 2;
+        const startCenter = mid - (sharedStep * (group.length - 1)) / 2;
+        group.forEach((entry, i) => {
+          const center = startCenter + sharedStep * i;
+          const cardH = entry.card.offsetHeight;
+          entry.card.style.top = `${center - cardH / 2}px`;
+          entry.card.style.left = entry.index < 5 ? '20px' : 'auto';
+          entry.card.style.right = entry.index < 5 ? 'auto' : '20px';
+        });
+      });
+    }
+
+    positionSkillMobileCards();
+    requestAnimationFrame(positionSkillMobileCards);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(positionSkillMobileCards);
+    }
+    let skillMobileCardsResizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(skillMobileCardsResizeTimer);
+      skillMobileCardsResizeTimer = setTimeout(positionSkillMobileCards, 150);
+    });
+
     function getLayout() {
       // The pin's own rendered width, not window.innerWidth: .skill-content__stage
       // caps at min(100cqw, 1920px), so on an ultra-wide monitor the two
@@ -3311,7 +3793,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const visibilityRect = skillCarouselStageEl.getBoundingClientRect();
       const nearViewport = visibilityRect.bottom > -viewportBuffer
         && visibilityRect.top < window.innerHeight + viewportBuffer;
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 1024) {
         const mobileReveal = visibilityRect.top < window.innerHeight * 0.62
           && visibilityRect.bottom > window.innerHeight * 0.28;
         if (mobileReveal && !hasEntered) {
@@ -3423,7 +3905,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function tryProactiveEntry(rawDelta) {
-      if (window.innerWidth <= 768) return false;
+      if (window.innerWidth <= 1024) return false;
       if (isNavJumping) return false;
       const stageRect = skillCarouselStageEl.getBoundingClientRect();
       if (stageRect.top > 0 && rawDelta > 0 && rawDelta >= stageRect.top) {

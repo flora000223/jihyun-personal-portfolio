@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    Fonts
    Matches the exact family/weight/style pairs used in the Figma file.
    ========================================================================== */
@@ -252,7 +252,8 @@ button {
    flat-black SVG, so inverting it the same way the work-scenes link icon
    does (filter: invert(1)) flips it to white without needing a second
    asset. */
-.header--inverted .logo {
+.header--inverted .logo,
+.header--surface-dark .logo {
   filter: invert(1);
 }
 
@@ -282,7 +283,9 @@ button {
 }
 
 .header--inverted .nav__link.is-active,
-.header--inverted .nav__link:hover {
+.header--inverted .nav__link:hover,
+.header--surface-dark .nav__link.is-active,
+.header--surface-dark .nav__link:hover {
   color: #ffffff;
 }
 
@@ -305,8 +308,13 @@ button {
   display: block;
   width: 100%;
   height: 2px;
+  background: #000000;
+  transition: transform 0.3s ease, opacity 0.3s ease, background 0.2s ease;
+}
+
+.header--inverted .hamburger span,
+.header--surface-dark .hamburger span {
   background: #ffffff;
-  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .header--hero .hamburger span {
@@ -558,9 +566,9 @@ button {
   font-weight: 400;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   .hero__title {
-    font-size: clamp(30px, 10.5vw, 52px);
+    font-size: clamp(30px, 12.5vw, 52px);
     line-height: 1.06;
     letter-spacing: -0.015em;
     white-space: normal;
@@ -568,11 +576,11 @@ button {
 }
 
 /* ==========================================================================
-   Intro — Reasons (scrolls in right after the hero)
+   Intro ? Reasons (scrolls in right after the hero)
    ========================================================================== */
 .intro-reasons {
   position: relative;
-  /* 100vh of visible section + 450vh of scroll "dwell" — the sticky wrapper
+  /* 100vh of visible section + 450vh of scroll "dwell" ? the sticky wrapper
      below holds the layout in place for that extra distance so the
      scroll-driven sequence (script.js: subtitle gray -> black fill, a short
      hold, the English -> Korean text cross-fade, then another hold) fully
@@ -607,7 +615,7 @@ button {
 }
 
 /* Shared typography for the title that travels from the hero into this
-   section — kept independent from .hero__title so the hero's verified
+   section ? kept independent from .hero__title so the hero's verified
    alignment is never touched by changes made here. */
 .stay-title {
   position: absolute;
@@ -685,7 +693,7 @@ button {
 }
 
 /* Box that hosts the English -> Korean text swap: both lines sit stacked
-   in the exact same spot (confirmed via getBoundingClientRect — both boxes
+   in the exact same spot (confirmed via getBoundingClientRect ? both boxes
    share the identical top edge). English fades out in place; Korean fades
    in while rising up slightly (same opacity+translateY recipe as
    .intro-reasons__reveal's initial appear), so the swap doesn't read as a
@@ -798,7 +806,7 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
 }
 
 /* ==========================================================================
-   Reason Quote — personal statement that scrolls in right after
+   Reason Quote ? personal statement that scrolls in right after
    intro-reasons. The full-viewport black takeover (script.js fading
    #scrollDarkOverlay in/out, see that overlay's own CSS below) crossfades
    white -> black as the section scrolls into place, then it pins (same
@@ -972,7 +980,7 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
 }
 
 /* ==========================================================================
-   Cards Reveal — scrolls in right after reason-quote. The three cards here
+   Cards Reveal ? scrolls in right after reason-quote. The three cards here
    are the same three inline chips from reason-quote (the piano photo and
    two placeholders) landing at full size: as this section scrolls into
    place, script.js flies three fixed clones (#flyingCard1-3, see
@@ -1223,7 +1231,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* ==========================================================================
-   Work transition — the "WORK selected projects" title screen between
+   Work transition ? the "WORK selected projects" title screen between
    cards-reveal and the work-detail cover (Figma node 2804:1882). Sits
    pinned like every other scroll-driven section here (position: sticky +
    a tall dwell height, progress read live off getBoundingClientRect() in
@@ -1376,7 +1384,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #000000;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   /* Same mobile fallback approach as every other pinned section here:
      drop the pin/scroll-scrub entirely and show the end state (fully
      inverted, white bg/black text) as a plain static block. */
@@ -1509,7 +1517,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #ffffff;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .skill-transition {
     height: auto;
   }
@@ -1632,7 +1640,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #000000;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .about-transition {
     height: auto;
   }
@@ -1672,7 +1680,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* ==========================================================================
-   Skill content — Figma node 3202-702. Black-bg section following
+   Skill content ? Figma node 3202-702. Black-bg section following
    .skill-transition's wipe-to-black: one merged, centered block (SKILL
    title + Korean subtitle, fog-in reveal via IntersectionObserver +
    wrapChars + --fog-delay, same pattern as .clone-coding__intro -- see
@@ -1907,7 +1915,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   white-space: nowrap;
 }
 
-/* Work detail — project 01/03 (ILKW web). A static 1920x1080 poster (same
+/* Work detail ? project 01/03 (ILKW web). A static 1920x1080 poster (same
    width min(100cqw,1920px) + aspect-ratio scaling technique as the other
    sections' __stage) for the cover itself, but the section stays pinned
    past that cover for an extra dwell: .work-detail__track holds the cover
@@ -1956,6 +1964,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   display: block;
   height: 100%;
   --detail-overlay-x: 100%;
+  --detail-scene-bg: #000000;
   isolation: isolate;
   overflow: hidden;
 }
@@ -1965,9 +1974,9 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: #000000;
+  background: var(--detail-scene-bg);
   transform: translateX(var(--detail-overlay-x));
-  will-change: transform;
+  will-change: transform, background-color;
 }
 
 .work-detail__panel {
@@ -1989,6 +1998,22 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .work-detail__panel + .work-detail__panel {
   z-index: 3;
   transform: translateX(100%);
+  --scene-divider-opacity: 0;
+}
+
+.work-detail__panel + .work-detail__panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: 4;
+  width: 1px;
+  height: clamp(120px, 50vh, 320px);
+  background: rgba(255, 255, 255, 0.45);
+  opacity: var(--scene-divider-opacity);
+  transform: translate(-0.5px, -50%);
+  pointer-events: none;
+  will-change: opacity;
 }
 
 .work-detail__stage {
@@ -2008,9 +2033,9 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    can't distort. */
 .work-detail__mockup {
   position: absolute;
-  left: calc(3.6458 * var(--u));
-  top: calc(10.5729 * var(--u));
-  width: calc(47.75 * var(--u));
+  left: calc(3.7 * var(--u));
+  top: calc(10.95 * var(--u));
+  width: calc(46.7 * var(--u));
   height: auto;
   max-width: none;
 }
@@ -2020,13 +2045,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    poster scales at any width. */
 .work-detail__info {
   position: absolute;
-  left: calc(57.3958 * var(--u));
-  top: calc(50% + 1.0417 * var(--u));
+  left: calc(57.0313 * var(--u));
+  top: calc(50% + 0.026 * var(--u));
   transform: translateY(-50%);
   width: calc(38.0208 * var(--u));
   display: flex;
   flex-direction: column;
-  gap: calc(2.6042 * var(--u));
+  gap: calc(2.8646 * var(--u));
 }
 
 /* Wraps .work-detail__meta + .work-detail__progress with their own,
@@ -2037,7 +2062,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .work-detail__body {
   display: flex;
   flex-direction: column;
-  gap: calc(2.6042 * var(--u));
+  gap: calc(2.8646 * var(--u));
 }
 
 .work-detail__head {
@@ -2119,6 +2144,18 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin-left: calc(0.25 * var(--u));
 }
 
+.work-detail__title-em {
+  color: #f49307;
+}
+
+.work-detail--p2 .work-detail__title-em {
+  color: #d4ff3f;
+}
+
+.work-detail--p3 .work-detail__title-em {
+  color: #8071fc;
+}
+
 .work-detail__links {
   display: flex;
   align-items: center;
@@ -2154,7 +2191,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .work-detail__meta {
   display: flex;
   flex-direction: column;
-  gap: calc(1.9 * var(--u));
+  gap: calc(1.5625 * var(--u));
 }
 
 .work-detail__meta-group {
@@ -2164,7 +2201,10 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .work-detail__meta-group--duration {
-  width: calc(11.9792 * var(--u));
+  width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: calc(0.7813 * var(--u));
 }
 
 .work-detail__meta-label {
@@ -2213,7 +2253,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .work-detail__progress {
   display: flex;
   align-items: center;
-  gap: calc(3.3333 * var(--u));
+  gap: calc(2.0833 * var(--u));
 }
 
 .work-detail__progress-item {
@@ -2221,8 +2261,19 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   display: flex;
   align-items: center;
   gap: calc(0.5208 * var(--u));
+  padding: calc(0.5208 * var(--u)) calc(0.625 * var(--u));
+  border-radius: calc(2.6042 * var(--u));
+  background: rgba(244, 147, 7, 0.2);
   font-size: calc(1.1458 * var(--u));
   letter-spacing: calc(-0.025 * var(--u));
+}
+
+.work-detail--p2 .work-detail__progress-item {
+  background: rgba(212, 255, 63, 0.2);
+}
+
+.work-detail--p3 .work-detail__progress-item {
+  background: rgba(128, 113, 252, 0.2);
 }
 
 .work-detail__progress-item strong {
@@ -2236,7 +2287,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* ==========================================================================
-   Work detail — project 02/03 (W:RUN app). Same pinned/sliding-track
+   Work detail ? project 02/03 (W:RUN app). Same pinned/sliding-track
    pattern as .work-detail above (that's the shared/base rule this modifier
    layers onto -- see its own comment for the full mechanism); this
    modifier only overrides what's actually project-specific: the dwell
@@ -2265,13 +2316,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    column. Numbers below place that visible content at the same 8.5u-46.5u
    horizontal / 8.5u-49.6u vertical span Figma's cover uses. */
 .work-detail__mockup--p2 {
-  left: calc(-1.9 * var(--u));
-  top: calc(8.1 * var(--u));
-  width: calc(52.8 * var(--u));
+  left: calc(-1 * var(--u));
+  top: calc(5.95 * var(--u));
+  width: calc(52.4 * var(--u));
 }
 
 /* ==========================================================================
-   Work cover 3 — project 03/03 (MU:it app). Same static-poster treatment as
+   Work cover 3 ? project 03/03 (MU:it app). Same static-poster treatment as
    the old work-cover2 used to get, and for the same reason: this project's
    own scenes don't exist yet. */
 .work-cover3 {
@@ -2299,9 +2350,9 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    top- and bottom-matching values rather than hitting both exactly. */
 .work-cover3__mockup {
   position: absolute;
-  left: calc(-5.1 * var(--u));
-  top: calc(5.6 * var(--u));
-  width: calc(56 * var(--u));
+  left: calc(-8.65 * var(--u));
+  top: calc(1.25 * var(--u));
+  width: calc(60.1 * var(--u));
   height: auto;
   max-width: none;
 }
@@ -2349,7 +2400,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 .work-scenes--user-research .work-scenes__desc-en {
   width: 100%;
-  color: #454545;
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .work-scenes--user-research .work-scenes__desc-en p {
@@ -3989,7 +4040,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* Reuses the same iPad Pro 12.9 bezel asset as the cover panel
-   (images/work-ilkw-ipad-screen.png -- confirmed byte-identical to this
+   (images/work-ilkw-ipad-screen.webp -- confirmed byte-identical to this
    scene's own Figma export, so no need for a duplicate file). Cutout
    2048x2732 at (121, 114) out of 2290x2960, measured the same way as the
    other two bezels above. */
@@ -4217,9 +4268,9 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   width: 100%;
 }
 
-/* Starts fully dim -- script.js wraps every character in a .fill-char span
+/* Starts softly dim -- script.js wraps every character in a .fill-char span
    (same wrapChars/fillChars technique as .intro-reasons__subtitle) and
-   fills them gray -> white in sequence once this panel is fully scrolled
+   fills them translucent white -> white in sequence once this panel is fully scrolled
    into place, rather than showing a statically-split white/gray line. */
 .work-scenes__desc-en {
   margin: 0;
@@ -4228,14 +4279,14 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-size: calc(2.0833 * var(--u));
   letter-spacing: calc(-0.0417 * var(--u));
   line-height: normal;
-  color: #454545;
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .work-scenes__desc-en p {
   margin: 0;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .work-scenes__desc-en p {
     white-space: nowrap;
   }
@@ -4579,7 +4630,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: var(--ink, #252b2d);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .gallery-interaction__shape-title {
     font-size: 32px;
   }
@@ -4589,7 +4640,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   .gallery-interaction__copy--vision {
-    bottom: clamp(96px, 12vh, 132px);
+    bottom: clamp(150px, 17vh, 190px);
   }
 }
 
@@ -4611,12 +4662,12 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   .gallery-interaction__copy--vision {
-    bottom: clamp(78px, 11vh, 104px);
+    bottom: clamp(130px, 16vh, 158px);
   }
 }
 
 /* ==========================================================================
-   Quick Q&A — Figma node 2832-1509
+   Quick Q&A ? Figma node 2832-1509
    ========================================================================== */
 .quick-qa {
   position: relative;
@@ -4717,7 +4768,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   align-items: center;
   justify-content: space-between;
   gap: calc(2.0833 * var(--u));
-  padding: 0 0 calc(0.8333 * var(--u));
+  padding: 0 0 calc(0.833 * var(--u));
   border: 0;
   background: transparent;
   color: #ffffff;
@@ -4793,7 +4844,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .quick-qa {
     padding: 144px 32px 120px;
   }
@@ -4811,11 +4862,11 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   .quick-qa__question {
-    font-size: 24px;
+    font-size: 20px;
   }
 
   .quick-qa__answer-inner {
-    font-size: 17px;
+    font-size: 15px;
   }
 }
 
@@ -5007,7 +5058,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   min-height: 30px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .site-footer {
     min-height: 720px;
   }
@@ -5082,6 +5133,364 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* ==========================================================================
+   Floating portfolio chatbot
+   ========================================================================== */
+.portfolio-chatbot {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 120;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+}
+
+.portfolio-chatbot__toggle {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.24);
+  transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.portfolio-chatbot__toggle:hover,
+.portfolio-chatbot__toggle:focus-visible {
+  transform: translateY(-3px);
+}
+
+.portfolio-chatbot__toggle-mark {
+  font-family: 'Neue Montreal', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.portfolio-chatbot__panel[hidden] {
+  display: none;
+}
+
+.portfolio-chatbot__panel {
+  position: absolute;
+  right: 0;
+  bottom: 78px;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 118px));
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(8, 8, 8, 0.94);
+  color: #ffffff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(16px);
+}
+
+.portfolio-chatbot__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.portfolio-chatbot__eyebrow {
+  margin: 0 0 5px;
+  font-family: 'Neue Montreal', sans-serif;
+  font-size: 11px;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.48);
+  letter-spacing: 0.08em;
+}
+
+.portfolio-chatbot__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.portfolio-chatbot__close {
+  flex: 0 0 auto;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+}
+
+.portfolio-chatbot__close::before,
+.portfolio-chatbot__close::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 1px;
+  background: #ffffff;
+}
+
+.portfolio-chatbot__close::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.portfolio-chatbot__close::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.portfolio-chatbot__messages {
+  flex: 1 1 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 230px;
+  overflow-y: auto;
+  padding: 18px 16px;
+}
+
+.portfolio-chatbot__message {
+  width: fit-content;
+  max-width: 88%;
+  padding: 11px 13px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.portfolio-chatbot__message--bot {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.portfolio-chatbot__message--user {
+  align-self: flex-end;
+  background: #ffffff;
+  color: #000000;
+}
+
+.portfolio-chatbot__message p {
+  margin: 0;
+}
+
+.portfolio-chatbot__message p + p {
+  margin-top: 6px;
+}
+
+.portfolio-chatbot__poster-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.portfolio-chatbot__poster {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: #111111;
+}
+
+.portfolio-chatbot__poster img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  display: block;
+  object-fit: cover;
+}
+
+.portfolio-chatbot__poster span {
+  display: block;
+  padding: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.portfolio-chatbot__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.portfolio-chatbot__chips button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.portfolio-chatbot__chips button:hover,
+.portfolio-chatbot__chips button:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.portfolio-chatbot__form {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.portfolio-chatbot__input {
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+}
+
+.portfolio-chatbot__input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.portfolio-chatbot__input:focus {
+  border-color: rgba(255, 255, 255, 0.52);
+}
+
+.portfolio-chatbot__send {
+  flex: 0 0 auto;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Neue Montreal', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.portfolio-chatbot__mail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.portfolio-chatbot__mail-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.portfolio-chatbot__mail-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.portfolio-chatbot__mail-types label {
+  cursor: pointer;
+}
+
+.portfolio-chatbot__mail-types input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.portfolio-chatbot__mail-types span {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.portfolio-chatbot__mail-types input:checked + span {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: #000000;
+}
+
+.portfolio-chatbot__mail-input,
+.portfolio-chatbot__mail-textarea {
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.portfolio-chatbot__mail-input {
+  height: 42px;
+}
+
+.portfolio-chatbot__mail-textarea {
+  min-height: 104px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+  resize: vertical;
+}
+
+.portfolio-chatbot__mail-input::placeholder,
+.portfolio-chatbot__mail-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.portfolio-chatbot__mail-input:focus,
+.portfolio-chatbot__mail-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.52);
+}
+
+.portfolio-chatbot__mail-submit {
+  height: 46px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .portfolio-chatbot {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .portfolio-chatbot__toggle {
+    width: 56px;
+    height: 56px;
+  }
+
+  .portfolio-chatbot__panel {
+    right: 0;
+    bottom: 70px;
+    width: calc(100vw - 32px);
+    max-height: calc(100vh - 104px);
+  }
+}
+
+/* ==========================================================================
    Breakpoints
    ========================================================================== */
 
@@ -5118,7 +5527,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* Tablet 768 and below: collapse to hamburger menu */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .header__inner {
     padding: 18px 32px;
   }
@@ -5135,12 +5544,38 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     height: 22px;
   }
 
+  /* .mobile-nav was hardcoded white, so opening it over a section that's
+     already scrolled dark (.header--inverted/.header--surface-dark, same
+     classes the logo/nav-link colors already key off) dropped a bright
+     white panel onto a black background. Match the dropdown itself to
+     that state instead. */
+  .header--inverted .mobile-nav,
+  .header--surface-dark .mobile-nav {
+    background: #000000;
+  }
+
+  .header--inverted .mobile-nav.is-open,
+  .header--surface-dark .mobile-nav.is-open {
+    border-top-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .header--inverted .mobile-nav__link,
+  .header--surface-dark .mobile-nav__link {
+    color: rgba(255, 255, 255, 0.7);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .header--inverted .mobile-nav__link.is-active,
+  .header--surface-dark .mobile-nav__link.is-active {
+    color: #ffffff;
+  }
+
   /* Intro-reasons: temporary mobile legibility fix. The desktop layout
      scales the whole section as a fixed 1920x1080 poster via --u, which
      shrinks the subtitle/text down to a few px on narrow screens.
      Below 768px, drop the poster positioning for a plain stacked flow
      with fixed, legible sizes until a dedicated mobile frame exists.
-     The sticky dwell pin is also dropped here — the stacked content is
+     The sticky dwell pin is also dropped here ? the stacked content is
      already taller than one viewport, so there's natural scroll room
      for the subtitle fill without needing a pinned viewport. */
   .intro-reasons {
@@ -5171,7 +5606,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   /* No scroll-linked color fill or text swap on this temporary mobile
-     layout — just show the English text plainly, static-flowed. */
+     layout ? just show the English text plainly, static-flowed. */
   .intro-reasons__text {
     height: auto;
     overflow: visible;
@@ -5301,12 +5736,31 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     perspective: none;
   }
 
-  /* No scroll-triggered flip on mobile -- just show each card's back
-     face (title + description on the darkened background) at rest,
-     same "skip the interaction, show the end state" approach as the
-     rest of this mobile fallback. */
+  /* No scroll-scrubbed flip on mobile (there's no pinned dwell to scrub
+     against) -- instead each card starts front-facing and flips to its
+     back face in one quick shot as the section enters the viewport, via
+     .is-mobile-flipped (toggled by an IntersectionObserver in script.js).
+     Faster + tighter stagger than the desktop 0.9s/0.12s version since
+     this plays as a single scroll-triggered beat rather than something
+     scrubbed by hand. */
   .cards-reveal__card-inner {
-    transition: none;
+    transform: rotateY(0deg);
+    transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  .cards-reveal__card:nth-child(1) .cards-reveal__card-inner {
+    transition-delay: 0s;
+  }
+
+  .cards-reveal__card:nth-child(2) .cards-reveal__card-inner {
+    transition-delay: 0.06s;
+  }
+
+  .cards-reveal__card:nth-child(3) .cards-reveal__card-inner {
+    transition-delay: 0.12s;
+  }
+
+  .cards-reveal.is-mobile-flipped .cards-reveal__card-inner {
     transform: rotateY(-180deg);
   }
 
@@ -5858,7 +6312,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .clone-coding__stage {
     width: 100%;
     height: auto;
-    padding: 64px 24px;
+    padding: 70px 24px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -6067,7 +6521,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    widths tighter bounds so the page does not create side-scroll.
    ========================================================================== */
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   :root {
     --mobile-grid-images:
       linear-gradient(var(--color-line), var(--color-line)),
@@ -6199,8 +6653,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   body.js-anim .intro-reasons__title,
   body.js-anim .intro-reasons__reveal {
     opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 0.72s ease, transform 0.72s ease;
+    transform: translateY(16px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
   }
 
   body.js-anim .intro-reasons.is-docked .intro-reasons__title,
@@ -6239,13 +6693,11 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   .work-detail__panel:first-of-type {
-    background-image:
-      var(--mobile-grid-images),
-      linear-gradient(180deg, #ffffff 0%, #ffffff calc(100% - 150px), #000000 100%);
-    background-position: var(--mobile-grid-positions), 0 0;
-    background-size: var(--mobile-grid-sizes), 100% 100%;
+    background-image: var(--mobile-grid-images);
+    background-position: var(--mobile-grid-positions);
+    background-size: var(--mobile-grid-sizes);
     background-repeat: no-repeat;
-    background-attachment: fixed, scroll;
+    background-attachment: fixed;
     padding-bottom: 80px;
     box-sizing: border-box;
   }
@@ -6609,8 +7061,21 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .work-transition__wipe,
   .skill-transition__wipe,
   .about-transition__wipe {
-    position: static;
-    inset: auto;
+    /* position:relative (not static) + z-index:41 -- same convention as
+       .skill-content/.reason-quote__sticky/.cards-reveal__sticky: without
+       an explicit stacking context here, #scrollDarkOverlay's z-index:40
+       paints over this content instead of staying behind it, since the
+       desktop .work-transition__sticky/.skill-transition__sticky/
+       .about-transition__sticky wrapper's own z-index:41 stops taking
+       effect once position:sticky is reset to static on mobile (z-index is
+       inert on statically positioned elements). This was the actual cause
+       of skill-transition's title reading as washed-out gray instead of
+       white on mobile -- the overlay (opacity driven by
+       skillTransitionDarkContribution, which stays near its peak for the
+       section's entire dwell, not just its edges) was compositing on top
+       of it the whole time it was on screen. */
+    position: relative;
+    z-index: 41;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -6671,6 +7136,17 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     font-size: clamp(78px, 15vw, 116px);
     line-height: 0.88;
     letter-spacing: -0.03em;
+  }
+
+  /* work-transition/skill-transition/about-transition reveal as one whole
+     block (no per-char JS driver on mobile -- see updateWorkTransition/
+     updateSkillTransition/updateAboutTransition's mobile branch, which just
+     clears fog-char inline styles and leaves this transition in charge),
+     triggered once by mobileTransitionFogObserver toggling
+     .is-mobile-fog-visible. */
+  .work-transition__title,
+  .skill-transition__title,
+  .about-transition__title {
     opacity: 0;
     filter: blur(18px);
     transform: translateY(20px);
@@ -6756,7 +7232,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
   .clone-coding__title-em,
   .clone-coding__title-en {
-    font-size: clamp(44px, 10vw, 68px);
+    font-size: clamp(42px, 13vw, 58px);
     letter-spacing: 0;
   }
 
@@ -6772,7 +7248,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   .reason-quote__stage {
-    padding: 0 20px;
+    padding: 70px 20px;
   }
 
   .sentence {
@@ -7027,7 +7503,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
   .work-scenes__stage {
     gap: 24px;
-    padding: 48px 20px;
+    padding: 60px 20px;
   }
 
   .work-scenes--typo .work-scenes__device {
@@ -7251,7 +7727,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
   .work-scenes__stage {
     gap: 22px;
-    padding: 44px 16px;
+    padding: 50px 16px;
   }
 
   .work-scenes--typo .work-scenes__device {
@@ -7347,7 +7823,9 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   .ai-lab__title-en,
-  .ai-lab__title-em {
+  .ai-lab__title-em,
+  .clone-coding__title-em,
+  .clone-coding__title-en {
     font-size: 40px;
   }
 
@@ -7410,7 +7888,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .work-detail__link,
   .work-scenes__link,
   .work-scenes__deployment-link,
@@ -7437,6 +7915,12 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     font-size: max(14px, 1em);
   }
 
+  .work-detail__link,
+  .work-scenes__link,
+  .work-scenes__deployment-link {
+    border-radius: 999px;
+  }
+
   .work-scenes__link,
   .work-scenes__deployment-link {
     min-height: 44px;
@@ -7461,10 +7945,332 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .clone-coding__title {
     white-space: normal;
   }
+}
 
-  .clone-coding__title-em,
-  .clone-coding__title-en {
-    font-size: clamp(44px, 10vw, 68px);
-    letter-spacing: 0;
+@media (max-width: 1024px) {
+  .work-scenes--crafting .work-scenes__device {
+    margin-top: 26px;
+  }
+
+  .work-scenes--together {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    column-gap: 18px;
+  }
+
+  .work-scenes--together .work-scenes__media--video,
+  .work-scenes--together .work-scenes__media--photo {
+    width: 100%;
+    max-width: none;
+    aspect-ratio: 4 / 5;
+  }
+
+  .work-scenes--together .work-scenes__media--video video,
+  .work-scenes--together .work-scenes__media--photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .work-detail--p2 .work-scenes--community,
+  .work-detail--p2 .work-scenes--sharerun {
+    grid-template-columns: repeat(2, minmax(0, 150px));
+  }
+
+  .work-scenes--community .work-scenes__device--phone-1,
+  .work-scenes--community .work-scenes__device--phone-2,
+  .work-scenes--sharerun .work-scenes__device--phone-1,
+  .work-scenes--sharerun .work-scenes__device--phone-2 {
+    width: 130px;
+    max-width: 100%;
+    aspect-ratio: 11.9872 / 25.999;
+  }
+
+  .work-detail--p3 .work-scenes--personalized-matching,
+  .work-detail--p3 .work-scenes--beyond-matching {
+    grid-template-columns: repeat(2, minmax(0, 150px));
+  }
+
+  .work-scenes__onboarding-phone,
+  .work-detail--p3 .work-scenes__matching-phone,
+  .work-detail--p3 .work-scenes__beyond-phone {
+    width: 150px;
+    max-width: 100%;
+  }
+
+  .work-scenes--idea-deployment {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 150px));
+    align-items: stretch;
+    justify-content: center;
+    justify-items: center;
+    column-gap: 18px;
+    row-gap: 30px;
+  }
+
+  .work-scenes--idea-deployment .work-scenes__deployment-photo {
+    width: 100%;
+    max-width: none;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    margin: 0;
+  }
+
+  .work-scenes--idea-deployment .work-scenes__deployment-photo--presentation {
+    object-position: 75% center;
+  }
+
+  .work-scenes--idea-deployment .work-scenes__copy,
+  .work-scenes--idea-deployment .work-scenes__deployment-links {
+    grid-column: 1 / -1;
+    width: min(calc(100vw - 48px), 560px);
+    justify-self: center;
+  }
+
+  .ai-lab__mockups {
+    display: block;
+  }
+
+  .ai-lab__browser {
+    width: min(100%, 640px);
+    margin: 0 auto;
+  }
+
+  .ai-lab__device--ipad,
+  .ai-lab__device--mobile {
+    display: none;
+  }
+
+  .skill-transition__title,
+  .skill-transition__wipe .skill-transition__title {
+    color: #ffffff;
+  }
+
+  .work-transition__title,
+  .about-transition__title {
+    transition-duration: 450ms;
+  }
+
+  .clone-coding__chip,
+  .clone-coding__title-char,
+  .clone-coding__subtitle,
+  .skill-content__title-char,
+  .skill-content__subtitle,
+  .quick-qa__title-char,
+  .quick-qa__subtitle,
+  .ai-lab__title-char,
+  .ai-lab__summary,
+  .ai-lab__links {
+    transition-duration: 450ms;
+  }
+
+  .skill-content__stage {
+    min-height: auto;
+    padding-top: 80px;
+  }
+
+  .skill-content__pin {
+    display: block;
+    position: relative;
+    perspective: none;
+    touch-action: pan-y;
+  }
+
+  /* Each card is positioned individually by script.js's
+     positionSkillMobileCards(), which measures its matching word inside
+     the DESIGN/FRONTEND/AI lists (e.g. the Photoshop icon <-> the
+     "Photoshop" list item) and sets top/left/right directly as inline
+     styles -- see that function for why (keeps every icon level with its
+     own label instead of evenly spread down the column regardless of
+     where the text actually falls). The desktop orbit's render() keeps
+     writing transform/opacity/zIndex to every card every frame
+     regardless of viewport; the !important overrides below are what
+     make that visually inert here. */
+  .skill-content__carousel {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    transform: none;
+    pointer-events: none;
+  }
+
+  .skill-content__carousel-card {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    opacity: 1 !important;
+    transform: none !important;
+    z-index: 1 !important;
+    border-radius: 12px;
+    pointer-events: none;
+  }
+
+  .skill-content__carousel-card img {
+    width: 64%;
+    height: 64%;
+  }
+
+  .skill-content__body {
+    justify-content: center;
+  }
+
+  .skill-content__columns {
+    max-width: 100%;
+    margin-top: 24px;
+    padding: 0 78px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .skill-content__column {
+    align-items: center;
+    width: 100%;
+  }
+
+  .skill-content__column-title {
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .skill-content__column-list {
+    align-items: center;
+    gap: 6px;
+  }
+
+  .skill-content__column-list li {
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .gallery-interaction__shape-subtitle {
+    white-space: normal;
+    line-height: 1.5;
+  }
+
+  .ai-lab {
+    padding-bottom: 104px;
+  }
+
+  .clone-coding__stage {
+    padding-top: 110px;
+  }
+
+  .quick-qa__question {
+    align-items: center;
+    gap: 14px;
+  }
+
+  .quick-qa__question span:first-child {
+    display: block;
+    flex: 1 1 auto;
+  }
+
+  .quick-qa__arrow {
+    align-self: center;
+  }
+
+  .site-footer__nav a,
+  .site-footer__contact-link {
+    font-size: clamp(22px, 6vw, 30px);
+  }
+}
+
+@media (max-width: 430px) {
+  .work-scenes--crafting .work-scenes__device {
+    margin-top: 34px;
+  }
+
+  .work-scenes--together {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 14px;
+  }
+
+  .work-detail--p2 .work-scenes--community,
+  .work-detail--p2 .work-scenes--sharerun {
+    grid-template-columns: repeat(2, minmax(0, 140px));
+  }
+
+  .work-scenes--community .work-scenes__device--phone-1,
+  .work-scenes--community .work-scenes__device--phone-2,
+  .work-scenes--sharerun .work-scenes__device--phone-1,
+  .work-scenes--sharerun .work-scenes__device--phone-2 {
+    width: 115px;
+  }
+
+  .work-detail--p3 .work-scenes--personalized-matching,
+  .work-detail--p3 .work-scenes--beyond-matching,
+  .work-scenes--idea-deployment {
+    grid-template-columns: repeat(2, minmax(0, 140px));
+  }
+
+  .work-scenes__onboarding-phone,
+  .work-detail--p3 .work-scenes__matching-phone,
+  .work-detail--p3 .work-scenes__beyond-phone {
+    width: 140px;
+  }
+
+  .skill-content__carousel-card {
+    width: 42px;
+    height: 42px;
+  }
+
+  .skill-content__columns {
+    padding: 0 70px;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 375px) {
+  .work-scenes--crafting .work-scenes__device {
+    margin-top: 38px;
+  }
+
+  .skill-content__carousel-card {
+    width: 36px;
+    height: 36px;
+  }
+
+  .skill-content__columns {
+    padding: 0 64px;
+  }
+
+  .skill-content__column-title {
+    font-size: 11px;
+  }
+
+  .skill-content__column-list li {
+    font-size: 9px;
+  }
+
+  .work-detail--p2 .work-scenes--community,
+  .work-detail--p2 .work-scenes--sharerun {
+    grid-template-columns: repeat(2, minmax(0, 128px));
+  }
+
+  .work-scenes--community .work-scenes__device--phone-1,
+  .work-scenes--community .work-scenes__device--phone-2,
+  .work-scenes--sharerun .work-scenes__device--phone-1,
+  .work-scenes--sharerun .work-scenes__device--phone-2 {
+    width: 110px;
+  }
+
+  .work-detail--p3 .work-scenes--personalized-matching,
+  .work-detail--p3 .work-scenes--beyond-matching,
+  .work-scenes--idea-deployment {
+    grid-template-columns: repeat(2, minmax(0, 128px));
+  }
+
+  .work-scenes__onboarding-phone,
+  .work-detail--p3 .work-scenes__matching-phone,
+  .work-detail--p3 .work-scenes__beyond-phone {
+    width: 128px;
   }
 }
