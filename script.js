@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 1024) {
+    if (window.innerWidth > 1439) {
       closeMobileNav();
     }
   });
@@ -509,8 +509,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // needs to feel like it fires promptly as the section scrolls in,
       // rather than waiting for the section's top edge to fully reach the
       // viewport top like the desktop hand-off does.
-      const dockThreshold = window.innerWidth <= 1024 ? 0.55 : 1;
-      const undockThreshold = window.innerWidth <= 1024 ? 0.45 : 0.9;
+      const dockThreshold = window.innerWidth <= 1439 ? 0.55 : 1;
+      const undockThreshold = window.innerWidth <= 1439 ? 0.45 : 0.9;
 
       if (progress >= dockThreshold && !docked) {
         docked = true;
@@ -665,6 +665,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let skillContentDarkContribution = 0;
   let aboutTransitionDarkContribution = 0;
   let quickQaDarkContribution = 0;
+  // Mobile only (see updateSkillContentDark below): keeps the header
+  // inverted while it still overlaps skill-content's black remnant,
+  // WITHOUT also forcing the shared full-viewport #scrollDarkOverlay
+  // opaque for that same stretch -- skill-content already paints its own
+  // solid black background, so the overlay never needs to reflect it.
+  let skillContentHeaderOverlap = 0;
 
   // A direct black<->white swap (.header--inverted, see CSS) once the
   // overlay is dark enough -- not a per-frame RGB blend. Blending toward
@@ -677,7 +683,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const applyCombinedDarkState = () => {
     const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, workDetail2DarkContribution, workDetail3DarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution, quickQaDarkContribution);
     if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
-    if (headerEl) headerEl.classList.toggle('header--inverted', combined > HEADER_DARK_THRESHOLD);
+    const headerDark = combined > HEADER_DARK_THRESHOLD || skillContentHeaderOverlap > HEADER_DARK_THRESHOLD;
+    if (headerEl) headerEl.classList.toggle('header--inverted', headerDark);
     return combined;
   };
 
@@ -694,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const updateMobileHeaderSurface = () => {
-    if (!headerEl || window.innerWidth > 1024) {
+    if (!headerEl || window.innerWidth > 1439) {
       if (headerEl) headerEl.classList.remove('header--surface-dark');
       return;
     }
@@ -792,7 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // inversion and reveal-threshold math entirely, and clear any
       // inline styles left over from a wider viewport instead of letting
       // them fight the CSS override.
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         reasonDarkContribution = 0;
         applyCombinedDarkState();
         const mobileEntry = getReasonEntryProgress();
@@ -1004,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateCardsReveal = () => {
       // Mobile fallback (see CSS) shows the three cards already stacked
       // at rest -- skip the flight/dark math entirely.
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         cardsDarkContribution = 0;
         applyCombinedDarkState();
         cardPairs.forEach((pair) => {
@@ -1130,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // the fog-in observers further down this file.
     const cardsMobileFlipObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (window.innerWidth > 1024) return;
+        if (window.innerWidth > 1439) return;
         cardsRevealEl.classList.toggle('is-mobile-flipped', entry.isIntersecting);
       });
     }, { threshold: 0.35, rootMargin: '0px 0px -10% 0px' });
@@ -1307,7 +1314,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Mobile fallback (see CSS): static stacked end-state, no pin/scrub.
       // Also clears any fog-char styles left over from a desktop-width
       // scroll before the viewport was resized down.
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         workTransitionDarkContribution = 0;
         applyCombinedDarkState();
         [...fogCharsBase, ...fogCharsWipe].forEach((c) => {
@@ -1422,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', rafCoalesce(onWorkTransitionResize));
   }
 
-  const isMobileFogViewport = () => window.innerWidth <= 1024;
+  const isMobileFogViewport = () => window.innerWidth <= 1439;
   const mobileTransitionFogEls = Array.from(document.querySelectorAll('.work-transition, .skill-transition, .about-transition'));
   if (mobileTransitionFogEls.length) {
     const mobileTransitionFogObserver = new IntersectionObserver((entries) => {
@@ -1538,7 +1545,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // own footprint (it's much shorter than a full viewport, ~52svh), so
       // it was still feeding the shared overlay dark all the way through
       // skill-content and bleeding into about-transition/gallery below.
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         return rect.bottom > 80 ? 1 : 0;
       }
       return Math.min(1, Math.max(0, rect.bottom / vh));
@@ -1557,7 +1564,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // mobileTransitionFogObserver above), not a continuous per-char
       // scroll-driven dissolve. Also clears any fog-char styles left over
       // from a desktop-width scroll before the viewport was resized down.
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         const entry = getSkillTransitionEntryProgress();
         const exit = getSkillTransitionExitProgress();
         skillTransitionDarkContribution = Math.min(entry, exit);
@@ -1659,7 +1666,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // meant to stay plain white) about-transition/gallery content below.
       // A step tied to the header's own height removes that gradual wash
       // entirely instead of merely shortening it.
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         return rect.bottom > 80 ? 1 : 0;
       }
       return Math.min(1, Math.max(0, rect.bottom / vh));
@@ -1668,7 +1675,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateSkillContentDark = () => {
       const entry = getSkillContentEntryProgress();
       const exit = getSkillContentExitProgress();
-      skillContentDarkContribution = Math.min(entry, exit);
+      // On mobile this used to feed skillContentDarkContribution directly,
+      // which -- via applyCombinedDarkState's shared Math.max -- pinned the
+      // full-viewport #scrollDarkOverlay fully opaque for the entire stretch
+      // where rect.bottom stayed above 80 (until skill-content's remnant
+      // cleared the header), then snapped it to 0. That stretch reaches well
+      // past the about-transition wipe into the gallery reveal below, so the
+      // whole screen (including the gallery's own cards, visible through the
+      // WebGL canvas's transparent gaps) rendered solid black and then
+      // flashed bright the instant the step flipped -- exactly the "dark
+      // then suddenly bright" flash reported entering the gallery section.
+      // Route it to the header-only signal instead: skill-content's own
+      // background is already opaque black, so the overlay never needed
+      // this contribution to look dark in the first place.
+      if (window.innerWidth <= 1439) {
+        skillContentDarkContribution = 0;
+        skillContentHeaderOverlap = Math.min(entry, exit);
+      } else {
+        skillContentDarkContribution = Math.min(entry, exit);
+        skillContentHeaderOverlap = 0;
+      }
       applyCombinedDarkState();
     };
 
@@ -1795,7 +1821,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateAboutTransition = () => {
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         aboutTransitionDarkContribution = 0;
         applyCombinedDarkState();
         [...aboutFogCharsBase, ...aboutFogCharsWipe].forEach((c) => {
@@ -2733,7 +2759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('IntersectionObserver' in window) {
       const mobileVideoObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          if (!entry.isIntersecting || window.innerWidth > 1024) return;
+          if (!entry.isIntersecting || window.innerWidth > 1439) return;
           const scene = scenes.find((s) => s.panelEl === entry.target);
           if (!scene || scene.videoStarted || !scene.videos.length) return;
           scene.videoStarted = true;
@@ -2794,7 +2820,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // stack already showing the filled end state -- skip the
       // dark-overlay/transform/fill math entirely, same pattern as
       // reason-quote/cards-reveal's own mobile guards.
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         setDarkContribution(0);
         if (trackEl) {
           trackEl.style.transform = 'none';
@@ -3284,7 +3310,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // over its still fully-on-screen white content. Desktop doesn't hit
       // this because whatever precedes each ramp there is already
       // dark/opaque by the time its own early ramp starts.
-      const entryMargin = window.innerWidth <= 1024 ? 200 : vh;
+      const entryMargin = window.innerWidth <= 1439 ? 200 : vh;
       const entry = Math.min(1, Math.max(0, (entryMargin - rect.top) / entryMargin));
       const exit = Math.min(1, Math.max(0, rect.bottom / vh));
       quickQaDarkContribution = Math.min(entry, exit);
@@ -3653,7 +3679,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function positionSkillMobileCards() {
-      if (window.innerWidth > 1024) return;
+      if (window.innerWidth > 1439) return;
       const pinRect = skillCarouselPinEl.getBoundingClientRect();
       const listItems = Array.from(document.querySelectorAll('.skill-content__column-list li'));
 
@@ -3793,7 +3819,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const visibilityRect = skillCarouselStageEl.getBoundingClientRect();
       const nearViewport = visibilityRect.bottom > -viewportBuffer
         && visibilityRect.top < window.innerHeight + viewportBuffer;
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth <= 1439) {
         const mobileReveal = visibilityRect.top < window.innerHeight * 0.62
           && visibilityRect.bottom > window.innerHeight * 0.28;
         if (mobileReveal && !hasEntered) {
@@ -3905,7 +3931,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function tryProactiveEntry(rawDelta) {
-      if (window.innerWidth <= 1024) return false;
+      if (window.innerWidth <= 1439) return false;
       if (isNavJumping) return false;
       const stageRect = skillCarouselStageEl.getBoundingClientRect();
       if (stageRect.top > 0 && rawDelta > 0 && rawDelta >= stageRect.top) {

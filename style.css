@@ -566,7 +566,7 @@ button {
   font-weight: 400;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .hero__title {
     font-size: clamp(30px, 12.5vw, 52px);
     line-height: 1.06;
@@ -1384,7 +1384,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #000000;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   /* Same mobile fallback approach as every other pinned section here:
      drop the pin/scroll-scrub entirely and show the end state (fully
      inverted, white bg/black text) as a plain static block. */
@@ -1517,7 +1517,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #ffffff;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .skill-transition {
     height: auto;
   }
@@ -1640,7 +1640,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #000000;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .about-transition {
     height: auto;
   }
@@ -2923,6 +2923,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .clone-coding {
   position: relative;
   container-type: inline-size;
+  overflow-x: hidden;
 }
 
 .clone-coding__stage {
@@ -4286,7 +4287,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0;
 }
 
-@media (min-width: 1025px) {
+@media (min-width: 1440px) {
   .work-scenes__desc-en p {
     white-space: nowrap;
   }
@@ -4630,7 +4631,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: var(--ink, #252b2d);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .gallery-interaction__shape-title {
     font-size: 32px;
   }
@@ -4844,7 +4845,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .quick-qa {
     padding: 144px 32px 120px;
   }
@@ -5058,7 +5059,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   min-height: 30px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .site-footer {
     min-height: 720px;
   }
@@ -5527,7 +5528,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* Tablet 768 and below: collapse to hamburger menu */
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .header__inner {
     padding: 18px 32px;
   }
@@ -6521,7 +6522,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    widths tighter bounds so the page does not create side-scroll.
    ========================================================================== */
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   :root {
     --mobile-grid-images:
       linear-gradient(var(--color-line), var(--color-line)),
@@ -7477,7 +7478,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .work-scenes--together .work-scenes__media--photo,
   .work-scenes__research-img,
   .work-scenes__deployment-photo {
-    width: min(92%, 290px);
+    width: min(92%, 335px);
   }
 
   .work-scenes--beforeafter .work-scenes__device,
@@ -7888,7 +7889,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .work-detail__link,
   .work-scenes__link,
   .work-scenes__deployment-link,
@@ -7945,9 +7946,25 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   .clone-coding__title {
     white-space: normal;
   }
+
+  .clone-coding__badge {
+    width: calc(7.5 * var(--u));
+    height: calc(7.5 * var(--u));
+    gap: calc(0.4 * var(--u));
+  }
+
+  .clone-coding__badge-icon {
+    width: calc(1.6 * var(--u));
+    height: calc(1.6 * var(--u));
+  }
+
+  .work-detail--p3 .work-detail__progress-item, .work-detail--p2 .work-detail__progress-item, .work-detail__progress-item {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1439px) {
   .work-scenes--crafting .work-scenes__device {
     margin-top: 26px;
   }
