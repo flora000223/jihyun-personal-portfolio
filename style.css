@@ -205,6 +205,18 @@ button {
   --u: min(1cqw, 19.2px);
   --color-line: #E7E6E7;
   --color-muted: #B3B3B3;
+
+  /* Per-photo crop focal point (object-position: X% Y%), one variable per
+     subject -- each drives THREE places at once (the inline reason-quote
+     chip, the big cards-reveal card, and the flying clone that animates
+     between them), so tuning framing only ever needs editing this one
+     line instead of three matching ones. 0%/0% = top-left of the photo
+     stays fully visible (crops from the bottom-right); 100%/100% is the
+     opposite corner; 50% 50% (the default below) is a plain center crop.
+     Nudge these to re-frame each photo without touching any other CSS. */
+  --photo-position-harmony: 30% 40%; /* chipMusic / cardsRevealCard1 / flyingCard1 -- piano (kept from the chip's own already-tuned crop) */
+  --photo-position-growth: 50% 80%; /* chipDesign / cardsRevealCard2 / flyingCard2 -- coding */
+  --photo-position-empathy: 50% 53%; /* chipExperiences / cardsRevealCard3 / flyingCard3 -- meeting */
 }
 
 /* ==========================================================================
@@ -665,13 +677,27 @@ button {
   background: #d9d9d9;
 }
 
+/* Plain object-fit: cover for every flying clone's photo -- same generic
+   treatment as the cards-reveal cards/chips it flies between. Crop focal
+   point per subject via the shared --photo-position-* vars (see :root). */
 .flying-card--photo img {
   position: absolute;
-  top: 0;
-  left: -9.12%;
-  width: 218.39%;
+  inset: 0;
+  width: 100%;
   height: 100%;
-  max-width: none;
+  object-fit: cover;
+}
+
+#flyingCard1 img {
+  object-position: var(--photo-position-harmony);
+}
+
+#flyingCard2 img {
+  object-position: var(--photo-position-growth);
+}
+
+#flyingCard3 img {
+  object-position: var(--photo-position-empathy);
 }
 
 .intro-reasons__subtitle {
@@ -964,7 +990,18 @@ body.js-anim .intro-reasons.is-docked .intro-reasons__reveal {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 10% center;
+}
+
+#chipMusic img {
+  object-position: var(--photo-position-harmony);
+}
+
+#chipDesign img {
+  object-position: var(--photo-position-growth);
+}
+
+#chipExperiences img {
+  object-position: var(--photo-position-empathy);
 }
 
 .media-chip.is-revealed {
@@ -1133,21 +1170,35 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__card {
   background: #9a9a9a;
 }
 
-/* Matches the Figma crop exactly (scaled 218.39%, shifted left 9.12%) so
-   the pianist is framed the same way here as in the design, rather than
-   object-fit: cover's default center-crop (which would show mostly empty
-   stage/piano body on this portrait-ratio card instead of the pianist).
-   Percentage-based, so it stays correctly cropped at any card size --
-   including the flying clone (see .flying-card img), which is the same
-   photo animating through a continuously changing size. */
+/* Plain object-fit: cover for every card's front/back photo -- safe for
+   whatever image gets dropped in without needing custom per-photo crop
+   tuning. All three cards (HARMONY/GROWTH/EMPATHY) share this same
+   generic treatment. */
 .cards-reveal__card-face--front img,
 .cards-reveal__card-face-photo {
   position: absolute;
-  top: 0;
-  left: -9.12%;
-  width: 218.39%;
+  inset: 0;
+  width: 100%;
   height: 100%;
-  max-width: none;
+  object-fit: cover;
+}
+
+/* Crop focal point per card via the shared --photo-position-* vars (see
+   :root) -- covers both the front face (pre-flip) and back face
+   (post-flip) img in one go, since both share the selectors above. */
+#cardsRevealCard1 .cards-reveal__card-face--front img,
+#cardsRevealCard1 .cards-reveal__card-face-photo {
+  object-position: var(--photo-position-harmony);
+}
+
+#cardsRevealCard2 .cards-reveal__card-face--front img,
+#cardsRevealCard2 .cards-reveal__card-face-photo {
+  object-position: var(--photo-position-growth);
+}
+
+#cardsRevealCard3 .cards-reveal__card-face--front img,
+#cardsRevealCard3 .cards-reveal__card-face-photo {
+  object-position: var(--photo-position-empathy);
 }
 
 .cards-reveal__card-overlay {
@@ -1728,7 +1779,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   opacity: 0;
   filter: blur(18px);
   transform: translateY(calc(0.6 * var(--u)));
-  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease;
   transition-delay: var(--fog-delay, 0s);
 }
 
@@ -2015,6 +2066,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   pointer-events: none;
   will-change: opacity;
 }
+
 
 .work-detail__stage {
   position: relative;
@@ -2923,7 +2975,6 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .clone-coding {
   position: relative;
   container-type: inline-size;
-  overflow-x: hidden;
 }
 
 .clone-coding__stage {
@@ -3026,7 +3077,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   opacity: 0;
   filter: blur(18px);
   transform: translateY(calc(0.6 * var(--u)));
-  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease;
   transition-delay: var(--fog-delay, 0s);
 }
 
@@ -3064,9 +3115,24 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   transform: translateY(0);
 }
 
+/* overflow-x: hidden used to sit on .clone-coding itself (clipping
+   .clone-coding__card::before's intentional -100cqw/100cqw overhang below
+   so it doesn't create a page-wide horizontal scrollbar) -- but that made
+   .clone-coding a scroll container, and since .clone-coding__intro (a
+   *sibling* of this grid, sitting right next to it, not inside it) is
+   position: sticky, that container became the nearest scrolling ancestor
+   sticky resolves against instead of the real page viewport. .clone-coding
+   itself never actually scrolls internally (its own box is exactly as
+   tall as its content), so sticky had nothing to stick within and just
+   tracked scroll 1:1 like a plain relatively-positioned element instead
+   ("고정되고 그 위로 카드들이 올라와야 되는데 풀려있"). Moving the clip to
+   this grid instead -- a sibling of .clone-coding__intro, not an ancestor
+   -- keeps the same visual clipping without being in intro's sticky
+   containing-block chain at all. */
 .clone-coding__grid {
   position: absolute;
   inset: 0;
+  overflow-x: hidden;
 }
 
 /* Cards start translated down + faded out; script.js adds .is-revealed
@@ -4716,7 +4782,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   opacity: 0;
   filter: blur(18px);
   transform: translateY(calc(0.6 * var(--u)));
-  transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease;
+  transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease;
   transition-delay: var(--fog-delay, 0s);
 }
 
@@ -4730,7 +4796,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   font-weight: 400;
-  font-size: calc(0.8333 * var(--u));
+  font-size: 16px;
   line-height: 1.4;
   letter-spacing: calc(-0.0167 * var(--u));
   color: #ffffff;

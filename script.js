@@ -40,6 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
   syncUFixed();
   window.addEventListener('resize', rafCoalesce(syncUFixed));
 
+  // Shared across both staff-canvas instances (hero + footer) -- a true
+  // constant, so computing it once here instead of on every drawStaffRibbon
+  // call (previously: every point of every line, every frame) costs nothing
+  // and changes nothing about the result.
+  const NINE_PI = Math.PI * 9;
+
   const initStaffCanvas = (staffCanvas, options = {}) => {
     if (!staffCanvas) return;
     const ctx = staffCanvas.getContext('2d');
@@ -67,6 +73,29 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
+    // The outer stroke gradient only actually depends on ribbonWidth/alpha/
+    // hue (all static per ribbon config across a whole animation session,
+    // changing only on resize) -- yet this used to be rebuilt from scratch
+    // every single call, i.e. ~45 createLinearGradient + ~225
+    // addColorStop calls every frame across both ribbon calls on this
+    // canvas. Caching by a key covering all three (auto-invalidated
+    // whenever ribbonWidth changes, e.g. on resize) turns that into a
+    // one-time cost per resize instead of a per-frame one.
+    const outerGradientCache = new Map();
+    const getOuterGradient = (alpha, hue) => {
+      const key = `${ribbonWidth}-${alpha}-${hue}`;
+      const cached = outerGradientCache.get(key);
+      if (cached) return cached;
+      const gradient = ctx.createLinearGradient(0, 0, ribbonWidth, 0);
+      gradient.addColorStop(0, `rgba(255,255,255,${alpha * 0.12})`);
+      gradient.addColorStop(0.24, `rgba(255,255,255,${alpha * 0.44})`);
+      gradient.addColorStop(0.52, `rgba(${hue},${alpha * 0.78})`);
+      gradient.addColorStop(0.78, `rgba(255,255,255,${alpha * 0.62})`);
+      gradient.addColorStop(1, `rgba(255,255,255,${alpha * 0.1})`);
+      outerGradientCache.set(key, gradient);
+      return gradient;
+    };
+
     const drawStaffRibbon = (time, config) => {
       const {
         centerY,
@@ -82,12 +111,15 @@ document.addEventListener('DOMContentLoaded', () => {
         highlight,
       } = config;
 
-      const gradient = ctx.createLinearGradient(0, 0, ribbonWidth, 0);
-      gradient.addColorStop(0, `rgba(255,255,255,${alpha * 0.12})`);
-      gradient.addColorStop(0.24, `rgba(255,255,255,${alpha * 0.44})`);
-      gradient.addColorStop(0.52, `rgba(${hue},${alpha * 0.78})`);
-      gradient.addColorStop(0.78, `rgba(255,255,255,${alpha * 0.62})`);
-      gradient.addColorStop(1, `rgba(255,255,255,${alpha * 0.1})`);
+      const gradient = getOuterGradient(alpha, hue);
+
+      // frequency/phase/amplitude are the same for every line and every
+      // x-step in this whole ribbon call (only offset/group/line vary),
+      // so the PI multiplications and the 0.42 scale factor are safe to
+      // do once here instead of redundantly inside the x-step loop below.
+      const freqPi = Math.PI * frequency;
+      const freqPiB = Math.PI * (frequency * 0.58);
+      const amplitudeB = amplitude * 0.42;
 
       for (let line = 0; line < count; line += 1) {
         const staffIndex = line % 5;
@@ -95,17 +127,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const offset = (staffIndex - 2) * spacing + group * spacing * 7.2;
         const glow = staffIndex === 2 ? 0.22 : 0.08;
 
+        // drift only depends on time/group (both fixed for this whole
+        // line), not on x -- it was being recomputed on every one of the
+        // ~148 x-steps below for no reason. Same for driftA/driftB/
+        // liftPhase, which just repackage it for the two wave terms.
+        const drift = time * (0.00018 + group * 0.000018);
+        const driftA = drift * 7;
+        const driftB = drift * 4;
+        const liftPhase = time * 0.0012 + line;
+
         ctx.beginPath();
         for (let x = -80; x <= ribbonWidth + 80; x += 14) {
           const nx = x / ribbonWidth;
-          const drift = time * (0.00018 + group * 0.000018);
-          const waveA = Math.sin(nx * Math.PI * frequency + phase + drift * 7) * amplitude;
-          const waveB = Math.sin(nx * Math.PI * (frequency * 0.58) - phase + drift * 4) * amplitude * 0.42;
+          const waveA = Math.sin(nx * freqPi + phase + driftA) * amplitude;
+          const waveB = Math.sin(nx * freqPiB - phase + driftB) * amplitudeB;
           const y = centerY
             + offset
             + waveA
             + waveB
-            + Math.sin(nx * Math.PI * 9 + time * 0.0012 + line) * lift;
+            + Math.sin(nx * NINE_PI + liftPhase) * lift;
 
           if (x === -80) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
@@ -148,8 +188,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
+    // This is a slow, ambient wave -- nothing about it needs 60fps
+    // precision, but every requestAnimationFrame tick was doing the full
+    // draw (2 ribbon calls x ~20-25 lines x ~150 points of trig each,
+    // several ctx.stroke()s with shadowBlur, which is one of canvas's
+    // more expensive operations). Skipping ticks that land under ~33ms
+    // apart caps the actual draw rate at ~30fps -- half the work -- while
+    // the wave's own position still tracks real elapsed time exactly (it
+    // reads the live rAF timestamp each time it *does* draw, so this
+    // doesn't slow the animation down, just samples it less often, which
+    // reads as identical for motion this gentle.
+    const FRAME_INTERVAL_MS = 1000 / 30;
+    let lastDrawTime = 0;
+
     const renderStaffCanvas = (time = 0) => {
       staffFrameId = 0;
+      if (time - lastDrawTime < FRAME_INTERVAL_MS) {
+        requestStaffFrame();
+        return;
+      }
+      lastDrawTime = time;
       const animationTime = time + initialAnimationOffset;
       const isMobile = width < 760;
       const mobileCropWidth = options.mobileCropWidth ?? 1180;
@@ -221,7 +279,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const hamburgerBtn = document.getElementById('hamburgerBtn');
   const mobileNav = document.getElementById('mobileNav');
   const navLinks = document.querySelectorAll('.nav__link, .mobile-nav__link');
-  const sections = document.querySelectorAll('main > section[id]');
+  // The footer (id="contact", data-nav-id="contact") is a <footer>, not a
+  // <section> -- excluded by a bare "section[id]" selector, so it never
+  // took part in scroll-spy at all despite already having the right
+  // data-nav-id set on it.
+  const sections = document.querySelectorAll('main > section[id], main > footer[id]');
 
   /* Mobile menu toggle */
   const closeMobileNav = () => {
@@ -3072,7 +3134,10 @@ document.addEventListener('DOMContentLoaded', () => {
       : [];
 
     const cloneDelayStep = isMobileFogViewport() ? 8 : 60;
-    const cloneTitleDelayStep = isMobileFogViewport() ? 8 : 25;
+    // Matches .ai-lab__title-char's own flat 8ms stagger (see the AI Lab
+    // block below) -- was 25ms on desktop, visibly slower than AI Lab's
+    // title reveal even though both use the same fog-in mechanics.
+    const cloneTitleDelayStep = 8;
     const cloneGroupGap = isMobileFogViewport() ? 35 : 150;
     const chipsEnd = cloneChipEls.length * cloneDelayStep;
     cloneChipEls.forEach((el, i) => {
@@ -3260,7 +3325,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ? Array.from(skillTitleEl.querySelectorAll('.skill-content__title-char'))
       : [];
 
-    const skillFogDelayStep = isMobileFogViewport() ? 8 : 25;
+    // Matches .ai-lab__title-char's flat 8ms stagger -- was 25ms on desktop.
+    const skillFogDelayStep = 8;
     skillTitleChars.forEach((el, i) => {
       el.style.setProperty('--fog-delay', `${i * skillFogDelayStep}ms`);
     });
@@ -3292,7 +3358,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ? Array.from(quickQaTitleEl.querySelectorAll('.quick-qa__title-char'))
       : [];
 
-    const quickQaFogDelayStep = isMobileFogViewport() ? 8 : 25;
+    // Matches .ai-lab__title-char's flat 8ms stagger -- was 25ms on desktop.
+    const quickQaFogDelayStep = 8;
     quickQaTitleChars.forEach((el, i) => {
       el.style.setProperty('--fog-delay', `${i * quickQaFogDelayStep}ms`);
     });
@@ -3787,11 +3854,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function unlockPageScroll() {}
 
+    // While engaged, wheel/keydown/pointer-drag input never touches real
+    // page scroll themselves (they preventDefault the native scroll and
+    // drive the carousel's rotation as internal state instead) -- the
+    // only page-scroll changes those cause are engageAtRect's/
+    // releaseEngagement's own explicit scrollBy snaps. So any *other*
+    // scroll-position change seen here while engaged can only be an
+    // input this carousel doesn't listen for -- a scrollbar drag,
+    // Home/End, middle-click autoscroll, etc. This used to always force
+    // it back to lockedScrollY, which fights a scrollbar drag on every
+    // 'scroll' event it fires (there's no timeout here unlike
+    // cards-reveal's own lock, so nothing else ever re-enables further
+    // progress) and traps the user at this position indefinitely.
+    // Releasing the engagement instead lets that kind of scroll win
+    // immediately, the same way isNavJumping already does for nav-link
+    // jumps.
     window.addEventListener(
       'scroll',
       () => {
         if (isEngaged && !isNavJumping && window.scrollY !== lockedScrollY) {
-          window.scrollTo(0, lockedScrollY);
+          releaseEngagement(0);
         }
       },
       { passive: true },
