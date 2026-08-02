@@ -159,6 +159,15 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* .intro-reasons (among others) has no background of its own and relies
+     on body's white showing through, so that can't just be recolored to
+     black -- but .site-footer is the last thing on the page and solid
+     black, and rubber-band overscroll past its bottom edge briefly reveals
+     the white body background underneath it, reading as the footer
+     "disappearing" into a flash of white. Disabling the bounce (rather
+     than recoloring body) fixes that without touching every section's
+     background. */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -3323,7 +3332,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   display: flex;
   flex-direction: column;
   gap: calc(1.25 * var(--u));
-  margin-bottom: calc(6.5 * var(--u));
+  margin-bottom: calc(9.5 * var(--u));
 }
 
 .ai-lab__title-row {
@@ -5106,7 +5115,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   min-height: 52px;
   display: grid;
   place-items: center;
-  border: 1px solid #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
   color: #ffffff;
   transition: background 180ms ease, transform 180ms ease;
@@ -5202,22 +5211,41 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 /* ==========================================================================
    Floating portfolio chatbot
    ========================================================================== */
+/* Sized and offset to exactly match .site-footer__top (the footer's own
+   "scroll to top" button, which sits in this same corner) -- calc(3.75 * u)
+   / calc(3.3854 * u) are literally copied from that rule, just using
+   --u-fixed since this element is position:fixed outside any section's own
+   container-type context (see --u-fixed's own definition for why). */
 .portfolio-chatbot {
   position: fixed;
-  right: 28px;
-  bottom: 28px;
+  right: calc(3.3854 * var(--u-fixed));
+  bottom: calc(3.3854 * var(--u-fixed));
   z-index: 120;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+/* Toggled by script.js while the footer (id="contact") is in view -- the
+   footer's own "scroll to top" button sits in the same bottom-right corner,
+   so the two would otherwise overlap. */
+.portfolio-chatbot--hidden {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
 }
 
 .portfolio-chatbot__toggle {
-  width: 64px;
-  height: 64px;
+  width: calc(3.75 * var(--u-fixed));
+  height: calc(3.75 * var(--u-fixed));
+  min-width: 52px;
+  min-height: 52px;
   display: grid;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
-  background: #000000;
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: #ffffff;
   box-shadow: 0 18px 46px rgba(0, 0, 0, 0.24);
   transition: transform 180ms ease, background 180ms ease, color 180ms ease;
@@ -5228,11 +5256,11 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   transform: translateY(-3px);
 }
 
-.portfolio-chatbot__toggle-mark {
-  font-family: 'Neue Montreal', sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1;
+.portfolio-chatbot__toggle-icon {
+  width: calc(2 * var(--u-fixed));
+  min-width: 28px;
+  height: auto;
+  display: block;
 }
 
 .portfolio-chatbot__panel[hidden] {
@@ -5538,15 +5566,21 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-weight: 700;
 }
 
+/* right/bottom below match .site-footer__top's own tablet/mobile overrides
+   exactly -- at these widths its fluid calc(3.75 * u) size has already
+   bottomed out at its min-width/min-height floor, so pinning the offset
+   here keeps both buttons' corner margins identical too. */
+@media (max-width: 1439px) {
+  .portfolio-chatbot {
+    right: 32px;
+    bottom: 48px;
+  }
+}
+
 @media (max-width: 520px) {
   .portfolio-chatbot {
-    right: 16px;
-    bottom: 16px;
-  }
-
-  .portfolio-chatbot__toggle {
-    width: 56px;
-    height: 56px;
+    right: 24px;
+    bottom: 40px;
   }
 
   .portfolio-chatbot__panel {

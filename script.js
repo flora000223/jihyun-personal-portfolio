@@ -57,7 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let staffFrameId = 0;
     let staffCanvasActive = true;
     const initialAnimationOffset = options.initialAnimationOffset ?? 2000;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // options.static freezes this canvas on a single rendered frame instead
+    // of animating -- reusing the existing prefers-reduced-motion path (one
+    // renderStaffCanvas call, no rAF loop) does exactly that.
+    const reduceMotion = options.static === true
+      || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const background = options.background ?? '#020204';
     const primaryAlpha = options.primaryAlpha ?? 0.68;
     const secondaryAlpha = options.secondaryAlpha ?? 0.3;
@@ -257,7 +261,25 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     resizeStaffCanvas();
-    window.addEventListener('resize', rafCoalesce(resizeStaffCanvas));
+    // Resizing the canvas element clears its pixels, so a frozen (reduceMotion
+    // or static) frame must be explicitly redrawn after every resize. rafCoalesce
+    // defers the redraw to a requestAnimationFrame tick, but a frozen canvas has
+    // no ongoing rAF loop pumping frames -- nothing guarantees that tick actually
+    // gets serviced, which can leave the canvas cleared and never repainted. Only
+    // the still-animating path (which does have a live rAF loop) uses rafCoalesce;
+    // the frozen path redraws synchronously instead.
+    window.addEventListener('resize', reduceMotion
+      ? () => {
+        resizeStaffCanvas();
+        // renderStaffCanvas's frame-throttle compares against lastDrawTime --
+        // calling it again with the same fixed initialAnimationOffset "time"
+        // (as the initial frozen render below already did) reads as 0ms
+        // elapsed and gets skipped, leaving the just-cleared canvas blank.
+        // Resetting lastDrawTime first forces this redraw through.
+        lastDrawTime = -Infinity;
+        renderStaffCanvas(initialAnimationOffset);
+      }
+      : rafCoalesce(resizeStaffCanvas));
     const staffObserver = new IntersectionObserver((entries) => {
       staffCanvasActive = entries.some((entry) => entry.isIntersecting);
       if (staffCanvasActive) requestStaffFrame();
@@ -274,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     secondaryCenterY: 0.68,
     primaryAlpha: 0.42,
     secondaryAlpha: 0.2,
+    static: true,
   });
 
   const hamburgerBtn = document.getElementById('hamburgerBtn');
@@ -367,6 +390,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // smooth-scroll animation).
   let isNavJumping = false;
 
+  // Separate from isNavJumping -- that flag clears via waitForJumpToSettle's
+  // own "3 stable frames within 2px of target" polling loop, which can take
+  // a while (the browser's smooth-scroll easing tail keeps nudging the
+  // position by sub-pixel amounts well after the jump is visually done), so
+  // gating writes on it meant e.g. the header could sit black-on-black for
+  // up to a couple seconds after actually arriving. This instead clears on
+  // the native 'scrollend' event, which fires right when the browser itself
+  // considers the scroll finished. Also used by .about-transition (see
+  // updateAboutTransition) to skip animating its own black -> white wipe
+  // reveal in whatever compressed time a nav-jump's smooth-scroll takes to
+  // cross its 440vh -- not a race like the header's, just a real section
+  // the jump has to fly through, which otherwise reads as an unwanted flash
+  // of black rather than a deliberate transition.
+  let suspendNavJumpVisuals = false;
+
   // Scroll-jacked sections further down (the SKILL carousel) freeze real
   // page scrolling while engaged and drive their own animation off raw
   // wheel/key deltas instead -- window.scrollY genuinely never moves, so
@@ -412,6 +450,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (stableFrames >= 3 && reachedTarget) {
         isNavJumping = false;
         lastScrollY = window.scrollY;
+        // applyCombinedDarkState's own writes were suspended for the whole
+        // jump (see that function) -- every section's *DarkContribution is
+        // still fresh (only the header/overlay write itself was skipped),
+        // so this one call now applies the correct settled state exactly
+        // once, instead of whatever was last (possibly mid-transit and
+        // wrong) before the jump began.
+        applyCombinedDarkState();
         return;
       }
       requestAnimationFrame(check);
@@ -431,6 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       isNavJumping = true;
+      suspendNavJumpVisuals = true;
       navJumpToken += 1;
       header.classList.remove('header--hidden');
       releaseCardsRevealLock();
@@ -448,6 +494,36 @@ document.addEventListener('DOMContentLoaded', () => {
         waitForJumpToSettle();
       }
     });
+  });
+
+  // Native signal that a scroll (including the smooth-scroll a nav-link
+  // jump kicks off) has actually finished -- fires reliably right when the
+  // browser itself considers the scroll done, unlike isNavJumping's own
+  // "3 stable frames" polling (which can lag well behind the visual end of
+  // a smooth-scroll's easing tail). navJumpResumeCallbacks collects
+  // callbacks from sections suspended for the jump's duration (currently
+  // just .about-transition, see updateAboutTransition) that need one final
+  // recompute against the real, settled scroll position once it's over.
+  //
+  // applyCombinedDarkState() is also called unconditionally here (not just
+  // while suspendNavJumpVisuals was set): every *DarkContribution is only
+  // ever recomputed as a side effect of some 'scroll' listener firing, and
+  // applyCombinedDarkState's own rAF-batched write only runs when one of
+  // those calls it. If the browser's very last 'scroll' event of a
+  // smooth-scroll (nav-jump or otherwise) fires before the animation has
+  // fully settled to its rest position -- entirely possible during the
+  // easing tail -- nothing else is left to trigger one more recompute, so
+  // the header/overlay can get stuck showing whatever that last, not-quite-
+  // final position implied, indefinitely (confirmed: minutes, not frames).
+  // 'scrollend' is the one signal guaranteed to fire after scrolling has
+  // truly stopped, so forcing a recompute here closes that gap for good.
+  const navJumpResumeCallbacks = [];
+  window.addEventListener('scrollend', () => {
+    applyCombinedDarkState();
+    if (suspendNavJumpVisuals) {
+      suspendNavJumpVisuals = false;
+      navJumpResumeCallbacks.forEach((fn) => fn());
+    }
   });
 
   window.addEventListener('scroll', () => {
@@ -717,6 +793,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // swap to white as soon as the screen visibly starts darkening rather
   // than waiting for it to nearly finish.
   const HEADER_DARK_THRESHOLD = 0.08;
+  // Every section below already exposes pure, side-effect-free
+  // getXEntryProgress/getXExitProgress/getXDwellProgress getters (used for
+  // its own reveal/wipe timing), but each one's *DarkContribution write is
+  // bundled inside that SAME section's own independently rAF-throttled
+  // scroll handler (its "xTicking" guard) alongside its other, heavier
+  // per-scroll visual work. During a fast scroll (a nav-jump's smooth-scroll
+  // especially), if one section's rAF happens to still be pending when a
+  // new 'scroll' event arrives, its update -- and therefore its
+  // contribution -- skips that event entirely, while an adjacent section
+  // (not currently pending) updates immediately. The two can end up representing
+  // *different instants*, and if that mismatch briefly drops `combined`
+  // below threshold before the stale one catches up next frame, that's a
+  // real, separately-painted frame -- the header genuinely blinking off and
+  // back on. Each section below registers a tiny refresher here (reusing
+  // its own existing getters/formula, nothing new) that recomputes just its
+  // *DarkContribution from current geometry; applyCombinedDarkState calls
+  // all of them, synchronously, immediately before every write, so no
+  // combined value is ever built from a mix of stale and fresh contributions.
+  const darkContributionRefreshers = [];
   let reasonDarkContribution = 0;
   let cardsDarkContribution = 0;
   let workTransitionDarkContribution = 0;
@@ -726,6 +821,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let skillTransitionDarkContribution = 0;
   let skillContentDarkContribution = 0;
   let aboutTransitionDarkContribution = 0;
+  // .site-footer is always solid black, unlike every other section above
+  // (which fade a dark overlay in/out via their own *DarkContribution).
+  // quickQaDarkContribution's own "exit" factor drops to 0 as soon as
+  // quick-qa's bottom scrolls above the viewport -- with nothing covering
+  // for the footer after it, the header logo (plain black SVG, only
+  // inverted to white while some *DarkContribution is above threshold)
+  // would go black-on-black and effectively disappear over it. No fade
+  // needed here since the footer is already fully opaque -- this is just 1
+  // while the viewport's top edge is over it, 0 otherwise. Set inside
+  // updateQuickQaDarkState itself (not a separate listener) -- see that
+  // function for why sharing its one rect read matters here.
+  let blackSectionDarkContribution = 0;
   let quickQaDarkContribution = 0;
   // Mobile only (see updateSkillContentDark below): keeps the header
   // inverted while it still overlaps skill-content's black remnant,
@@ -742,12 +849,40 @@ document.addEventListener('DOMContentLoaded', () => {
   // indistinguishable, and it meant black text stayed low-contrast
   // against the darkening background for a long stretch instead of
   // becoming legible (white) as soon as darkening starts.
+  // Batching the actual DOM write into one rAF (rather than writing on
+  // every single applyCombinedDarkState() call, several of which can land
+  // for what's functionally the same on-screen instant during a fast
+  // scroll) means only one, fully-settled value gets painted per frame.
+  // Combined with darkContributionRefreshers above (refreshing every
+  // section's contribution from live geometry immediately before reading
+  // any of them, right here), the value read on any given frame can never
+  // be a mix of one section's stale figure and another's fresh one --
+  // eliminating the header/overlay flicker without delaying the write
+  // itself (color changes land the same frame the underlying scroll
+  // position does, nav-jump or otherwise -- see .about-transition's own
+  // suspend-during-jump handling below for the one section that needs a
+  // real behavioral change during a jump, not just a timing fix).
+  let darkStateFrameId = 0;
   const applyCombinedDarkState = () => {
-    const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, workDetail2DarkContribution, workDetail3DarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution, quickQaDarkContribution);
-    if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
-    const headerDark = combined > HEADER_DARK_THRESHOLD || skillContentHeaderOverlap > HEADER_DARK_THRESHOLD;
-    if (headerEl) headerEl.classList.toggle('header--inverted', headerDark);
-    return combined;
+    if (darkStateFrameId) return;
+    darkStateFrameId = requestAnimationFrame(() => {
+      darkStateFrameId = 0;
+      darkContributionRefreshers.forEach((refresh) => refresh());
+      const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, workDetail2DarkContribution, workDetail3DarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution, quickQaDarkContribution);
+      if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
+      // blackSectionDarkContribution deliberately does NOT feed into
+      // `combined`: combined drives #scrollDarkOverlay's opacity (a
+      // full-viewport position:fixed layer at z-index 40, well above
+      // .site-footer__inner's own z-index: 1), and the footer is already
+      // opaque black on its own -- fading that overlay in over it just
+      // paints solid black across the *whole* screen, including the
+      // footer's own white text, which reads as the footer having
+      // disappeared. blackSectionDarkContribution only needs to flip the
+      // header logo white; it has no gradient to blend and nothing above
+      // it that needs covering.
+      const headerDark = combined > HEADER_DARK_THRESHOLD || skillContentHeaderOverlap > HEADER_DARK_THRESHOLD || blackSectionDarkContribution > 0;
+      if (headerEl) headerEl.classList.toggle('header--inverted', headerDark);
+    });
   };
 
   const readColor = (value) => {
@@ -854,6 +989,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const dwellDist = reasonQuoteEl.offsetHeight - window.innerHeight;
       return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
     };
+
+    darkContributionRefreshers.push(() => {
+      reasonDarkContribution = window.innerWidth <= 1439
+        ? 0
+        : Math.min(getReasonEntryProgress(), getReasonExitProgress());
+    });
 
     const updateReasonQuote = () => {
       // Mobile fallback (see CSS) shows everything at rest with a plain
@@ -1059,6 +1200,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const dwellDist = cardsRevealEl.offsetHeight - window.innerHeight;
       return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
     };
+
+    darkContributionRefreshers.push(() => {
+      cardsDarkContribution = window.innerWidth <= 1439
+        ? 0
+        : Math.min(getCardsEntryProgress(), getCardsExitProgress());
+    });
 
     // Fixed vh distance (not a bare fraction -- see script.js's earlier
     // FILL_END_VH/SWAP_TRIGGER_VH comment for why this needs converting
@@ -1619,6 +1766,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
     };
 
+    darkContributionRefreshers.push(() => {
+      const entry = getSkillTransitionEntryProgress();
+      const exit = getSkillTransitionExitProgress();
+      if (window.innerWidth <= 1439) {
+        skillTransitionDarkContribution = Math.min(entry, exit);
+        return;
+      }
+      const dwellProgress = entry >= 1 ? getSkillTransitionDwellProgress() : 0;
+      const wipeProgress = Math.min(1, Math.max(0, (dwellProgress - SKILL_WIPE_START) / (SKILL_WIPE_END - SKILL_WIPE_START)));
+      skillTransitionDarkContribution = Math.min(entry, exit) * wipeProgress;
+    });
+
     const updateSkillTransition = () => {
       // Mobile fallback (see CSS): static stacked end-state, no pin/scrub --
       // same "reveal as one whole block" pattern as work-transition/
@@ -1733,6 +1892,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return Math.min(1, Math.max(0, rect.bottom / vh));
     };
+
+    darkContributionRefreshers.push(() => {
+      const entry = getSkillContentEntryProgress();
+      const exit = getSkillContentExitProgress();
+      if (window.innerWidth <= 1439) {
+        skillContentDarkContribution = 0;
+        skillContentHeaderOverlap = Math.min(entry, exit);
+      } else {
+        skillContentDarkContribution = Math.min(entry, exit);
+        skillContentHeaderOverlap = 0;
+      }
+    });
 
     const updateSkillContentDark = () => {
       const entry = getSkillContentEntryProgress();
@@ -1882,6 +2053,20 @@ document.addEventListener('DOMContentLoaded', () => {
       return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
     };
 
+    darkContributionRefreshers.push(() => {
+      // Forced to 0 for the same reason updateAboutTransition itself skips
+      // its normal calculation during a nav-jump -- see that function.
+      if (suspendNavJumpVisuals || window.innerWidth <= 1439) {
+        aboutTransitionDarkContribution = 0;
+        return;
+      }
+      const entry = getAboutTransitionEntryProgress();
+      const exit = getAboutTransitionExitProgress();
+      const dwellProgress = entry >= 1 ? getAboutTransitionDwellProgress() : 0;
+      const wipeProgress = Math.min(1, Math.max(0, (dwellProgress - ABOUT_WIPE_START) / (ABOUT_WIPE_END - ABOUT_WIPE_START)));
+      aboutTransitionDarkContribution = Math.min(entry, exit) * (1 - wipeProgress);
+    });
+
     const updateAboutTransition = () => {
       if (window.innerWidth <= 1439) {
         aboutTransitionDarkContribution = 0;
@@ -1891,6 +2076,31 @@ document.addEventListener('DOMContentLoaded', () => {
           c.el.style.filter = '';
           c.el.style.transform = '';
         });
+        return;
+      }
+
+      // Unlike the header/overlay race this same flag also guards elsewhere,
+      // this section isn't fighting another listener -- it's a real, solid
+      // black 440vh block (.about-transition's own background, independent
+      // of #scrollDarkOverlay) that a nav-jump's smooth-scroll has to cross
+      // in a second or two. Left to animate normally, that plays its black
+      // -> white wipe reveal in whatever compressed time the jump takes,
+      // which reads as an unwanted flash rather than the deliberate
+      // scroll-paced reveal it's designed to be. Snapping straight to the
+      // fully-revealed end state keeps it looking "already done" for the
+      // whole jump; the 'scrollend' resume callback recomputes the real
+      // state for wherever the jump actually lands once it's over.
+      if (suspendNavJumpVisuals) {
+        const centerX = aboutTransitionEl.getBoundingClientRect().width / 2;
+        const contentEnd = aboutTitleBaseEl.offsetLeft + aboutTitleBaseEl.offsetWidth;
+        const scrollToCenter = Math.max(0, contentEnd - centerX);
+        const xPx = `${-scrollToCenter}px`;
+        aboutScrollerBaseEl.style.transform = `translateX(${xPx})`;
+        aboutScrollerWipeEl.style.transform = `translateX(${xPx})`;
+        applyAboutFogChars(aboutFogCharsBase, -scrollToCenter, 1, centerX);
+        applyAboutFogChars(aboutFogCharsWipe, -scrollToCenter, 1, centerX);
+        aboutWipeEl.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+        aboutTransitionDarkContribution = 0;
         return;
       }
 
@@ -1952,6 +2162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAboutTransition();
     window.addEventListener('scroll', onAboutTransitionScroll, { passive: true });
     window.addEventListener('resize', rafCoalesce(onAboutTransitionResize));
+    navJumpResumeCallbacks.push(updateAboutTransition);
   }
 
   /* Gallery interaction ("WHAT shapes ME"): ported from the standalone
@@ -2853,6 +3064,22 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const stage = (start, end, p) => Math.min(1, Math.max(0, (p - start) / (end - start)));
+
+    darkContributionRefreshers.push(() => {
+      if (window.innerWidth <= 1439) {
+        setDarkContribution(0);
+        return;
+      }
+      const entry = getEntryProgress();
+      const exit = getExitProgress();
+      const dwellProgress = entry >= 1 ? getDwellProgress() : 0;
+      let totalSlide = 0;
+      slideStarts.forEach((start, i) => {
+        totalSlide += stage(start, slideEnds[i], dwellProgress);
+      });
+      const darkProgress = Math.min(1, totalSlide);
+      setDarkContribution(Math.min(entry >= 1 ? darkProgress : 0, exit));
+    });
     const sceneBgColors = sceneBackgrounds
       .map((hex) => {
         const clean = String(hex).replace('#', '').trim();
@@ -3381,8 +3608,38 @@ document.addEventListener('DOMContentLoaded', () => {
       const entry = Math.min(1, Math.max(0, (entryMargin - rect.top) / entryMargin));
       const exit = Math.min(1, Math.max(0, rect.bottom / vh));
       quickQaDarkContribution = Math.min(entry, exit);
+      // .site-footer is quick-qa's very next sibling with no gap between
+      // them, so rect.bottom here IS the footer's own top edge -- reusing
+      // this same reading (rather than a second, separately-scroll-ordered
+      // getBoundingClientRect + listener on the footer) is what actually
+      // matters: two independent listeners computing complementary halves
+      // of the same boundary can transiently disagree for one 'scroll'
+      // event during a fast (nav-jump) scroll, if one has updated its
+      // contribution for the new position and calls applyCombinedDarkState
+      // before the other has -- producing exactly one frame where the
+      // header logo flicks black then immediately back to white. Deriving
+      // both from one reading, in one function, closes that gap entirely.
+      // Tolerance (not a strict <= 0): at rest, sub-pixel scroll rounding
+      // can leave rect.bottom reading as a tiny positive value (observed
+      // 0.1171875) even when the footer visually fills the entire
+      // viewport, which a strict <= 0 check would miss forever.
+      blackSectionDarkContribution = rect.bottom <= 1 ? 1 : 0;
       applyCombinedDarkState();
     };
+
+    // No internal rAF throttle on this one already (registered directly
+    // below), so it was never actually at risk of the staleness the other
+    // sections' refreshers guard against -- registered anyway so every
+    // contribution is refreshed from the exact same instant, no exceptions.
+    darkContributionRefreshers.push(() => {
+      const rect = quickQaEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const entryMargin = window.innerWidth <= 1439 ? 200 : vh;
+      const entry = Math.min(1, Math.max(0, (entryMargin - rect.top) / entryMargin));
+      const exit = Math.min(1, Math.max(0, rect.bottom / vh));
+      quickQaDarkContribution = Math.min(entry, exit);
+      blackSectionDarkContribution = rect.bottom <= 1 ? 1 : 0;
+    });
 
     const setQuickQaItem = (item, open) => {
       const button = item.querySelector('.quick-qa__question');
@@ -3440,10 +3697,35 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('load', updateQuickQaDarkState);
   }
 
+  // .site-footer__nav a's :hover swaps its font (uppercase Neue Montreal ->
+  // italic lowercase Cardinal Fruit), which renders noticeably narrower --
+  // and since the link has no explicit width, both it and its auto-sized
+  // .site-footer__nav parent shrink to match. If the cursor happens to sit
+  // in that shrunk-away sliver (most likely right at the link's own,
+  // now-stale right edge), the box retracting out from under it ends
+  // :hover, which grows the box back, which re-enters :hover, which
+  // shrinks it again -- a rapid oscillation that reads as the hover
+  // "lagging"/jittering. Pinning each link's natural (un-hovered) width as
+  // a min-width means the box can only ever grow on hover, never shrink
+  // back past where the cursor already was, so it can't retrigger itself.
+  const footerNavLinks = document.querySelectorAll('.site-footer__nav a');
+  const pinFooterNavLinkWidths = () => {
+    footerNavLinks.forEach((link) => {
+      // Cleared first: the link's own font-size scales with --u (the
+      // footer's own cqw-based unit), so a leftover min-width from before a
+      // resize would otherwise floor this remeasurement too high/low.
+      link.style.minWidth = '';
+      link.style.minWidth = `${link.getBoundingClientRect().width}px`;
+    });
+  };
+  pinFooterNavLinkWidths();
+  window.addEventListener('resize', rafCoalesce(pinFooterNavLinkWidths));
+
   const footerTopButton = document.querySelector('.site-footer__top');
   if (footerTopButton) {
     footerTopButton.addEventListener('click', () => {
       isNavJumping = true;
+      suspendNavJumpVisuals = true;
       navJumpToken += 1;
       header.classList.remove('header--hidden');
       releaseCardsRevealLock();
@@ -3575,7 +3857,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!chatbotSeeded) {
         chatbotSeeded = true;
         appendChatbotMessage('bot', {
-          text: '안녕하세요. 저는 지현 포트폴리오 챗봇입니다. 학력, 전공, 취미, 디자인 철학, 프로젝트와 포스터 작업을 가볍게 안내해드릴게요.',
+          text: '안녕하세요. 지원자 박지현입니다. 학력, MBTI, 취미, 디자인 철학 등 저에 대해 궁금한 점이 있으시다면 편하게 질문해주세요.',
         });
       }
       if (chatbotInput) chatbotInput.focus();
@@ -3646,6 +3928,49 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && chatbotPanel && !chatbotPanel.hidden) closeChatbot();
     });
+
+    // Click anywhere outside the widget (toggle button + panel) closes it.
+    // portfolioChatbotEl wraps both, so a click on the toggle itself is
+    // still "inside" here and left to its own handler above instead of
+    // being double-closed.
+    document.addEventListener('click', (event) => {
+      if (chatbotPanel && !chatbotPanel.hidden && !portfolioChatbotEl.contains(event.target)) {
+        closeChatbot();
+      }
+    });
+
+    // Hidden while either the hero (first screen -- the bubble has nothing
+    // to float over yet and would just sit on top of the hero title) or the
+    // footer (whose own "scroll to top" button sits in this same corner) is
+    // in view. Two independent observers each toggling the same class would
+    // fight each other -- e.g. hero scrolling out of view while already
+    // deep in the footer would incorrectly un-hide it -- so both track
+    // their own boolean and the class is only ever set from the OR of both.
+    const heroEl = document.getElementById('intro');
+    const footerEl = document.getElementById('contact');
+    let chatbotOverHero = false;
+    let chatbotOverFooter = false;
+    const updateChatbotVisibility = () => {
+      portfolioChatbotEl.classList.toggle('portfolio-chatbot--hidden', chatbotOverHero || chatbotOverFooter);
+    };
+    if (heroEl) {
+      const heroObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          chatbotOverHero = entry.isIntersecting;
+          updateChatbotVisibility();
+        });
+      }, { rootMargin: '0px' });
+      heroObserver.observe(heroEl);
+    }
+    if (footerEl) {
+      const footerObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          chatbotOverFooter = entry.isIntersecting;
+          updateChatbotVisibility();
+        });
+      }, { rootMargin: '0px' });
+      footerObserver.observe(footerEl);
+    }
   }
 
   // Skill content carousel -- the pin sticks while wheel/key input drives the
