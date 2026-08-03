@@ -4679,6 +4679,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
+  /* Matches the `perspective = 900` constant script.js's WebGL path uses
+     for its own manual projection math, so the DOM fallback (see
+     .gallery-interaction__card-dom below) reads the same depth/scale even
+     though it lets the browser do the projection instead. Harmless for
+     the WebGL canvas itself -- perspective only affects 3D-transformed
+     children, and the canvas draws its own pixels regardless. */
+  perspective: 900px;
 }
 
 .gallery-interaction__webgl-canvas {
@@ -4688,6 +4695,45 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   height: 100%;
   display: block;
   pointer-events: none;
+}
+
+/* Fallback renderer for when WebGL is unavailable (getContext('webgl')
+   returns null -- disabled hardware acceleration, a GPU on Chrome's
+   blocklist, some locked-down/remote-desktop setups, etc). Only ever
+   created by script.js when that happens, so these never coexist with
+   the WebGL canvas -- see the !gl branch next to
+   .gallery-interaction__webgl-canvas's own creation. Same card.state
+   (x/y/z/rotation/flipX/scale/opacity) values as the WebGL path, just
+   applied as a real CSS 3D transform instead of a manual per-vertex
+   projection. */
+.gallery-interaction__card-dom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  border-radius: 6px;
+}
+
+.gallery-interaction__card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.gallery-interaction__card-face--front img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.gallery-interaction__card-face--back {
+  background: rgb(186, 191, 193);
+  transform: rotateX(180deg);
 }
 
 .gallery-interaction__ring-overlay {

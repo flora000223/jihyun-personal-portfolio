@@ -2403,6 +2403,26 @@ document.addEventListener('DOMContentLoaded', () => {
       premultipliedAlpha: false,
     });
 
+    // Uniform locations are assigned inside the `if (gl)` setup block just
+    // below, but declared here (rather than with `const` down there) so
+    // drawCard -- defined later, gl-only itself but still parsed either
+    // way -- can close over them regardless of which path this page ends
+    // up taking.
+    let colorLocation;
+    let textureLocation;
+    let sizeLocation;
+    let radiusLocation;
+    let alphaLocation;
+    let hasTextureLocation;
+    let imageAspectLocation;
+    let cardAspectLocation;
+
+    // WebGL-specific setup -- program/shaders/texture uploads only ever
+    // needed on the gl path. createTextureFromImage stays null on the
+    // fallback path (see the image-loading branch below, which never
+    // calls it in that case).
+    let createTextureFromImage = null;
+
     if (gl) {
       const vertexShaderSource = `
         attribute vec2 a_position;
@@ -2476,14 +2496,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const program = createProgram();
       const positionLocation = gl.getAttribLocation(program, 'a_position');
       const uvLocation = gl.getAttribLocation(program, 'a_uv');
-      const colorLocation = gl.getUniformLocation(program, 'u_color');
-      const textureLocation = gl.getUniformLocation(program, 'u_texture');
-      const sizeLocation = gl.getUniformLocation(program, 'u_size');
-      const radiusLocation = gl.getUniformLocation(program, 'u_radius');
-      const alphaLocation = gl.getUniformLocation(program, 'u_alpha');
-      const hasTextureLocation = gl.getUniformLocation(program, 'u_hasTexture');
-      const imageAspectLocation = gl.getUniformLocation(program, 'u_imageAspect');
-      const cardAspectLocation = gl.getUniformLocation(program, 'u_cardAspect');
+      colorLocation = gl.getUniformLocation(program, 'u_color');
+      textureLocation = gl.getUniformLocation(program, 'u_texture');
+      sizeLocation = gl.getUniformLocation(program, 'u_size');
+      radiusLocation = gl.getUniformLocation(program, 'u_radius');
+      alphaLocation = gl.getUniformLocation(program, 'u_alpha');
+      hasTextureLocation = gl.getUniformLocation(program, 'u_hasTexture');
+      imageAspectLocation = gl.getUniformLocation(program, 'u_imageAspect');
+      cardAspectLocation = gl.getUniformLocation(program, 'u_cardAspect');
       const buffer = gl.createBuffer();
 
       gl.useProgram(program);
@@ -2496,7 +2516,7 @@ document.addEventListener('DOMContentLoaded', () => {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.uniform1i(textureLocation, 0);
 
-      const createTextureFromImage = (image) => {
+      createTextureFromImage = (image) => {
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -2507,47 +2527,84 @@ document.addEventListener('DOMContentLoaded', () => {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         return texture;
       };
+    }
 
-      // Cards should stagger in when the user actually scrolls the section
-      // into view, not the instant their images finish loading (which
-      // happens almost immediately on page load, long before the user
-      // has scrolled anywhere near this section). revealStartedAt is only
-      // set once both the images are ready AND the section has entered
-      // the viewport, timed from whichever happens later.
-      let loadSettledCount = 0;
-      let imagesSettledAt = null;
-      let sectionEnteredAt = null;
-      let revealStartedAt = null;
-      const markCardSettled = () => {
-        loadSettledCount += 1;
-        if (loadSettledCount === CARD_COUNT && imagesSettledAt === null) {
-          imagesSettledAt = window.performance.now();
+    // Cards should stagger in when the user actually scrolls the section
+    // into view, not the instant their images finish loading (which
+    // happens almost immediately on page load, long before the user
+    // has scrolled anywhere near this section). revealStartedAt is only
+    // set once both the images are ready AND the section has entered
+    // the viewport, timed from whichever happens later. Shared by both
+    // the WebGL and DOM-fallback paths.
+    let loadSettledCount = 0;
+    let imagesSettledAt = null;
+    let sectionEnteredAt = null;
+    let revealStartedAt = null;
+    const markCardSettled = () => {
+      loadSettledCount += 1;
+      if (loadSettledCount === CARD_COUNT && imagesSettledAt === null) {
+        imagesSettledAt = window.performance.now();
+      }
+    };
+
+    const galleryEntryObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && sectionEnteredAt === null) {
+          sectionEnteredAt = window.performance.now();
         }
-      };
+      });
+    }, { threshold: 0 });
+    galleryEntryObserver.observe(galleryInteractionEl);
 
-      const galleryEntryObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && sectionEnteredAt === null) {
-            sectionEnteredAt = window.performance.now();
-          }
-        });
-      }, { threshold: 0 });
-      galleryEntryObserver.observe(galleryInteractionEl);
+    const cards = Array.from({ length: CARD_COUNT }, (_, index) => ({
+      index,
+      color: index % 2
+        ? [199 / 255, 202 / 255, 204 / 255, 1]
+        : [215 / 255, 217 / 255, 218 / 255, 1],
+      backColor: [186 / 255, 191 / 255, 193 / 255, 1],
+      texture: null,
+      imageAspect: 1,
+      isLoaded: false,
+      hoverLift: 0,
+      state: null,
+      el: null,
+      frontImg: null,
+    }));
 
-      const cards = Array.from({ length: CARD_COUNT }, (_, index) => ({
-        index,
-        color: index % 2
-          ? [199 / 255, 202 / 255, 204 / 255, 1]
-          : [215 / 255, 217 / 255, 218 / 255, 1],
-        backColor: [186 / 255, 191 / 255, 193 / 255, 1],
-        texture: null,
-        imageAspect: 1,
-        isLoaded: false,
-        hoverLift: 0,
-        state: null,
-      }));
+    // DOM fallback cards -- only built when WebGL isn't available (see the
+    // render-call branch in layout() below). Two stacked faces per card
+    // (front image / back solid color) so the ring's flip animation still
+    // shows the right face via backface-visibility, same as the WebGL
+    // path's manual faceTowardCamera check.
+    // Fixed at a size at least as big as the largest this card ever
+    // actually reaches on screen (cardW tops out at 59px, zoomScale at
+    // ~3.05, plus a bit of hover-lift headroom) -- see renderCardsDOM's own
+    // comment for why. Set once here and never touched again; all the
+    // per-frame size change happens via `scale()` down from this instead.
+    const FALLBACK_CARD_BASE_W = 220;
+    const FALLBACK_CARD_BASE_H = FALLBACK_CARD_BASE_W * (77 / 59);
 
-      cards.forEach((card, index) => {
+    if (!gl) {
+      cards.forEach((card) => {
+        const el = document.createElement('div');
+        el.className = 'gallery-interaction__card-dom';
+        const [r, g, b] = card.color;
+        el.innerHTML = `
+          <div class="gallery-interaction__card-face gallery-interaction__card-face--front" style="background: rgb(${r * 255}, ${g * 255}, ${b * 255});">
+            <img alt="" draggable="false">
+          </div>
+          <div class="gallery-interaction__card-face gallery-interaction__card-face--back"></div>
+        `;
+        el.style.width = `${FALLBACK_CARD_BASE_W}px`;
+        el.style.height = `${FALLBACK_CARD_BASE_H}px`;
+        gallery.append(el);
+        card.el = el;
+        card.frontImg = el.querySelector('img');
+      });
+    }
+
+    cards.forEach((card, index) => {
+      if (gl) {
         const image = new Image();
         image.onload = () => {
           card.texture = createTextureFromImage(image);
@@ -2559,126 +2616,183 @@ document.addEventListener('DOMContentLoaded', () => {
           markCardSettled();
         };
         image.src = cardImageSources[index];
-      });
-
-      let smoothScroll = 0;
-      let galleryWheelDirection = 0;
-      let galleryWheelActiveUntil = 0;
-      let galleryWheelTicking = false;
-      let lastGalleryWheelTickAt = null;
-      let pointerX = 0;
-      let pointerY = 0;
-      let hoverActive = false;
-      let hoveredCard = -1;
-      let viewportWidth = 0;
-      let viewportHeight = 0;
-      let dpr = 1;
-
-      const updatePointerFromEvent = (event) => {
-        const rect = gallery.getBoundingClientRect();
-        pointerX = event.clientX - rect.left;
-        pointerY = event.clientY - rect.top;
-        hoverActive = true;
-      };
-
-      const handlePointerLeave = () => {
-        hoverActive = false;
-      };
-
-      const resizeCanvas = (width, height) => {
-        const nextDpr = Math.min(window.devicePixelRatio || 1, 2);
-        if (viewportWidth === width && viewportHeight === height && dpr === nextDpr) return;
-        viewportWidth = width;
-        viewportHeight = height;
-        dpr = nextDpr;
-        canvas.width = Math.round(width * dpr);
-        canvas.height = Math.round(height * dpr);
-        canvas.style.width = `${width}px`;
-        canvas.style.height = `${height}px`;
-        gl.viewport(0, 0, canvas.width, canvas.height);
-      };
-
-      const projectPoint = (point, centerX, centerY) => {
-        const perspective = 900;
-        const depthScale = perspective / (perspective - point.z);
-        return {
-          x: centerX + (point.x - centerX) * depthScale,
-          y: centerY + (point.y - centerY) * depthScale,
-          z: point.z,
-          scale: depthScale,
+      } else {
+        const img = card.frontImg;
+        img.onload = () => {
+          card.imageAspect = img.naturalWidth / img.naturalHeight;
+          card.isLoaded = true;
+          markCardSettled();
         };
+        img.onerror = () => {
+          markCardSettled();
+        };
+        img.src = cardImageSources[index];
+      }
+    });
+
+    let smoothScroll = 0;
+    let galleryWheelDirection = 0;
+    let galleryWheelActiveUntil = 0;
+    let galleryWheelTicking = false;
+    let lastGalleryWheelTickAt = null;
+    let pointerX = 0;
+    let pointerY = 0;
+    let hoverActive = false;
+    let hoveredCard = -1;
+    let viewportWidth = 0;
+    let viewportHeight = 0;
+    let dpr = 1;
+
+    const updatePointerFromEvent = (event) => {
+      const rect = gallery.getBoundingClientRect();
+      pointerX = event.clientX - rect.left;
+      pointerY = event.clientY - rect.top;
+      hoverActive = true;
+    };
+
+    const handlePointerLeave = () => {
+      hoverActive = false;
+    };
+
+    const resizeCanvas = (width, height) => {
+      const nextDpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (viewportWidth === width && viewportHeight === height && dpr === nextDpr) return;
+      viewportWidth = width;
+      viewportHeight = height;
+      dpr = nextDpr;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    };
+
+    const projectPoint = (point, centerX, centerY) => {
+      const perspective = 900;
+      const depthScale = perspective / (perspective - point.z);
+      return {
+        x: centerX + (point.x - centerX) * depthScale,
+        y: centerY + (point.y - centerY) * depthScale,
+        z: point.z,
+        scale: depthScale,
       };
+    };
 
-      const getCardCorners = (card, centerX, centerY) => {
-        const projectedCenter = projectPoint({ x: card.x, y: card.y, z: card.z }, centerX, centerY);
-        const flipSqueeze = Math.max(0.08, Math.abs(Math.cos(toRadians(card.flipX))));
-        const halfW = (card.w * card.scale * projectedCenter.scale) / 2;
-        const halfH = (card.h * card.scale * projectedCenter.scale * flipSqueeze) / 2;
-        const rotate = toRadians(card.rotation);
-        const cosZ = Math.cos(rotate);
-        const sinZ = Math.sin(rotate);
-        const local = [
-          [-halfW, -halfH, 0, 0],
-          [halfW, -halfH, 1, 0],
-          [halfW, halfH, 1, 1],
-          [-halfW, halfH, 0, 1],
-        ];
+    const getCardCorners = (card, centerX, centerY) => {
+      const projectedCenter = projectPoint({ x: card.x, y: card.y, z: card.z }, centerX, centerY);
+      const flipSqueeze = Math.max(0.08, Math.abs(Math.cos(toRadians(card.flipX))));
+      const halfW = (card.w * card.scale * projectedCenter.scale) / 2;
+      const halfH = (card.h * card.scale * projectedCenter.scale * flipSqueeze) / 2;
+      const rotate = toRadians(card.rotation);
+      const cosZ = Math.cos(rotate);
+      const sinZ = Math.sin(rotate);
+      const local = [
+        [-halfW, -halfH, 0, 0],
+        [halfW, -halfH, 1, 0],
+        [halfW, halfH, 1, 1],
+        [-halfW, halfH, 0, 1],
+      ];
 
-        return local.map(([lx, ly, u, v]) => {
-          const rx = lx * cosZ - ly * sinZ;
-          const ry = lx * sinZ + ly * cosZ;
-          return {
-            x: projectedCenter.x + rx,
-            y: projectedCenter.y + ry,
-            scale: projectedCenter.scale,
-            u,
-            v,
-          };
-        });
-      };
+      return local.map(([lx, ly, u, v]) => {
+        const rx = lx * cosZ - ly * sinZ;
+        const ry = lx * sinZ + ly * cosZ;
+        return {
+          x: projectedCenter.x + rx,
+          y: projectedCenter.y + ry,
+          scale: projectedCenter.scale,
+          u,
+          v,
+        };
+      });
+    };
 
-      const drawCard = (card, centerX, centerY) => {
-        if (card.opacity <= 0.002) return;
+    const drawCard = (card, centerX, centerY) => {
+      if (card.opacity <= 0.002) return;
 
-        const corners = getCardCorners(card, centerX, centerY);
-        const faceTowardCamera = Math.cos(toRadians(card.flipX)) >= 0;
-        const vertices = [
-          corners[0], corners[1], corners[2],
-          corners[0], corners[2], corners[3],
-        ];
-        const data = new Float32Array(vertices.flatMap((corner) => [
-          (corner.x / viewportWidth) * 2 - 1,
-          1 - (corner.y / viewportHeight) * 2,
-          corner.u,
-          faceTowardCamera ? corner.v : 1 - corner.v,
-        ]));
-        const color = faceTowardCamera ? card.color : card.backColor;
-        const visualScale = card.scale * Math.max(0.65, corners.reduce((sum, corner) => sum + corner.scale, 0) / corners.length);
+      const corners = getCardCorners(card, centerX, centerY);
+      const faceTowardCamera = Math.cos(toRadians(card.flipX)) >= 0;
+      const vertices = [
+        corners[0], corners[1], corners[2],
+        corners[0], corners[2], corners[3],
+      ];
+      const data = new Float32Array(vertices.flatMap((corner) => [
+        (corner.x / viewportWidth) * 2 - 1,
+        1 - (corner.y / viewportHeight) * 2,
+        corner.u,
+        faceTowardCamera ? corner.v : 1 - corner.v,
+      ]));
+      const color = faceTowardCamera ? card.color : card.backColor;
+      const visualScale = card.scale * Math.max(0.65, corners.reduce((sum, corner) => sum + corner.scale, 0) / corners.length);
 
-        gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, card.texture);
-        gl.uniform4f(colorLocation, color[0], color[1], color[2], color[3]);
-        gl.uniform2f(sizeLocation, card.w * visualScale, card.h * visualScale);
-        gl.uniform1f(radiusLocation, 6 * visualScale);
-        gl.uniform1f(alphaLocation, card.opacity);
-        gl.uniform1f(hasTextureLocation, card.texture ? 1 : 0);
-        gl.uniform1f(imageAspectLocation, card.imageAspect || 1);
-        gl.uniform1f(cardAspectLocation, card.w / card.h);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
-      };
+      gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, card.texture);
+      gl.uniform4f(colorLocation, color[0], color[1], color[2], color[3]);
+      gl.uniform2f(sizeLocation, card.w * visualScale, card.h * visualScale);
+      gl.uniform1f(radiusLocation, 6 * visualScale);
+      gl.uniform1f(alphaLocation, card.opacity);
+      gl.uniform1f(hasTextureLocation, card.texture ? 1 : 0);
+      gl.uniform1f(imageAspectLocation, card.imageAspect || 1);
+      gl.uniform1f(cardAspectLocation, card.w / card.h);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    };
 
-      const renderCards = (centerX, centerY) => {
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        cards
-          .filter((card) => card.state)
-          .map((card) => card.state)
-          .sort((a, b) => a.z - b.z)
-          .forEach((state) => drawCard(state, centerX, centerY));
-      };
+    const renderCards = (centerX, centerY) => {
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      cards
+        .filter((card) => card.state)
+        .map((card) => card.state)
+        .sort((a, b) => a.z - b.z)
+        .forEach((state) => drawCard(state, centerX, centerY));
+    };
 
-      const getGalleryScrollState = () => {
+    // DOM fallback renderer: same per-card x/y/z/rotation/flipX/scale/
+    // opacity values as the WebGL path above, applied as a real CSS 3D
+    // transform instead of a manual per-vertex projection -- the
+    // `perspective: 900px` on .gallery-interaction__gallery (matching the
+    // `perspective = 900` constant in projectPoint above) makes the browser
+    // do the same depth scaling the WebGL path computes by hand. flipX
+    // drives rotateX (it squashes card.h in the WebGL version above, i.e.
+    // a horizontal-axis flip) with a real two-sided element (see
+    // .gallery-interaction__card-face--back's own rotateX(180deg) in CSS)
+    // instead of swapping a color uniform.
+    //
+    // Every card's own box stays fixed at FALLBACK_CARD_BASE_W/H (set once
+    // at creation, never touched here) -- all size change happens through
+    // this scale() instead of resizing the element. A resized box forces
+    // the browser to re-decode/re-rasterize the <img> at the new size, and
+    // browsers cache that decode at whatever size it was last shown at;
+    // cards here start tiny (the scatter/line phases) and later zoom to
+    // ~3x, so a box that's resized larger over time can end up reusing a
+    // decode meant for the earlier, much smaller size and read as blurry --
+    // even though the source photos (see images/card-XX.webp) are plenty
+    // high-res. Since FALLBACK_CARD_BASE_W/H is already at least as large
+    // as this card is ever shown, boxScale here is always <= 1: the
+    // browser only ever scales this one full-size decode *down*, which
+    // stays sharp at any size, instead of ever scaling a smaller decode up.
+    const renderCardsDOM = (centerX, centerY) => {
+      cards.forEach((card) => {
+        const state = card.state;
+        if (!state || !card.el) return;
+        const { el } = card;
+        if (state.opacity <= 0.002) {
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+          return;
+        }
+        el.style.pointerEvents = '';
+        const width = state.w * state.scale;
+        const boxScale = width / FALLBACK_CARD_BASE_W;
+        el.style.left = `${state.x}px`;
+        el.style.top = `${state.y}px`;
+        el.style.transform = `translate3d(-50%, -50%, ${state.z}px) rotateZ(${state.rotation}deg) rotateX(${state.flipX}deg) scale(${boxScale})`;
+        el.style.opacity = String(state.opacity);
+        el.style.zIndex = String(Math.round(1000 + state.z));
+      });
+    };
+
+    const getGalleryScrollState = () => {
         const height = window.innerHeight;
         const rect = galleryInteractionEl.getBoundingClientRect();
         const scrollRange = Math.max(0, galleryInteractionEl.offsetHeight - height);
@@ -2819,7 +2933,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // grid line.
         const width = document.documentElement.clientWidth;
         const height = window.innerHeight;
-        resizeCanvas(width, height);
+        if (gl) resizeCanvas(width, height);
 
         const scrollRange = galleryInteractionEl.offsetHeight - height;
         const targetScroll = scrollRange > 0
@@ -2973,7 +3087,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         hoveredCard = hoverSearch.index;
-        renderCards(centerX, centerY);
+        if (gl) {
+          renderCards(centerX, centerY);
+        } else {
+          renderCardsDOM(centerX, centerY);
+        }
 
         const activeSubText = subTextItems[subTextIndex];
         if (visionTitle) visionTitle.textContent = activeSubText.title;
@@ -2999,7 +3117,6 @@ document.addEventListener('DOMContentLoaded', () => {
       window.addEventListener('wheel', handleGalleryWheel, { passive: false });
       window.addEventListener('resize', layout);
       animate();
-    }
   }
 
   /* Work-detail: each project's cover stays pinned past its own 100vh of
