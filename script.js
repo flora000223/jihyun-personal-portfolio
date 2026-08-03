@@ -3898,6 +3898,7 @@ document.addEventListener('DOMContentLoaded', () => {
       hobby: '취미와 관심사는 사진 촬영, 전시 관람, 콘서트 관람, 음악 감상입니다.\n다양한 경험을 디자인의 시선으로 관찰하고 의미를 발견하는 것을 좋아합니다.',
       philosophy: '디자인은 단순히 보기 좋은 결과물을 만드는 것이 아니라, 사람들이 서비스를 계속 사용하고 머물고 싶어 하는 이유를 만드는 과정이라고 생각합니다.\n사용자의 행동과 감정을 이해하고 작은 디테일까지 고민할 때 비로소 의미 있는 경험이 만들어진다고 믿습니다.',
       projects: '대표 프로젝트는 일광전구 웹 리뉴얼, W:RUN 러닝 팬덤 앱, MU:it 클래식 음악 레슨 매칭 앱, AI Font Pairing Poster Studio입니다.',
+      transition: '피아노를 전공하면서도 연주회 포스터를 직접 제작할 만큼 디자인에 관심이 많았습니다.\n디자인 직무 중에서도 사용자의 행동과 감정을 고려해 더 나은 경험을 만들어가는 UX/UI 디자인은 저에게 새로운 형태의 창작으로 다가왔고, 큰 흥미와 매력을 느껴 UX/UI 디자이너의 길을 선택하게 되었습니다.',
     };
 
     // thumb: pre-downscaled (900px-wide) copy for the grid -- the source
@@ -3928,6 +3929,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!question) return { text: '궁금한 내용을 한 단어로만 적어도 괜찮아요. 예: 학력, MBTI, 포스터' };
       if (question.includes('학력') || question.includes('학교') || question.includes('education')) {
         return { text: chatbotInfo.education };
+      }
+      if (question.includes('전환') || question.includes('바꾸게') || question.includes('바뀌게') || question.includes('선택')) {
+        return { text: chatbotInfo.transition };
       }
       if (question.includes('전공') || question.includes('피아노') || question.includes('major')) {
         return { text: chatbotInfo.major };
