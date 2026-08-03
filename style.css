@@ -5629,19 +5629,19 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 180ms ease, transform 180ms ease;
+  animation: portfolioChatbotHint 5s ease-in-out infinite;
 }
 
-/* Shown on hover/focus of the toggle button -- checked via :has() since the
-   hint sits before the button in the DOM, so a plain ~ sibling selector
-   can't reach backward to it. */
-.portfolio-chatbot:has(.portfolio-chatbot__toggle:hover) .portfolio-chatbot__hint,
-.portfolio-chatbot:has(.portfolio-chatbot__toggle:focus-visible) .portfolio-chatbot__hint {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
+/* Synced to the same 5s cycle as .portfolio-chatbot__toggle's bounce so the
+   bubble pops up right as the icon bobs. */
+@keyframes portfolioChatbotHint {
+  0%, 74%, 100% { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.94); }
+  80%, 88% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  96% { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.94); }
 }
 
-.portfolio-chatbot:has(.portfolio-chatbot__toggle[aria-expanded="true"]) .portfolio-chatbot__toggle {
+.portfolio-chatbot:has(.portfolio-chatbot__toggle[aria-expanded="true"]) .portfolio-chatbot__toggle,
+.portfolio-chatbot:has(.portfolio-chatbot__toggle[aria-expanded="true"]) .portfolio-chatbot__hint {
   animation: none;
 }
 
@@ -5676,6 +5676,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #ffffff;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
   backdrop-filter: blur(16px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
 
 .portfolio-chatbot__header {
@@ -5741,6 +5743,29 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 18px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.portfolio-chatbot__messages::-webkit-scrollbar,
+.portfolio-chatbot__panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.portfolio-chatbot__messages::-webkit-scrollbar-track,
+.portfolio-chatbot__panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.portfolio-chatbot__messages::-webkit-scrollbar-thumb,
+.portfolio-chatbot__panel::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+.portfolio-chatbot__messages::-webkit-scrollbar-thumb:hover,
+.portfolio-chatbot__panel::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 .portfolio-chatbot__message {
@@ -5763,6 +5788,12 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   align-self: flex-end;
   background: #ffffff;
   color: #000000;
+  /* User questions are usually one short line, so the shared 11px vertical
+     padding reads as an oversized, boxy bubble next to the gray bot bubble
+     (which stretches wider with longer wrapped text and looks proportionate
+     at the same padding) -- trim just the vertical padding here to match. */
+  padding-top: 7px;
+  padding-bottom: 7px;
 }
 
 .portfolio-chatbot__message p {
@@ -5770,7 +5801,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .portfolio-chatbot__message p + p {
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 .portfolio-chatbot__poster-grid {
@@ -5874,7 +5905,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 0 16px 16px;
+  padding: 10px 16px 10px;
 }
 
 .portfolio-chatbot__chips button {

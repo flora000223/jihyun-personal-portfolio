@@ -3889,27 +3889,31 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const chatbotInfo = {
-      education: '단국대학교 음악대학 피아노과를 졸업하고, 이화여자대학교 대학원에서 피아노과를 졸업했습니다.\n피아노를 전공했지만 디자인을 통해 새로운 경험을 만드는 일에 매력을 느껴 새로운 분야에 도전하게 되었습니다.',
-      major: '전공은 피아노입니다. 현재는 UX/UI 디자인, 서비스 기획, React 기반 화면 구현까지 함께 다룹니다.',
+      education: '단국대학교 음악대학 피아노과를 졸업하고,\n이화여자대학교 대학원에서 피아노과를 졸업했습니다.\n피아노를 전공했지만 디자인을 통해 새로운 경험을 만드는 일에 매력을 느껴 새로운 분야에 도전하게 되었습니다.',
+      major: '전공은 피아노입니다. 현재는 UX/UI 디자인, 서비스 기획, Frontend 화면 구현까지 함께 다룹니다.',
       get age() {
         return `2000년 2월 23일생으로, 만 ${getKoreanAge(BIRTH_DATE)}세입니다.`;
       },
-      mbti: 'MBTI는 ISFJ입니다. 책임감과 꼼꼼함을 바탕으로 완성도 높은 결과를 만드는 사람입니다.',
-      hobby: '취미와 관심사는 사진 촬영, 전시 관람, 콘서트 관람, 음악 감상입니다. 일상의 경험을 디자인을 바라보는 시선으로 연결하는 편입니다.',
-      philosophy: '디자인은 보기 좋은 화면을 넘어서, 사용자가 어디로 가야 하는지 자연스럽게 이해하게 만드는 명확한 경험이어야 한다고 생각합니다.',
+      mbti: 'MBTI는 ISFJ입니다.\n책임감과 꼼꼼함을 바탕으로 완성도 높은 결과를 만드는 사람입니다.',
+      hobby: '취미와 관심사는 사진 촬영, 전시 관람, 콘서트 관람, 음악 감상입니다.\n다양한 경험을 디자인의 시선으로 관찰하고 의미를 발견하는 것을 좋아합니다.',
+      philosophy: '디자인은 단순히 보기 좋은 결과물을 만드는 것이 아니라, 사람들이 서비스를 계속 사용하고 머물고 싶어 하는 이유를 만드는 과정이라고 생각합니다.\n사용자의 행동과 감정을 이해하고 작은 디테일까지 고민할 때 비로소 의미 있는 경험이 만들어진다고 믿습니다.',
       projects: '대표 프로젝트는 일광전구 웹 리뉴얼, W:RUN 러닝 팬덤 앱, MU:it 클래식 음악 레슨 매칭 앱, AI Font Pairing Poster Studio입니다.',
     };
 
+    // thumb: pre-downscaled (900px-wide) copy for the grid -- the source
+    // photos are up to 4500px wide, and letting the browser downsize that
+    // much on the fly for a ~130px grid cell looks soft/aliased. full is the
+    // original, used only when the poster is opened larger in the lightbox.
     const posterItems = [
-      { title: '연주회 포스터', src: 'images/chat-poster-1.png' },
-      { title: '연주회 포스터', src: 'images/chat-poster-2.png' },
-      { title: '연주회 포스터', src: 'images/chat-poster-3.jpg' },
-      { title: '연주회 포스터', src: 'images/chat-poster-4.PNG' },
-      { title: '연주회 포스터', src: 'images/chat-poster-5.PNG' },
-      { title: '연주회 포스터', src: 'images/chat-poster-6.jpg' },
-      { title: '연주회 포스터', src: 'images/chat-poster-7.jpg' },
-      { title: '연주회 포스터', src: 'images/chat-poster-8.jpg' },
-      { title: '연주회 포스터', src: 'images/chat-poster-9.jpg' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-1-thumb.jpg', full: 'images/chat-poster-1.png' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-2-thumb.jpg', full: 'images/chat-poster-2.png' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-3-thumb.jpg', full: 'images/chat-poster-3.jpg' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-4-thumb.jpg', full: 'images/chat-poster-4.PNG' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-5-thumb.jpg', full: 'images/chat-poster-5.PNG' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-6-thumb.jpg', full: 'images/chat-poster-6.jpg' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-7-thumb.jpg', full: 'images/chat-poster-7.jpg' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-8-thumb.jpg', full: 'images/chat-poster-8.jpg' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-9-thumb.jpg', full: 'images/chat-poster-9.jpg' },
     ];
 
     const escapeHtml = (value) => String(value)
@@ -3945,7 +3949,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (question.includes('포스터') || question.includes('연주회') || question.includes('poster')) {
         return {
-          text: '학사와 석사 졸업연주를 준비하며 직접 연주회 포스터를 제작했었고, 이후 동기들의 졸업연주 포스터 제작도 맡아 진행했습니다. 이 경험을 통해 시각적 커뮤니케이션과 디자인에 관심을 갖게 되었습니다.',
+          text: '학사와 석사 졸업연주를 준비하며 직접 연주회 포스터를 제작했었고, 이후 동기들의 졸업연주 포스터 제작도 맡아 진행했습니다.\n이 경험을 통해 시각적 커뮤니케이션과 디자인에 관심을 갖게 되었습니다.',
           posters: posterItems,
         };
       }
@@ -3955,21 +3959,45 @@ document.addEventListener('DOMContentLoaded', () => {
       if (question.includes('채용') || question.includes('면접') || question.includes('컨택') || question.includes('상담') || question.includes('피드백') || question.includes('문의') || question.includes('제안')) {
         return { text: '채용 및 면접 관련 문의는 flora000223@naver.com 또는 010-8379-0023으로 연락 주시면 빠르게 회신드리겠습니다.' };
       }
-      return {
-        text: '저는 박지현의 학력, 전공, 나이, MBTI, 취미, 디자인 철학, 프로젝트, 연주회 포스터에 대해 답할 수 있어요.',
-      };
+      return null;
+    };
+
+    // Anything that doesn't match a known keyword above falls through to
+    // this serverless proxy (see /api/chat.js) rather than a canned "모르는
+    // 질문입니다" reply -- the proxy holds the Anthropic key server-side and
+    // forwards it a short bio so Claude can answer in-character as 박지현.
+    const fetchClaudeAnswer = async (question) => {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: question }),
+      });
+      if (!response.ok) throw new Error(`chat api responded ${response.status}`);
+      const data = await response.json();
+      if (!data || !data.answer) throw new Error('empty answer from chat api');
+      return data.answer;
+    };
+
+    const renderChatbotMessageText = (text) => String(text || '')
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => `<p>${escapeHtml(line)}</p>`)
+      .join('');
+
+    // Returns the message element so callers (the Claude fallback path) can
+    // swap a "답변을 준비하고 있어요..." placeholder for the real answer once
+    // it arrives, instead of appending a second bubble.
+    const setChatbotMessageText = (el, text) => {
+      if (!el || !chatbotMessages) return;
+      el.innerHTML = renderChatbotMessageText(text);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
     };
 
     const appendChatbotMessage = (type, answer) => {
-      if (!chatbotMessages) return;
+      if (!chatbotMessages) return null;
       const message = document.createElement('div');
       message.className = `portfolio-chatbot__message portfolio-chatbot__message--${type}`;
-      const paragraphs = String(answer.text || '')
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => `<p>${escapeHtml(line)}</p>`)
-        .join('');
-      message.innerHTML = paragraphs;
+      message.innerHTML = renderChatbotMessageText(answer.text);
 
       if (answer.posters) {
         const grid = document.createElement('div');
@@ -3979,9 +4007,9 @@ document.addEventListener('DOMContentLoaded', () => {
           card.type = 'button';
           card.className = 'portfolio-chatbot__poster';
           card.innerHTML = `
-            <img src="${escapeHtml(poster.src)}" alt="${escapeHtml(poster.title)}">
+            <img src="${escapeHtml(poster.thumb)}" alt="${escapeHtml(poster.title)}">
           `;
-          card.addEventListener('click', () => openChatbotLightbox(poster.src, poster.title));
+          card.addEventListener('click', () => openChatbotLightbox(poster.full, poster.title));
           grid.append(card);
         });
         message.append(grid);
@@ -3989,6 +4017,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       chatbotMessages.append(message);
       chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+      return message;
     };
 
     const openChatbot = () => {
@@ -4012,9 +4041,20 @@ document.addEventListener('DOMContentLoaded', () => {
       chatbotToggle.setAttribute('aria-label', '챗봇 열기');
     };
 
-    const askChatbot = (question) => {
+    const askChatbot = async (question) => {
       appendChatbotMessage('user', { text: question });
-      appendChatbotMessage('bot', getChatbotAnswer(question));
+      const knownAnswer = getChatbotAnswer(question);
+      if (knownAnswer) {
+        appendChatbotMessage('bot', knownAnswer);
+        return;
+      }
+      const pending = appendChatbotMessage('bot', { text: '답변을 준비하고 있어요...' });
+      try {
+        const answerText = await fetchClaudeAnswer(question);
+        setChatbotMessageText(pending, answerText);
+      } catch (err) {
+        setChatbotMessageText(pending, '지금은 답변을 가져오지 못했어요. 학력, 나이, MBTI, 취미, 디자인 철학, 프로젝트, 연주회 포스터 등 다른 질문으로 다시 물어봐주세요.');
+      }
     };
 
     if (chatbotToggle) {
@@ -4057,29 +4097,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Hidden while either the hero (first screen -- the bubble has nothing
-    // to float over yet and would just sit on top of the hero title) or the
-    // footer (whose own "scroll to top" button sits in this same corner) is
-    // in view. Two independent observers each toggling the same class would
-    // fight each other -- e.g. hero scrolling out of view while already
-    // deep in the footer would incorrectly un-hide it -- so both track
-    // their own boolean and the class is only ever set from the OR of both.
-    const heroEl = document.getElementById('intro');
+    // Hidden while the footer (whose own "scroll to top" button sits in
+    // this same corner) is in view.
     const footerEl = document.getElementById('contact');
-    let chatbotOverHero = false;
     let chatbotOverFooter = false;
     const updateChatbotVisibility = () => {
-      portfolioChatbotEl.classList.toggle('portfolio-chatbot--hidden', chatbotOverHero || chatbotOverFooter);
+      portfolioChatbotEl.classList.toggle('portfolio-chatbot--hidden', chatbotOverFooter);
     };
-    if (heroEl) {
-      const heroObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          chatbotOverHero = entry.isIntersecting;
-          updateChatbotVisibility();
-        });
-      }, { rootMargin: '0px' });
-      heroObserver.observe(heroEl);
-    }
     if (footerEl) {
       const footerObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
