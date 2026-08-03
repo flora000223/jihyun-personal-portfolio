@@ -3929,15 +3929,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // much on the fly for a ~130px grid cell looks soft/aliased. full is the
     // original, used only when the poster is opened larger in the lightbox.
     const posterItems = [
-      { title: '연주회 포스터', thumb: 'images/chat-poster-1-thumb.jpg', full: 'images/chat-poster-1.png' },
-      { title: '연주회 포스터', thumb: 'images/chat-poster-2-thumb.jpg', full: 'images/chat-poster-2.png' },
-      { title: '연주회 포스터', thumb: 'images/chat-poster-3-thumb.jpg', full: 'images/chat-poster-3.jpg' },
-      { title: '연주회 포스터', thumb: 'images/chat-poster-4-thumb.jpg', full: 'images/chat-poster-4.PNG' },
-      { title: '연주회 포스터', thumb: 'images/chat-poster-5-thumb.jpg', full: 'images/chat-poster-5.PNG' },
-      { title: '연주회 포스터', thumb: 'images/chat-poster-6-thumb.jpg', full: 'images/chat-poster-6.jpg' },
-      { title: '연주회 포스터', thumb: 'images/chat-poster-7-thumb.jpg', full: 'images/chat-poster-7.jpg' },
-      { title: '연주회 포스터', thumb: 'images/chat-poster-8-thumb.jpg', full: 'images/chat-poster-8.jpg' },
-      { title: '연주회 포스터', thumb: 'images/chat-poster-9-thumb.jpg', full: 'images/chat-poster-9.jpg' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-1-thumb.webp', full: 'images/chat-poster-1.webp' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-2-thumb.webp', full: 'images/chat-poster-2.webp' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-3-thumb.webp', full: 'images/chat-poster-3.webp' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-4-thumb.webp', full: 'images/chat-poster-4.webp' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-5-thumb.webp', full: 'images/chat-poster-5.webp' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-6-thumb.webp', full: 'images/chat-poster-6.webp' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-7-thumb.webp', full: 'images/chat-poster-7.webp' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-8-thumb.webp', full: 'images/chat-poster-8.webp' },
+      { title: '연주회 포스터', thumb: 'images/chat-poster-9-thumb.webp', full: 'images/chat-poster-9.webp' },
     ];
 
     const escapeHtml = (value) => String(value)
