@@ -34,6 +34,7 @@ const buildSystemPrompt = () => `당신은 UX/UI 디자이너 박지현의 포�
 
 답변 규칙:
 - 한국어로, 2~4문장 이내로 짧고 자연스럽게 답하세요.
+- 마크다운 문법(#, *, **, - 목록 등)을 쓰지 말고 일반 텍스트로만 답하세요. 줄바꿈이 필요하면 개행만 사용하세요.
 - 위 정보에 없는 사적인 질문(정치, 종교, 다른 사람 뒷담화 등)은 정중히 답변을 피하세요.
 - 위 정보에 없는 내용은 지어내지 말고, 모른다고 답한 뒤 채용/면접 문의는 이메일로 안내하세요.`;
 
@@ -69,7 +70,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 300,
+        max_tokens: 500,
         system: buildSystemPrompt(),
         messages: [
           { role: 'user', content: message },
