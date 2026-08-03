@@ -68,12 +68,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resizeStaffCanvas = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 1.35);
+      // clientWidth/clientHeight, not the previous canvas.width/height --
+      // the CSS (width/height: 100%) already drives the canvas's on-screen
+      // size responsively, so measuring straight off that stays accurate on
+      // every resize. Writing canvas.style.width/height as a fixed px value
+      // here (as this used to do) would set an inline style that overrides
+      // that CSS rule -- clientWidth would then just keep reporting back
+      // whatever this function itself wrote last time, permanently pinning
+      // the wave to whatever size the window happened to be on first paint.
       width = staffCanvas.clientWidth || window.innerWidth;
       height = staffCanvas.clientHeight || window.innerHeight;
       staffCanvas.width = Math.floor(width * dpr);
       staffCanvas.height = Math.floor(height * dpr);
-      staffCanvas.style.width = `${width}px`;
-      staffCanvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
@@ -279,7 +285,24 @@ document.addEventListener('DOMContentLoaded', () => {
         lastDrawTime = -Infinity;
         renderStaffCanvas(initialAnimationOffset);
       }
-      : rafCoalesce(resizeStaffCanvas));
+      : rafCoalesce(() => {
+        resizeStaffCanvas();
+        // Same stale-canvas problem as the reduceMotion branch above, but
+        // for the animating path: resizeStaffCanvas() clears the canvas
+        // immediately, while the actual redraw only happens on the next
+        // *throttled* (~30fps) tick of the ongoing rAF loop -- and not at
+        // all if the canvas is currently scrolled out of view (the
+        // IntersectionObserver below pauses that loop entirely). Cancelling
+        // any pending frame and forcing a draw right here closes that gap
+        // so the wave always matches the new size immediately, whether or
+        // not the loop happens to be running.
+        if (staffFrameId) {
+          cancelAnimationFrame(staffFrameId);
+          staffFrameId = 0;
+        }
+        lastDrawTime = -Infinity;
+        renderStaffCanvas(window.performance.now());
+      }));
     const staffObserver = new IntersectionObserver((entries) => {
       staffCanvasActive = entries.some((entry) => entry.isIntersecting);
       if (staffCanvasActive) requestStaffFrame();
