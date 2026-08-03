@@ -4161,20 +4161,29 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* work-community-iphone-bezel.png: cutout 458x997 at (24, 20) out of
-   508x1035, same 2px-inset treatment as every bezel above -- a 454x993
-   hole at (26, 22):
-   width: 508/454 = 111.8943%   left: -26/454 = -5.7269%
-   height: 1035/993 = 104.2296%  top:  -22/993 = -2.2155%
+   508x1035. Unlike the bezels above, this one's alpha-scanned directly
+   (all four edges) to a single 1px-wide antialiased pixel, not 2px -- so
+   the shared "2px-inset" treatment over-corrects here: it pushes the
+   bezel's opaque coverage 2 raw px past where the video's clipped edge
+   already ends, leaving a sliver where neither the video nor the bezel
+   paints anything and the screen's own #141414 background shows through
+   as a visible rim. Using the measured hole with no extra inset instead
+   lands the one antialiased pixel just outside the device box (where
+   there's no video underneath to blend with), which is enough on its
+   own to avoid a bezel-gray hairline over the video without also
+   opening this gap:
+   width: 508/458 = 110.9170%   left: -24/458 = -5.2402%
+   height: 1035/997 = 103.8114%  top:  -20/997 = -2.0060%
    Both iPhones in this scene share this one asset/rule -- no --phone-1/
    --phone-2 split needed here, unlike the device-box rule above, since the
    bezel itself doesn't differ between them. */
 .work-scenes--community .work-scenes__device-bezel,
 .work-scenes--sharerun .work-scenes__device-bezel,
 .work-scenes--ai-partner .work-scenes__device-bezel {
-  top: -2.2155%;
-  left: -5.7269%;
-  width: 111.8943%;
-  height: 104.2296%;
+  top: -2.0060%;
+  left: -5.2402%;
+  width: 110.9170%;
+  height: 103.8114%;
 }
 
 /* Dynamic-island cutout on the phone bezel -- a plain filled pill drawn
@@ -4979,6 +4988,343 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 /* ==========================================================================
+   Ready CTA (last section before the footer)
+   ========================================================================== */
+.ready-cta {
+  position: relative;
+  /* 100vh visible + 270vh dwell -- .ready-cta__sticky below pins the layout
+     in place for that extra distance so the scroll-driven sequence
+     (script.js updateReadyCta: the three photo cards fall into place one
+     at a time, back card first, then the English desc cross-fades to
+     Korean) fully plays out before the footer is allowed to scroll in.
+     The desc swap finishes at 165vh of dwell; the remaining ~105vh past
+     that is deliberate -- it's the section holding on the finished
+     Korean line before releasing, not just leftover runway. Same
+     sticky-pin dwell technique as .intro-reasons. */
+  height: 370vh;
+  padding: calc(6 * var(--u)) calc(16.6667 * var(--u));
+  background: #000000;
+  color: #ffffff;
+  container-type: inline-size;
+}
+
+.ready-cta__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  /* Hides the cards' pre-reveal translateY(-160%) state above the viewport
+     so they fall in from off-screen; the settled stack fits entirely inside
+     its own box, so nothing legitimate ever reaches this clip. */
+  overflow: hidden;
+}
+
+.ready-cta__inner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(6 * var(--u));
+}
+
+/* Fades/rises in as the section first scrolls into view (IntersectionObserver
+   in script.js toggles .is-revealed) -- the title leads and the desc follows
+   a beat later (0.18s), rather than the whole block arriving as one slab or
+   the section just snapping into its final state. */
+.ready-cta__text {
+  flex: 0 1 auto;
+  max-width: calc(41.1719 * var(--u));
+}
+
+.ready-cta__text .ready-cta__title,
+.ready-cta__text .ready-cta__desc {
+  opacity: 0;
+  transform: translateY(calc(2 * var(--u)));
+  transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ready-cta__text .ready-cta__desc {
+  transition-delay: 0.18s;
+}
+
+.ready-cta__text.is-revealed .ready-cta__title,
+.ready-cta__text.is-revealed .ready-cta__desc {
+  opacity: 1;
+  transform: none;
+}
+
+/* .ready-cta itself pads with var(--u) while also being the container-query
+   context for these children -- container query units resolve against the
+   content box, so that self-padding shrinks the --u children see to 2/3 of
+   the section's own width (1280 vs 1920 at the 1920 Figma frame). Every
+   coefficient below is scaled up 1.5x from its raw px/19.2 value to
+   compensate, so the rendered size still matches the Figma px value. */
+.ready-cta__title {
+  margin: 0;
+  font-family: 'Neue Montreal', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
+  font-size: calc(5 * var(--u));
+  line-height: 1.1;
+  letter-spacing: calc(-0.1 * var(--u));
+  color: #ffffff;
+}
+
+.ready-cta__title-line {
+  display: block;
+}
+
+.ready-cta__title em {
+  font-family: 'Cardinal Fruit', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Box that hosts the English -> Korean text swap, same technique as
+   .intro-reasons__text: both lines sit stacked in the exact same spot,
+   English fades out in place while Korean fades in rising up slightly.
+   script.js toggles .is-swapped on this box once the scroll dwell crosses
+   a threshold; a real CSS transition then plays the fade/rise. Height is
+   sized for 3 lines so neither language clips or shifts layout when it's
+   the taller of the two. */
+.ready-cta__desc {
+  position: relative;
+  margin: calc(3.125 * var(--u)) 0 0;
+  width: 100%;
+  height: calc(6.5625 * var(--u));
+}
+
+.ready-cta__desc-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  margin: 0;
+  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
+  font-weight: 400;
+  font-size: calc(1.5625 * var(--u));
+  line-height: 1.4;
+  letter-spacing: calc(-0.03125 * var(--u));
+  color: #ffffff;
+}
+
+.ready-cta__desc-en {
+  opacity: 0.7;
+  transition: opacity 0.6s ease;
+}
+
+.ready-cta__desc-kr {
+  opacity: 0;
+  transform: translateY(calc(1.4583 * var(--u)));
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.ready-cta__desc.is-swapped .ready-cta__desc-en {
+  opacity: 0;
+}
+
+.ready-cta__desc.is-swapped .ready-cta__desc-kr {
+  opacity: 0.7;
+  transform: translateY(0);
+}
+
+/* 546.06 x 664.55 stack box, straight off the Figma frame -- each card below
+   is positioned as a % of this box so the whole stack scales as one unit.
+   All three cards are the same 449.3 x 594.87 rectangle (82.281% x 89.515%
+   of this box) sitting in nearly the same spot (left ~48px, top ~35px) and
+   fanned apart only by rotation (+10 / 0 / -10deg); the box exactly hugs
+   the union of their rotated extents, so nothing overflows or gets clipped.
+   (The Figma metadata endpoint reports rotated-AABB x/y per card -- e.g.
+   x=1156.92 for card A -- which is NOT the card's position; trusting it
+   shoved A ~103px right and C ~78px down for a while.) */
+.ready-cta__stack {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(42.6611 * var(--u));
+  aspect-ratio: 546.0612 / 664.553;
+}
+
+/* Falls in from above one at a time as the pinned dwell scrolls (script.js
+   updateReadyCta toggles .is-revealed per card at its own threshold) --
+   opacity/transform start hidden and offset well above the stack, each
+   card keeping its own final rotation throughout so it only ever
+   translates, never spins, into place. */
+.ready-cta__card {
+  position: absolute;
+  overflow: hidden;
+  border-radius: calc(1.404 * var(--u));
+  opacity: 0;
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+}
+
+.ready-cta__card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  display: block;
+}
+
+.ready-cta__card--a {
+  left: 8.834%;
+  top: 5.295%;
+  width: 82.281%;
+  height: 89.515%;
+  transform: translateY(-160%) rotate(10deg);
+  z-index: 1;
+}
+
+.ready-cta__card--a img {
+  /* The 1548x1280 source is much wider than the card box, so cover crops
+     away ~38% of its width; anchor the visible band to the photo's right
+     edge so the sliver peeking past card B shows the right side of the
+     original shot instead of its middle. */
+  object-position: 70% center;
+}
+
+.ready-cta__card--b {
+  left: 8.874%;
+  top: 5.378%;
+  width: 82.281%;
+  height: 89.515%;
+  transform: translateY(-160%);
+  z-index: 2;
+}
+
+.ready-cta__card--b img {
+  left: -104.72%;
+  top: 0;
+  width: 235.22%;
+  height: 100%;
+}
+
+.ready-cta__card--c {
+  left: 8.887%;
+  top: 5.189%;
+  width: 82.281%;
+  height: 89.515%;
+  transform: translateY(-160%) rotate(-10deg);
+  z-index: 3;
+}
+
+.ready-cta__card--c img {
+  object-position: bottom;
+}
+
+.ready-cta__card--a.is-revealed {
+  opacity: 1;
+  transform: rotate(10deg);
+}
+
+.ready-cta__card--b.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+.ready-cta__card--c.is-revealed {
+  opacity: 1;
+  transform: rotate(-10deg);
+}
+
+@media (max-width: 1439px) {
+  .ready-cta {
+    height: auto;
+    padding: 144px 32px 120px;
+  }
+
+  .ready-cta__sticky {
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
+
+  .ready-cta__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 64px;
+  }
+
+  .ready-cta__text {
+    max-width: 100%;
+  }
+
+  /* The .is-revealed toggle that lifts the base opacity:0 lives in a JS
+     block gated to min-width:1440px, so on this static layout the title
+     and desc must be visible without it. */
+  .ready-cta__text .ready-cta__title,
+  .ready-cta__text .ready-cta__desc {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .ready-cta__title {
+    font-size: 48px;
+    letter-spacing: -0.96px;
+  }
+
+  /* No pinned dwell to drive the scroll-linked reveal on this temporary
+     mobile layout -- same treatment as .intro-reasons__text on mobile:
+     show the English line plainly, static-flowed, and drop the Korean
+     swap entirely. */
+  .ready-cta__desc {
+    height: auto;
+  }
+
+  .ready-cta__desc-line {
+    position: static;
+    opacity: 0.7;
+    transform: none;
+    font-size: 16px;
+    letter-spacing: -0.32px;
+  }
+
+  .ready-cta__desc-kr {
+    display: none;
+  }
+
+  /* No pinned dwell to drive the fall-in sequence either -- show every
+     card already settled in its final resting position. */
+  .ready-cta__card {
+    opacity: 1;
+    transition: none;
+  }
+
+  .ready-cta__card--a {
+    transform: rotate(10deg);
+  }
+
+  .ready-cta__card--b {
+    transform: none;
+  }
+
+  .ready-cta__card--c {
+    transform: rotate(-10deg);
+  }
+
+  .ready-cta__stack {
+    width: min(420px, 100%);
+    align-self: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .ready-cta {
+    padding: 120px 20px 96px;
+  }
+
+  .ready-cta__title {
+    font-size: 36px;
+  }
+
+  .ready-cta__stack {
+    width: min(300px, 90%);
+  }
+}
+
+/* ==========================================================================
    Footer
    ========================================================================== */
 .site-footer {
@@ -5218,7 +5564,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    container-type context (see --u-fixed's own definition for why). */
 .portfolio-chatbot {
   position: fixed;
-  right: calc(3.3854 * var(--u-fixed));
+  right: calc(3.75 * var(--u-fixed));
   bottom: calc(3.3854 * var(--u-fixed));
   z-index: 120;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
@@ -5248,12 +5594,59 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   -webkit-backdrop-filter: blur(16px);
   color: #ffffff;
   box-shadow: 0 18px 46px rgba(0, 0, 0, 0.24);
-  transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+  transition: background 180ms ease, color 180ms ease;
+  animation: portfolioChatbotBob 5s ease-in-out infinite;
 }
 
 .portfolio-chatbot__toggle:hover,
 .portfolio-chatbot__toggle:focus-visible {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
+}
+
+/* Idles flat for most of the 5s cycle, then bounces briefly -- keeps the
+   toggle noticeable without looping a distracting animation constantly. */
+@keyframes portfolioChatbotBob {
+  0%, 76%, 100% { transform: translateY(0); }
+  80% { transform: translateY(-10px); }
+  84% { transform: translateY(0); }
+  88% { transform: translateY(-5px); }
+  92% { transform: translateY(0); }
+}
+
+.portfolio-chatbot__hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%) translateY(6px) scale(0.94);
+  white-space: nowrap;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(8, 8, 8, 0.9);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+/* Shown on hover/focus of the toggle button -- checked via :has() since the
+   hint sits before the button in the DOM, so a plain ~ sibling selector
+   can't reach backward to it. */
+.portfolio-chatbot:has(.portfolio-chatbot__toggle:hover) .portfolio-chatbot__hint,
+.portfolio-chatbot:has(.portfolio-chatbot__toggle:focus-visible) .portfolio-chatbot__hint {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.portfolio-chatbot:has(.portfolio-chatbot__toggle[aria-expanded="true"]) .portfolio-chatbot__toggle {
+  animation: none;
+}
+
+.portfolio-chatbot:has(.portfolio-chatbot__toggle[aria-expanded="true"]) .portfolio-chatbot__hint {
+  opacity: 0;
 }
 
 .portfolio-chatbot__toggle-icon {
@@ -5270,12 +5663,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .portfolio-chatbot__panel {
   position: absolute;
   right: 0;
-  bottom: 78px;
+  bottom: 92px;
   width: min(420px, calc(100vw - 32px));
-  max-height: min(760px, calc(100vh - 118px));
+  max-height: min(1040px, calc(100vh - 56px));
   display: flex;
   flex-direction: column;
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   background: rgba(8, 8, 8, 0.94);
@@ -5339,12 +5733,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .portfolio-chatbot__messages {
-  flex: 1 1 230px;
+  flex: 1 1 380px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 230px;
+  min-height: 500px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 18px 16px;
 }
 
@@ -5380,7 +5775,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 .portfolio-chatbot__poster-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 10px;
 }
@@ -5390,6 +5785,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 6px;
   background: #111111;
+  cursor: pointer;
+  padding: 0;
 }
 
 .portfolio-chatbot__poster img {
@@ -5397,6 +5794,72 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   aspect-ratio: 3 / 4;
   display: block;
   object-fit: cover;
+  transition: transform 180ms ease;
+}
+
+.portfolio-chatbot__poster:hover img,
+.portfolio-chatbot__poster:focus-visible img {
+  transform: scale(1.05);
+}
+
+/* Positioned absolute within .portfolio-chatbot__panel (not position: fixed)
+   so the enlarged poster stays inside the chat window instead of covering
+   the whole viewport. */
+.portfolio-chatbot__lightbox {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgba(8, 8, 8, 0.92);
+  border-radius: 8px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.portfolio-chatbot__lightbox[hidden] {
+  display: none;
+}
+
+.portfolio-chatbot__lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+
+.portfolio-chatbot__lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+}
+
+.portfolio-chatbot__lightbox-close::before,
+.portfolio-chatbot__lightbox-close::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 1px;
+  background: currentColor;
+}
+
+.portfolio-chatbot__lightbox-close::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.portfolio-chatbot__lightbox-close::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .portfolio-chatbot__poster span {
@@ -5470,102 +5933,6 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-weight: 600;
 }
 
-.portfolio-chatbot__mail {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.portfolio-chatbot__mail-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.portfolio-chatbot__mail-types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.portfolio-chatbot__mail-types label {
-  cursor: pointer;
-}
-
-.portfolio-chatbot__mail-types input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.portfolio-chatbot__mail-types span {
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 11px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 12px;
-  line-height: 1;
-}
-
-.portfolio-chatbot__mail-types input:checked + span {
-  border-color: #ffffff;
-  background: #ffffff;
-  color: #000000;
-}
-
-.portfolio-chatbot__mail-input,
-.portfolio-chatbot__mail-textarea {
-  width: 100%;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  font-family: 'Pretendard', 'Neue Montreal', sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.portfolio-chatbot__mail-input {
-  height: 42px;
-}
-
-.portfolio-chatbot__mail-textarea {
-  min-height: 104px;
-  padding-top: 11px;
-  padding-bottom: 11px;
-  resize: vertical;
-}
-
-.portfolio-chatbot__mail-input::placeholder,
-.portfolio-chatbot__mail-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.42);
-}
-
-.portfolio-chatbot__mail-input:focus,
-.portfolio-chatbot__mail-textarea:focus {
-  border-color: rgba(255, 255, 255, 0.52);
-}
-
-.portfolio-chatbot__mail-submit {
-  height: 46px;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #000000;
-  font-size: 14px;
-  font-weight: 700;
-}
-
 /* right/bottom below match .site-footer__top's own tablet/mobile overrides
    exactly -- at these widths its fluid calc(3.75 * u) size has already
    bottomed out at its min-width/min-height floor, so pinning the offset
@@ -5585,7 +5952,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
   .portfolio-chatbot__panel {
     right: 0;
-    bottom: 70px;
+    bottom: 84px;
     width: calc(100vw - 32px);
     max-height: calc(100vh - 104px);
   }

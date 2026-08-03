@@ -342,7 +342,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // has most recently crossed near the top of the viewport, which only
   // happens once the previous section has fully scrolled out of view.
   const sectionEls = Array.from(sections);
+  // While a nav-jump's smooth-scroll is in flight, the scroll-spy below
+  // would sweep the highlight through every section the jump flies past
+  // (WORK -> SKILL -> ABOUT in under a second), which reads as the nav
+  // links rapidly blinking. The click handler sets the destination link
+  // active up front and holds this lock until the jump settles.
+  let navJumpActiveLock = false;
   const updateActiveNav = () => {
+    if (navJumpActiveLock) return;
     const line = window.scrollY + 120;
     let current = sectionEls[0];
     sectionEls.forEach((sec) => {
@@ -447,8 +454,15 @@ document.addEventListener('DOMContentLoaded', () => {
         prevY = y;
       }
       const reachedTarget = targetY === null || Math.abs(y - targetY) <= 2;
-      if (stableFrames >= 3 && reachedTarget) {
+      // A wheel/touch input mid-flight cancels the browser's smooth scroll,
+      // so the target may never be reached -- without the fallback the poll
+      // would spin (and hold isNavJumping/navJumpActiveLock) until the next
+      // nav click. ~45 motionless frames means the scroll is over, wherever
+      // it stopped.
+      if ((stableFrames >= 3 && reachedTarget) || stableFrames >= 45) {
         isNavJumping = false;
+        navJumpActiveLock = false;
+        if (darkOverlayEl) darkOverlayEl.style.transition = '';
         lastScrollY = window.scrollY;
         // applyCombinedDarkState's own writes were suspended for the whole
         // jump (see that function) -- every section's *DarkContribution is
@@ -463,6 +477,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     requestAnimationFrame(check);
   };
+
+  // The dark overlay's opacity at each nav destination's landing position.
+  // Known statically: skill lands inside the pinned dark carousel (1);
+  // every other target lands on a light background or (contact) on the
+  // footer's own opaque black, which deliberately keeps the overlay at 0
+  // -- see the blackSectionDarkContribution comment in
+  // applyCombinedDarkState.
+  const NAV_DEST_OVERLAY = { intro: 0, work: 0, skill: 1, about: 0, contact: 0 };
 
   navLinks.forEach((link) => {
     link.addEventListener('click', (event) => {
@@ -481,6 +503,23 @@ document.addEventListener('DOMContentLoaded', () => {
       header.classList.remove('header--hidden');
       releaseCardsRevealLock();
       releaseSkillCarouselLock();
+
+      // applyCombinedDarkState holds its overlay write for the whole jump,
+      // which used to leave the overlay frozen at the ORIGIN's opacity --
+      // jumping out of a dark section meant a solid black screen for the
+      // entire 1.5s+ flight, snapping away only on arrival ("black
+      // background flashes when I jump to about"). Instead, ease the
+      // overlay to the DESTINATION's known landing value right away, and
+      // pin the nav highlight to the destination so the scroll-spy sweep
+      // doesn't blink through every section in between.
+      if (target && link.dataset.nav in NAV_DEST_OVERLAY) {
+        navJumpActiveLock = true;
+        setActiveNav(link.dataset.nav);
+        if (darkOverlayEl) {
+          darkOverlayEl.style.transition = 'opacity 0.45s ease';
+          darkOverlayEl.style.opacity = String(NAV_DEST_OVERLAY[link.dataset.nav]);
+        }
+      }
 
       if (target) {
         const targetY = target.getBoundingClientRect().top + window.scrollY;
@@ -519,6 +558,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // truly stopped, so forcing a recompute here closes that gap for good.
   const navJumpResumeCallbacks = [];
   window.addEventListener('scrollend', () => {
+    // The overlay's arrival value matches what the click handler already
+    // eased it to, so dropping the temporary transition here never causes
+    // a visible snap.
+    if (!isNavJumping && darkOverlayEl) darkOverlayEl.style.transition = '';
+    if (!isNavJumping) navJumpActiveLock = false;
     applyCombinedDarkState();
     if (suspendNavJumpVisuals) {
       suspendNavJumpVisuals = false;
@@ -821,17 +865,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let skillTransitionDarkContribution = 0;
   let skillContentDarkContribution = 0;
   let aboutTransitionDarkContribution = 0;
-  // .site-footer is always solid black, unlike every other section above
+  // .site-footer (and .ready-cta, the always-solid-black section right
+  // before it) are always solid black, unlike every other section above
   // (which fade a dark overlay in/out via their own *DarkContribution).
   // quickQaDarkContribution's own "exit" factor drops to 0 as soon as
   // quick-qa's bottom scrolls above the viewport -- with nothing covering
-  // for the footer after it, the header logo (plain black SVG, only
-  // inverted to white while some *DarkContribution is above threshold)
-  // would go black-on-black and effectively disappear over it. No fade
-  // needed here since the footer is already fully opaque -- this is just 1
-  // while the viewport's top edge is over it, 0 otherwise. Set inside
-  // updateQuickQaDarkState itself (not a separate listener) -- see that
-  // function for why sharing its one rect read matters here.
+  // for .ready-cta/.site-footer after it, the header logo (plain black SVG,
+  // only inverted to white while some *DarkContribution is above threshold)
+  // would go black-on-black and effectively disappear over them. No fade
+  // needed here since that whole remaining stretch is already fully opaque
+  // -- this is just 1 while the viewport's top edge is over it, 0
+  // otherwise. Set inside updateQuickQaDarkState itself (not a separate
+  // listener) -- see that function for why sharing its one rect read
+  // matters here.
   let blackSectionDarkContribution = 0;
   let quickQaDarkContribution = 0;
   // Mobile only (see updateSkillContentDark below): keeps the header
@@ -868,6 +914,22 @@ document.addEventListener('DOMContentLoaded', () => {
     darkStateFrameId = requestAnimationFrame(() => {
       darkStateFrameId = 0;
       darkContributionRefreshers.forEach((refresh) => refresh());
+      // While a nav-jump's smooth-scroll is in flight, its target can be a
+      // full page-length away (e.g. the header's own CONTACT link, hero ->
+      // footer) -- the refreshers above still track live geometry each
+      // frame, so `combined`/`headerDark` genuinely flip section-by-section
+      // as the jump flies past everything in between in a fraction of a
+      // normal scroll's time. Writing each of those intermediate values is
+      // exactly what read as the header logo and active nav link (both
+      // driven by .header--inverted, see style.css) rapidly blinking rather
+      // than transitioning once. Holding the actual DOM write off until
+      // isNavJumping clears -- while still letting contributions refresh
+      // above, so whichever call finally does write has fresh geometry --
+      // fixes that; waitForJumpToSettle already calls this function once
+      // more right after clearing isNavJumping, applying the real
+      // destination state in one clean frame instead of several flickery
+      // ones.
+      if (isNavJumping) return;
       const combined = Math.max(reasonDarkContribution, cardsDarkContribution, workTransitionDarkContribution, workDetailDarkContribution, workDetail2DarkContribution, workDetail3DarkContribution, skillTransitionDarkContribution, skillContentDarkContribution, aboutTransitionDarkContribution, quickQaDarkContribution);
       if (darkOverlayEl) darkOverlayEl.style.opacity = String(combined);
       // blackSectionDarkContribution deliberately does NOT feed into
@@ -1080,9 +1142,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const preventScrollKey = (e) => {
       if (SCROLL_LOCK_KEYS.includes(e.key)) e.preventDefault();
     };
+    // While engaged, wheel/touchmove/keydown never touch real page scroll
+    // themselves -- preventScroll/preventScrollKey block them outright, so
+    // any *other* scroll-position change seen here can only be an input
+    // this lock doesn't listen for: a scrollbar drag, middle-click
+    // autoscroll, etc. This used to always force it back to lockedScrollY,
+    // which fights a scrollbar drag on every 'scroll' event it fires and
+    // reads as the page snagging right at this section. Releasing the lock
+    // instead lets that kind of scroll win immediately, the same fix
+    // already applied to the SKILL carousel's own lock further down this
+    // file (see its 'scroll' listener comment for the full writeup).
     const correctLockedScroll = () => {
       if (scrollLockActive && !isNavJumping && window.scrollY !== lockedScrollY) {
-        window.scrollTo(0, lockedScrollY);
+        releaseScrollLock();
       }
     };
     const releaseScrollLock = () => {
@@ -3608,21 +3680,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const entry = Math.min(1, Math.max(0, (entryMargin - rect.top) / entryMargin));
       const exit = Math.min(1, Math.max(0, rect.bottom / vh));
       quickQaDarkContribution = Math.min(entry, exit);
-      // .site-footer is quick-qa's very next sibling with no gap between
-      // them, so rect.bottom here IS the footer's own top edge -- reusing
-      // this same reading (rather than a second, separately-scroll-ordered
-      // getBoundingClientRect + listener on the footer) is what actually
-      // matters: two independent listeners computing complementary halves
-      // of the same boundary can transiently disagree for one 'scroll'
-      // event during a fast (nav-jump) scroll, if one has updated its
-      // contribution for the new position and calls applyCombinedDarkState
-      // before the other has -- producing exactly one frame where the
-      // header logo flicks black then immediately back to white. Deriving
-      // both from one reading, in one function, closes that gap entirely.
-      // Tolerance (not a strict <= 0): at rest, sub-pixel scroll rounding
-      // can leave rect.bottom reading as a tiny positive value (observed
-      // 0.1171875) even when the footer visually fills the entire
-      // viewport, which a strict <= 0 check would miss forever.
+      // .ready-cta and .site-footer both sit directly after quick-qa with no
+      // gap between any of them, and both are solid black with no fade of
+      // their own, so rect.bottom here IS the top edge of that whole opaque
+      // black run through to the end of the page -- reusing this same
+      // reading (rather than separate scroll-ordered listeners on each
+      // section after it) is what actually matters: independent listeners
+      // computing complementary halves of the same boundary can transiently
+      // disagree for one 'scroll' event during a fast (nav-jump) scroll, if
+      // one has updated its contribution for the new position and calls
+      // applyCombinedDarkState before the other has -- producing exactly one
+      // frame where the header logo flicks black then immediately back to
+      // white. Deriving all of it from one reading, in one function, closes
+      // that gap entirely. Tolerance (not a strict <= 0): at rest, sub-pixel
+      // scroll rounding can leave rect.bottom reading as a tiny positive
+      // value (observed 0.1171875) even when the footer visually fills the
+      // entire viewport, which a strict <= 0 check would miss forever.
       blackSectionDarkContribution = rect.bottom <= 1 ? 1 : 0;
       applyCombinedDarkState();
     };
@@ -3730,6 +3803,12 @@ document.addEventListener('DOMContentLoaded', () => {
       header.classList.remove('header--hidden');
       releaseCardsRevealLock();
       releaseSkillCarouselLock();
+      navJumpActiveLock = true;
+      setActiveNav('intro');
+      if (darkOverlayEl) {
+        darkOverlayEl.style.transition = 'opacity 0.45s ease';
+        darkOverlayEl.style.opacity = '0';
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
       window.history.pushState(null, '', '#intro');
       waitForJumpToSettle(0);
@@ -3744,31 +3823,93 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatbotMessages = portfolioChatbotEl.querySelector('.portfolio-chatbot__messages');
     const chatbotForm = portfolioChatbotEl.querySelector('.portfolio-chatbot__form');
     const chatbotInput = portfolioChatbotEl.querySelector('.portfolio-chatbot__input');
-    const chatbotMailForm = portfolioChatbotEl.querySelector('.portfolio-chatbot__mail');
     const chatbotChips = Array.from(portfolioChatbotEl.querySelectorAll('[data-chat-question]'));
+    const chatbotLightbox = document.getElementById('portfolioChatbotLightbox');
+    const chatbotLightboxImg = document.getElementById('portfolioChatbotLightboxImg');
+    const chatbotLightboxClose = chatbotLightbox ? chatbotLightbox.querySelector('.portfolio-chatbot__lightbox-close') : null;
     let chatbotSeeded = false;
 
+    const openChatbotLightbox = (src, alt) => {
+      if (!chatbotLightbox || !chatbotLightboxImg) return;
+      chatbotLightboxImg.src = src;
+      chatbotLightboxImg.alt = alt || '';
+      chatbotLightbox.hidden = false;
+    };
+
+    const closeChatbotLightbox = () => {
+      if (!chatbotLightbox) return;
+      chatbotLightbox.hidden = true;
+    };
+
+    if (chatbotLightboxClose) chatbotLightboxClose.addEventListener('click', closeChatbotLightbox);
+    if (chatbotLightbox) {
+      chatbotLightbox.addEventListener('click', (event) => {
+        if (event.target === chatbotLightbox) closeChatbotLightbox();
+      });
+    }
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && chatbotLightbox && !chatbotLightbox.hidden) closeChatbotLightbox();
+    });
+
+    // overscroll-behavior alone doesn't reliably stop scroll from chaining
+    // to the page when the wheel event fires over panel chrome (header,
+    // chips, form) that has nothing of its own to scroll, so block it here:
+    // let .portfolio-chatbot__messages scroll freely, but swallow the wheel
+    // event once it hits either edge or when it's outside the messages list.
+    // stopPropagation is required too -- several sections (gallery-interaction,
+    // the hero intro) hijack scroll via their own window-level wheel
+    // listeners that call window.scrollTo directly, so merely calling
+    // preventDefault here (which only cancels the browser's native scroll)
+    // doesn't stop those from still moving the page underneath the panel.
+    if (chatbotPanel) {
+      chatbotPanel.addEventListener('wheel', (event) => {
+        event.stopPropagation();
+        const insideMessages = chatbotMessages && chatbotMessages.contains(event.target);
+        if (!insideMessages) {
+          event.preventDefault();
+          return;
+        }
+        const { scrollTop, scrollHeight, clientHeight } = chatbotMessages;
+        const atTop = scrollTop <= 0 && event.deltaY < 0;
+        const atBottom = scrollTop + clientHeight >= scrollHeight && event.deltaY > 0;
+        if (atTop || atBottom) event.preventDefault();
+      }, { passive: false });
+    }
+
+    const BIRTH_DATE = new Date(2000, 1, 23); // 2000-02-23
+
+    const getKoreanAge = (birthDate, today = new Date()) => {
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const hasHadBirthdayThisYear = (
+        today.getMonth() > birthDate.getMonth()
+        || (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate())
+      );
+      if (!hasHadBirthdayThisYear) age -= 1;
+      return age;
+    };
+
     const chatbotInfo = {
-      education: '피아노 전공을 바탕으로 UX/UI 디자인을 공부하며, 청중을 이해하던 경험을 사용자 경험 설계로 확장하고 있습니다.',
+      education: '단국대학교 음악대학 피아노과를 졸업하고, 이화여자대학교 대학원에서 피아노과를 졸업했습니다.\n피아노를 전공했지만 디자인을 통해 새로운 경험을 만드는 일에 매력을 느껴 새로운 분야에 도전하게 되었습니다.',
       major: '전공은 피아노입니다. 현재는 UX/UI 디자인, 서비스 기획, React 기반 화면 구현까지 함께 다룹니다.',
-      age: '나이 정보는 아직 포트폴리오 공개 데이터로 입력하지 않았어요. 공개해도 되는 정확한 값만 넣어두면 챗봇 답변에 바로 반영할 수 있습니다.',
-      mbti: 'MBTI도 아직 입력 전입니다. 정확한 유형을 알려주면 이 답변을 바로 바꿔둘 수 있어요.',
-      hobby: '취미와 관심사는 여행, 전시 관람, 콘서트, 음악 감상, 사진입니다. 일상의 경험을 디자인을 바라보는 시선으로 연결하는 편입니다.',
+      get age() {
+        return `2000년 2월 23일생으로, 만 ${getKoreanAge(BIRTH_DATE)}세입니다.`;
+      },
+      mbti: 'MBTI는 ISFJ입니다. 책임감과 꼼꼼함을 바탕으로 완성도 높은 결과를 만드는 사람입니다.',
+      hobby: '취미와 관심사는 사진 촬영, 전시 관람, 콘서트 관람, 음악 감상입니다. 일상의 경험을 디자인을 바라보는 시선으로 연결하는 편입니다.',
       philosophy: '디자인은 보기 좋은 화면을 넘어서, 사용자가 어디로 가야 하는지 자연스럽게 이해하게 만드는 명확한 경험이어야 한다고 생각합니다.',
-      projects: '대표 프로젝트는 ILKW 웹 리뉴얼, W:RUN 러닝 팬덤 앱, MU:it 클래식 음악 레슨 매칭 앱, AI Font Poster Studio입니다.',
+      projects: '대표 프로젝트는 일광전구 웹 리뉴얼, W:RUN 러닝 팬덤 앱, MU:it 클래식 음악 레슨 매칭 앱, AI Font Pairing Poster Studio입니다.',
     };
 
     const posterItems = [
-      {
-        title: '연주회 포스터 작업',
-        src: 'images/piano.webp',
-        desc: '피아노 전공 경험에서 출발한 음악 기반 디자인 작업입니다.',
-      },
-      {
-        title: '음악 경험 아카이브',
-        src: 'images/reason-music.webp',
-        desc: '공연과 음악에서 받은 감각을 시각 언어로 확장한 작업입니다.',
-      },
+      { title: '연주회 포스터', src: 'images/chat-poster-1.png' },
+      { title: '연주회 포스터', src: 'images/chat-poster-2.png' },
+      { title: '연주회 포스터', src: 'images/chat-poster-3.jpg' },
+      { title: '연주회 포스터', src: 'images/chat-poster-4.PNG' },
+      { title: '연주회 포스터', src: 'images/chat-poster-5.PNG' },
+      { title: '연주회 포스터', src: 'images/chat-poster-6.jpg' },
+      { title: '연주회 포스터', src: 'images/chat-poster-7.jpg' },
+      { title: '연주회 포스터', src: 'images/chat-poster-8.jpg' },
+      { title: '연주회 포스터', src: 'images/chat-poster-9.jpg' },
     ];
 
     const escapeHtml = (value) => String(value)
@@ -3804,15 +3945,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (question.includes('포스터') || question.includes('연주회') || question.includes('poster')) {
         return {
-          text: '연주회 포스터 관련 작업을 아래에 모아 보여드릴게요.',
+          text: '학사와 석사 졸업연주를 준비하며 직접 연주회 포스터를 제작했었고, 이후 동기들의 졸업연주 포스터 제작도 맡아 진행했습니다. 이 경험을 통해 시각적 커뮤니케이션과 디자인에 관심을 갖게 되었습니다.',
           posters: posterItems,
         };
       }
       if (question.includes('연락') || question.includes('메일') || question.includes('contact')) {
         return { text: '메일은 flora000223@naver.com, 연락처는 010-8379-0023입니다.' };
       }
-      if (question.includes('상담') || question.includes('피드백') || question.includes('문의')) {
-        return { text: '아래 상담/피드백 폼에 내용을 남기면 메일 작성창이 바로 열립니다. 메일 앱에서 전송 버튼만 눌러주세요.' };
+      if (question.includes('채용') || question.includes('면접') || question.includes('컨택') || question.includes('상담') || question.includes('피드백') || question.includes('문의') || question.includes('제안')) {
+        return { text: '채용 및 면접 관련 문의는 flora000223@naver.com 또는 010-8379-0023으로 연락 주시면 빠르게 회신드리겠습니다.' };
       }
       return {
         text: '저는 박지현의 학력, 전공, 나이, MBTI, 취미, 디자인 철학, 프로젝트, 연주회 포스터에 대해 답할 수 있어요.',
@@ -3834,12 +3975,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const grid = document.createElement('div');
         grid.className = 'portfolio-chatbot__poster-grid';
         answer.posters.forEach((poster) => {
-          const card = document.createElement('figure');
+          const card = document.createElement('button');
+          card.type = 'button';
           card.className = 'portfolio-chatbot__poster';
           card.innerHTML = `
             <img src="${escapeHtml(poster.src)}" alt="${escapeHtml(poster.title)}">
-            <span>${escapeHtml(poster.title)}<br>${escapeHtml(poster.desc)}</span>
           `;
+          card.addEventListener('click', () => openChatbotLightbox(poster.src, poster.title));
           grid.append(card);
         });
         message.append(grid);
@@ -3857,7 +3999,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!chatbotSeeded) {
         chatbotSeeded = true;
         appendChatbotMessage('bot', {
-          text: '안녕하세요. 지원자 박지현입니다. 학력, MBTI, 취미, 디자인 철학 등 저에 대해 궁금한 점이 있으시다면 편하게 질문해주세요.',
+          text: '안녕하세요. 지원자 박지현입니다.\n학력, 나이, MBTI 등 저에 대해 궁금한 점이 있으시다면 편하게 질문해주세요.',
         });
       }
       if (chatbotInput) chatbotInput.focus();
@@ -3898,30 +4040,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!question) return;
         chatbotInput.value = '';
         askChatbot(question);
-      });
-    }
-
-    if (chatbotMailForm) {
-      chatbotMailForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const formData = new FormData(chatbotMailForm);
-        const type = formData.get('mailType') || '포트폴리오 문의';
-        const sender = String(formData.get('sender') || '').trim();
-        const message = String(formData.get('message') || '').trim();
-        if (!message) return;
-
-        const subject = `[포트폴리오] ${type}`;
-        const body = [
-          `문의 유형: ${type}`,
-          sender ? `보낸 사람: ${sender}` : '보낸 사람: 미입력',
-          '',
-          '문의 내용:',
-          message,
-        ].join('\n');
-        window.location.href = `mailto:flora000223@naver.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        appendChatbotMessage('bot', {
-          text: '메일 작성창을 열었어요. 내용 확인 후 메일 앱에서 전송 버튼을 눌러주시면 됩니다.',
-        });
       });
     }
 
@@ -3971,6 +4089,91 @@ document.addEventListener('DOMContentLoaded', () => {
       }, { rootMargin: '0px' });
       footerObserver.observe(footerEl);
     }
+  }
+
+  /* Ready CTA -- title/desc fade in via IntersectionObserver as the section
+     first scrolls into view, then a pinned scroll dwell (.ready-cta__sticky)
+     plays the three photo cards falling into place one at a time (back card
+     first, matching DOM/z-index order), then cross-fades the English desc to
+     Korean and holds there for a while, all before the footer is allowed to
+     scroll in. Same dwellProgress + vh-pinned-threshold technique as
+     intro-reasons' update() above, just simpler (no title hand-off, no char
+     fill). Dropped entirely on mobile -- see .ready-cta's max-width:1439px
+     rules, which already show every card/the English line in its final
+     static state. */
+  const readyCtaEl = document.querySelector('.ready-cta');
+  if (readyCtaEl && window.matchMedia('(min-width: 1440px)').matches) {
+    const readyCtaCardA = readyCtaEl.querySelector('.ready-cta__card--a');
+    const readyCtaCardB = readyCtaEl.querySelector('.ready-cta__card--b');
+    const readyCtaCardC = readyCtaEl.querySelector('.ready-cta__card--c');
+    const readyCtaDescEl = readyCtaEl.querySelector('.ready-cta__desc');
+    const readyCtaTextEl = readyCtaEl.querySelector('.ready-cta__text');
+
+    if (readyCtaTextEl) {
+      const readyCtaTextObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          readyCtaTextEl.classList.toggle('is-revealed', entry.isIntersecting);
+        });
+      }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
+      readyCtaTextObserver.observe(readyCtaTextEl);
+    }
+
+    const getReadyCtaDwellProgress = () => {
+      const rect = readyCtaEl.getBoundingClientRect();
+      const dwellDist = readyCtaEl.offsetHeight - window.innerHeight;
+      return dwellDist > 0 ? Math.min(1, Math.max(0, -rect.top / dwellDist)) : 0;
+    };
+
+    let readyCtaPrevScrollY = window.scrollY;
+    let readyCtaScrollingUp = false;
+
+    const updateReadyCta = () => {
+      const dwellProgress = getReadyCtaDwellProgress();
+      const dwellDist = readyCtaEl.offsetHeight - window.innerHeight;
+      if (dwellDist <= 0) return;
+
+      const vh = window.innerHeight / 100;
+      // Fixed vh distances (not fractions of the whole dwell) so however
+      // long .ready-cta's CSS height is tuned to be, each stage always
+      // fires after the same amount of physical scrolling -- same
+      // reasoning as intro-reasons' FILL_END_VH/SWAP_TRIGGER_VH.
+      const CARD_A_VH = 30;
+      const CARD_B_VH = 80;
+      const CARD_C_VH = 130;
+      const DESC_SWAP_VH = 165;
+      // Scrolling back up, every stage un-reveals this much earlier (at
+      // higher dwell progress) than it revealed on the way down. Without
+      // the lead, card A starts its 0.9s fly-up only 30vh before the pin
+      // releases, so it's still mid-flight when the section un-sticks and
+      // visibly rides up with the page; with it, the whole stack has
+      // exited while still pinned and only then does the scroll let go.
+      const UP_LEAD_VH = 60;
+
+      const scrollYNow = window.scrollY;
+      if (scrollYNow !== readyCtaPrevScrollY) readyCtaScrollingUp = scrollYNow < readyCtaPrevScrollY;
+      readyCtaPrevScrollY = scrollYNow;
+      const leadVh = readyCtaScrollingUp ? UP_LEAD_VH : 0;
+
+      if (readyCtaCardA) readyCtaCardA.classList.toggle('is-revealed', dwellProgress >= ((CARD_A_VH + leadVh) * vh) / dwellDist);
+      if (readyCtaCardB) readyCtaCardB.classList.toggle('is-revealed', dwellProgress >= ((CARD_B_VH + leadVh) * vh) / dwellDist);
+      if (readyCtaCardC) readyCtaCardC.classList.toggle('is-revealed', dwellProgress >= ((CARD_C_VH + leadVh) * vh) / dwellDist);
+      if (readyCtaDescEl) readyCtaDescEl.classList.toggle('is-swapped', dwellProgress >= ((DESC_SWAP_VH + leadVh) * vh) / dwellDist);
+    };
+
+    let readyCtaTicking = false;
+    const onReadyCtaScroll = () => {
+      if (!readyCtaTicking) {
+        readyCtaTicking = true;
+        requestAnimationFrame(() => {
+          updateReadyCta();
+          readyCtaTicking = false;
+        });
+      }
+    };
+
+    updateReadyCta();
+    window.addEventListener('scroll', onReadyCtaScroll, { passive: true });
+    window.addEventListener('resize', rafCoalesce(updateReadyCta));
   }
 
   // Skill content carousel -- the pin sticks while wheel/key input drives the
@@ -4107,10 +4310,22 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const sharedStep = Math.max(...steps);
 
+      // Centering each side on its OWN mid (the old approach) left left/
+      // right pairs at different heights whenever the two sides' matched
+      // words happened to span different ranges of the stacked text list --
+      // exactly the "카드 위치가 안 맞음" mismatch. Both sides always hold
+      // the same number of icons (5 each, split by items[] order), so
+      // centering both around one shared mid -- the midpoint of every
+      // matched word's position across both sides combined, not just this
+      // side's own -- makes every row's left/right icon land at the exact
+      // same top, pairing them off two-by-two regardless of which side of
+      // the text list either one's word happens to sit in.
+      const allCenters = sides.flatMap((group) => group.map((entry) => entry.naturalCenter));
+      const sharedMid = (Math.min(...allCenters) + Math.max(...allCenters)) / 2;
+
       sides.forEach((group) => {
         if (!group.length) return;
-        const mid = (group[0].naturalCenter + group[group.length - 1].naturalCenter) / 2;
-        const startCenter = mid - (sharedStep * (group.length - 1)) / 2;
+        const startCenter = sharedMid - (sharedStep * (group.length - 1)) / 2;
         group.forEach((entry, i) => {
           const center = startCenter + sharedStep * i;
           const cardH = entry.card.offsetHeight;
