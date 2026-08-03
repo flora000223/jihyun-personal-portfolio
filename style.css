@@ -5571,9 +5571,10 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    --u-fixed since this element is position:fixed outside any section's own
    container-type context (see --u-fixed's own definition for why). */
 .portfolio-chatbot {
+  --chatbot-offset: calc(3.3854 * var(--u-fixed));
   position: fixed;
   right: calc(3.75 * var(--u-fixed));
-  bottom: calc(3.3854 * var(--u-fixed));
+  bottom: var(--chatbot-offset);
   z-index: 120;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   transition: opacity 220ms ease, transform 220ms ease;
@@ -5673,11 +5674,20 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .portfolio-chatbot__panel {
+  --panel-bottom-gap: 92px;
   position: absolute;
   right: 0;
-  bottom: 92px;
+  bottom: var(--panel-bottom-gap);
   width: min(420px, calc(100vw - 32px));
-  max-height: min(1040px, calc(100vh - 56px));
+  /* Both gaps below the panel (the toggle's own offset from the viewport
+     edge, plus this panel's offset above the toggle) have to come out of
+     the available height, or the panel can grow tall enough to push its
+     own top off-screen above the viewport -- confirmed happening at every
+     tested size (even 375x667) before this, since the old flat "- 56px"
+     never actually matched either offset. The extra 16px is breathing
+     room so the panel's top edge doesn't sit flush against the browser's
+     own edge. */
+  max-height: min(1040px, calc(100vh - var(--chatbot-offset) - var(--panel-bottom-gap) - 16px));
   display: flex;
   flex-direction: column;
   overflow: auto;
@@ -5751,7 +5761,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 500px;
+  /* No min-height: on shorter viewports the panel's own max-height can be
+     less than header + 500px + chips + form, which forced the *panel*
+     itself (not just this area) to overflow and scroll as a whole --
+     hiding the header/close button above the fold. flex-shrink (the "1 1"
+     in flex above) already lets this area compress to fit whatever space
+     actually remains, down to min-height: 0's own default. */
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 18px 16px;
@@ -5982,6 +5998,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    here keeps both buttons' corner margins identical too. */
 @media (max-width: 1023px) {
   .portfolio-chatbot {
+    --chatbot-offset: 48px;
     right: 32px;
     bottom: 48px;
   }
@@ -5989,15 +6006,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 @media (max-width: 520px) {
   .portfolio-chatbot {
+    --chatbot-offset: 40px;
     right: 24px;
     bottom: 40px;
   }
 
   .portfolio-chatbot__panel {
+    --panel-bottom-gap: 84px;
     right: 0;
     bottom: 84px;
     width: calc(100vw - 32px);
-    max-height: calc(100vh - 104px);
   }
 }
 
