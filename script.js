@@ -509,6 +509,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // applyCombinedDarkState.
   const NAV_DEST_OVERLAY = { intro: 0, work: 0, skill: 1, about: 0, contact: 0 };
 
+  // header--inverted's own write is held off for the whole jump (see
+  // applyCombinedDarkState's isNavJumping guard) so it doesn't blink through
+  // every section a long jump flies past. But that also meant the logo/
+  // active-link colors sat frozen at the ORIGIN's state for the entire
+  // flight (even though the overlay above already started easing toward the
+  // destination immediately) and only snapped to correct at the very end,
+  // once isNavJumping cleared -- a late, out-of-sync correction that reads
+  // as the exact "logo/link blinks" flicker this is meant to prevent, not a
+  // fix for it. Setting it to the known destination value here, in step
+  // with NAV_DEST_OVERLAY, lets it transition (via its own 0.2s ease, see
+  // .logo/.nav__link in style.css) right when the click happens instead.
+  const NAV_DEST_HEADER_DARK = { intro: false, work: false, skill: true, about: false, contact: true };
+
   navLinks.forEach((link) => {
     link.addEventListener('click', (event) => {
       const hash = link.getAttribute('href');
@@ -542,6 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
           darkOverlayEl.style.transition = 'opacity 0.45s ease';
           darkOverlayEl.style.opacity = String(NAV_DEST_OVERLAY[link.dataset.nav]);
         }
+        header.classList.toggle('header--inverted', NAV_DEST_HEADER_DARK[link.dataset.nav]);
       }
 
       if (target) {
@@ -1463,9 +1477,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const wipeEl = document.getElementById('workTransitionWipe');
 
     // The wipe's reveal window sits centered on the dwell's own middle
-    // third, not near the end -- "媛濡쒕줈 ?먮Ⅴ?ㅺ? 以묎컙??諛섏쟾" means the
-    // title should already be well underway scrolling by the time the
-    // invert starts, and still have room to keep scrolling after it ends.
+    // third, not near the end -- the title should already be well
+    // underway scrolling by the time the invert starts, and still
+    // have room to keep scrolling after it ends.
     const WIPE_START = 0.4;
     const WIPE_END = 0.6;
 
@@ -2274,7 +2288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const subTextItems = [
       {
         title: 'TRAVEL',
-        lines: ['다양한 환경을 경험하며', '더 넓은 시각으로 세상을 바라갑니다.'],
+        lines: ['다양한 환경을 경험하며', '더 넓은 시각으로 세상을 바라봅니다.'],
       },
       {
         title: 'EXHIBITION',
@@ -2849,11 +2863,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         cards.forEach((card, index) => {
           const lineT = index / (cards.length - 1);
-          const appearDelay = revealRank[index] * 108;
+          const appearDelay = revealRank[index] * 75;
           const now = window.performance.now();
           const revealElapsed = revealStartedAt === null ? 0 : now - revealStartedAt;
-          const appearByTime = range(revealElapsed, appearDelay, appearDelay + 720);
-          const appearByScroll = range(visualProgress, 0.025 + revealRank[index] * 0.005, 0.24 + revealRank[index] * 0.005);
+          const appearByTime = range(revealElapsed, appearDelay, appearDelay + 500);
+          const appearByScroll = range(visualProgress, 0.025 + revealRank[index] * 0.005, 0.175 + revealRank[index] * 0.005);
           const appear = card.isLoaded ? Math.max(appearByTime, appearByScroll) : 0;
 
           let x = centerX + scatter[index][0] * width;
@@ -3832,6 +3846,7 @@ document.addEventListener('DOMContentLoaded', () => {
         darkOverlayEl.style.transition = 'opacity 0.45s ease';
         darkOverlayEl.style.opacity = '0';
       }
+      header.classList.remove('header--inverted');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       window.history.pushState(null, '', '#intro');
       waitForJumpToSettle(0);
@@ -3912,7 +3927,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const chatbotInfo = {
-      education: '단국대학교 음악대학 피아노과를 졸업하고,\n이화여자대학교 대학원에서 피아노과를 졸업했습니다.\n피아노를 전공했지만 디자인을 통해 새로운 경험을 만드는 일에 매력을 느껴 새로운 분야에 도전하게 되었습니다.',
+      education: '단국대학교 음악대학 피아노과를 졸업하고,\n이화여자대학교 대학원에서 피아노과를 졸업했습니다.\n피아노를 전공했지만 디자인을 통해 다채로운 경험을 만드는 일에 매력을 느껴 새로운 분야에 도전하게 되었습니다.',
       major: '전공은 피아노입니다. 현재는 UX/UI 디자인, 서비스 기획, Frontend 화면 구현까지 함께 다룹니다.',
       get age() {
         return `2000년 2월 23일생으로, 만 ${getKoreanAge(BIRTH_DATE)}세입니다.`;
