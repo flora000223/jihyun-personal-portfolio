@@ -4436,6 +4436,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let entranceStartTime = null;
     let wasNearViewport = false;
 
+    // A real mouse/trackpad, vs. touch-only -- see syncScrollLock's own
+    // comment on why this section's desktop-style scroll-hijack (wheel
+    // input consumed as carousel rotation) only ever runs for the former.
+    const hasFinePointer = () => window.matchMedia('(pointer: fine)').matches;
+
     function resetCarouselState(position = 0) {
       rotation = position;
       targetRotation = position;
@@ -4679,6 +4684,37 @@ document.addEventListener('DOMContentLoaded', () => {
         wasNearViewport = mobileReveal;
         return;
       }
+      // Touch-primary tablet (>1023px, so it still gets the full
+      // desktop-style orbit rather than the mobile static layout above) --
+      // iOS/iPadOS can't have an in-progress touch-scroll gesture reliably
+      // hijacked by calling preventDefault() on a later touchmove: the
+      // browser commits a gesture to native scrolling within its first
+      // touch/touchmove or two and ignores preventDefault() from then on,
+      // so trying to mirror the wheel handler's "intercept and consume as
+      // rotation" model here just desynced the carousel's internal state
+      // from what was actually on screen. Instead of fighting that, let
+      // native touch scroll proceed completely untouched and read rotation
+      // straight off normal scroll position within this section's own
+      // already-present sticky dwell (.skill-content__stage's 160vh vs
+      // .skill-content__pin's 100vh, same as every other scroll-linked
+      // section on the site already does reliably) -- nothing is ever
+      // captured, so there's nothing that can get stuck.
+      if (!hasFinePointer()) {
+        const dwellDist = skillCarouselStageEl.offsetHeight - window.innerHeight;
+        const dwellProgress = dwellDist > 0 ? clamp01(-visibilityRect.top / dwellDist) : 0;
+        if (nearViewport && !hasEntered) {
+          hasEntered = true;
+          entranceStartTime = performance.now();
+        }
+        const position = minScrollPosition + (maxScrollPosition - minScrollPosition) * dwellProgress;
+        scrollPosition = position;
+        targetRotation = position;
+        isEngaged = false;
+        isScrollLocked = false;
+        wasNearViewport = nearViewport;
+        return;
+      }
+
       if (wasNearViewport && !nearViewport) {
         resetCarouselState(visibilityRect.bottom <= -viewportBuffer ? maxScrollPosition : 0);
       }
@@ -4781,6 +4817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function tryProactiveEntry(rawDelta) {
       if (window.innerWidth <= 1023) return false;
       if (isNavJumping) return false;
+      if (!hasFinePointer()) return false;
       const stageRect = skillCarouselStageEl.getBoundingClientRect();
       if (stageRect.top > 0 && rawDelta > 0 && rawDelta >= stageRect.top) {
         resetCarouselState(0);
@@ -4831,6 +4868,11 @@ document.addEventListener('DOMContentLoaded', () => {
       releaseEngagement(rawDelta);
     });
 
+    // isEngaged is never true without a fine pointer (see
+    // tryProactiveEntry/syncScrollLock), so this never actually
+    // preventDefault()s on a touch-only device -- native touch scroll
+    // always reaches the page. Kept only for the fine-pointer case, where
+    // a connected trackpad/mouse can dispatch touch-like events too.
     window.addEventListener(
       'touchmove',
       (event) => {

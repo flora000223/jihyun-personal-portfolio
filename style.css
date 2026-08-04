@@ -1848,7 +1848,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .skill-content__stage {
   position: relative;
   width: min(100cqw, 1920px);
-  height: 160vh;
+  /* The 100vh sticky pin only actually needs 100vh of this; the rest is
+     dwell room. Desktop's wheel-hijack doesn't care how much of that dwell
+     exists (scroll stays frozen for the whole engagement regardless), but
+     the touch-tablet path (see syncScrollLock's !hasFinePointer() branch
+     in script.js) reads the carousel's rotation straight off how far the
+     user has physically scrolled through this dwell -- at the old 60vh of
+     room, a normal-speed swipe blew through the whole rotation range
+     before it had time to read as finished. 300vh of dwell gives that
+     same swipe enough physical distance to actually feel complete. */
+  height: 400vh;
   margin: calc(6.25 * var(--u)) auto 0;
 }
 

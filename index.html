@@ -1428,11 +1428,18 @@
         <p class="site-footer__copyright">
           <span>&copy; </span><span class="site-footer__copyright-year">2026</span><span> JIHYUN PARK</span>
         </p>
-
-        <button class="site-footer__top" type="button" aria-label="맨 위로 이동">
-          <img src="images/footer-arrow-up.svg" alt="">
-        </button>
       </div>
+
+      <!-- Direct child of .site-footer (full viewport width), not
+           .site-footer__inner (position:relative but width capped at
+           1920px and centered) -- .site-footer__top's right/bottom offsets
+           need to resolve against the true screen corner the way
+           .portfolio-chatbot's fixed positioning already does, not against
+           that capped-and-centered column, which is what let it drift
+           inward from the real edge on any viewport wider than 1920px. -->
+      <button class="site-footer__top" type="button" aria-label="맨 위로 이동">
+        <img src="images/footer-arrow-up.svg" alt="">
+      </button>
     </footer>
   </main>
 
