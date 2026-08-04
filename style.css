@@ -3802,7 +3802,15 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   overflow: visible;
   pointer-events: none;
   z-index: 2;
-  will-change: transform;
+  /* was will-change: transform -- Safari/WebKit (every iPad browser, since
+     iOS requires them all to use WebKit) has a long-documented bug where a
+     blur() filter on a descendant of a will-change/transform-promoted
+     compositing layer just doesn't get painted at all, rather than merely
+     rendering differently. Chrome/Firefox don't have this issue, which is
+     why it looked fine everywhere this was actually tested from. The
+     transform this hinted at is still applied every frame in script.js
+     regardless -- losing the hint costs a little compositing efficiency,
+     not correctness, and is worth it to get the glow back on iPad. */
 }
 
 .work-detail__glow-curve path {
@@ -3810,6 +3818,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   stroke: rgba(251, 242, 223, 0.5);
   stroke-width: calc(0.5208 * var(--u));
   stroke-linecap: round;
+  -webkit-filter: blur(calc(0.3906 * var(--u)));
   filter: blur(calc(0.3906 * var(--u)));
 }
 
