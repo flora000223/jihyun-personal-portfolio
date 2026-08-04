@@ -222,6 +222,13 @@
     <section class="work-detail" id="work">
       <div class="work-detail__sticky">
       <div class="work-detail__track" id="workDetailTrack">
+      <!-- Wrapper carries the blur filter; the svg only carries the slide
+           transform. Safari/WebKit's filter-region math for a CSS blur()
+           applied to an SVG shape (as this used to be, directly on the
+           path) tends to clip in tight around the shape's own geometry,
+           cutting the blur off instead of just softening the edge -- a
+           plain HTML element blurs its content reliably there instead. -->
+      <div class="work-detail__glow-wrap">
       <svg class="work-detail__glow-curve" viewBox="0 0 9600 289.216" preserveAspectRatio="none" aria-hidden="true">
         <!-- Shape (and per-scene bulge amount) is generated at runtime by
              buildGlowPath()/GLOW_PEAKS in script.js -- this "d" is a plain
@@ -231,6 +238,7 @@
              panels (5) or the curve visually falls short of the last panel. -->
         <path d="M 0,150 L 9600,150" />
       </svg>
+      </div>
       <div class="work-detail__panel">
       <div class="work-detail__stage">
         <img class="work-detail__mockup" src="images/work-ilkw-mockup.webp" alt="ILKW 웹사이트 데스크톱, 태블릿, 모바일 화면">
@@ -489,9 +497,11 @@
     <section class="work-detail work-detail--p2" id="workDetail2" data-nav-id="work">
       <div class="work-detail__sticky">
       <div class="work-detail__track" id="workDetailTrack2">
+      <div class="work-detail__glow-wrap">
       <svg class="work-detail__glow-curve" viewBox="0 0 7680 289.216" preserveAspectRatio="none" aria-hidden="true">
         <path d="M 0,150 L 7680,150" />
       </svg>
+      </div>
       <div class="work-detail__panel">
       <div class="work-detail__stage">
         <img class="work-detail__mockup work-detail__mockup--p2" src="images/work-werun-mockup.webp" alt="W:RUN 앱 UI 화면">
@@ -723,9 +733,11 @@
     <section class="work-detail work-detail--p3" id="workDetail3" data-nav-id="work">
       <div class="work-detail__sticky">
       <div class="work-detail__track" id="workDetailTrack3">
+      <div class="work-detail__glow-wrap">
       <svg class="work-detail__glow-curve" viewBox="0 0 9600 289.216" preserveAspectRatio="none" aria-hidden="true">
         <path d="M 0,150 L 9600,150" />
       </svg>
+      </div>
       <div class="work-detail__panel">
       <div class="work-cover3__stage">
         <img class="work-cover3__mockup" src="images/work-muit-mockup.webp" alt="MU:it 앱 UI 화면">

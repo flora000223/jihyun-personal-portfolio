@@ -3793,7 +3793,15 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    non-container track), which has the same inline size as every
    .work-detail__panel, so the scale matches what the path's own geometry
    (drawn in one 1920-wide unit repeated 5x) assumes per panel. */
-.work-detail__glow-curve {
+/* Blur lives here, on a plain HTML element, instead of directly on the
+   svg/path -- Safari/WebKit's filter-region math for a CSS blur() applied
+   straight to SVG content tends to clip in tight around the shape's own
+   geometry (a thin stroked line especially), cutting the blur off instead
+   of softening the edge, which is why it rendered as a hard line with no
+   glow there even though it looked right everywhere this was actually
+   tested from (Chrome/Firefox don't have this issue). A regular element
+   blurs its contents reliably regardless of what's inside it. */
+.work-detail__glow-wrap {
   position: absolute;
   left: 100%;
   top: calc(20.5933 * var(--u));
@@ -3802,15 +3810,20 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   overflow: visible;
   pointer-events: none;
   z-index: 2;
-  /* was will-change: transform -- Safari/WebKit (every iPad browser, since
-     iOS requires them all to use WebKit) has a long-documented bug where a
-     blur() filter on a descendant of a will-change/transform-promoted
-     compositing layer just doesn't get painted at all, rather than merely
-     rendering differently. Chrome/Firefox don't have this issue, which is
-     why it looked fine everywhere this was actually tested from. The
-     transform this hinted at is still applied every frame in script.js
-     regardless -- losing the hint costs a little compositing efficiency,
-     not correctness, and is worth it to get the glow back on iPad. */
+  filter: blur(calc(0.3906 * var(--u)));
+  -webkit-filter: blur(calc(0.3906 * var(--u)));
+}
+
+/* The slide transform (script.js writes to this element every frame, via
+   its .work-detail__glow-curve class) stays on the svg itself, separate
+   from the wrap's blur -- keeping transform and filter off the same
+   element sidesteps another Safari compositing quirk where the two
+   together can misbehave. */
+.work-detail__glow-curve {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .work-detail__glow-curve path {
@@ -3818,11 +3831,9 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   stroke: rgba(251, 242, 223, 0.5);
   stroke-width: calc(0.5208 * var(--u));
   stroke-linecap: round;
-  -webkit-filter: blur(calc(0.3906 * var(--u)));
-  filter: blur(calc(0.3906 * var(--u)));
 }
 
-.work-detail--p2 .work-detail__glow-curve {
+.work-detail--p2 .work-detail__glow-wrap {
   width: 400%;
 }
 
@@ -6431,7 +6442,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
      no longer a fixed-width filmstrip, those percentages no longer mean
      anything, so just drop the decoration rather than have it render
      somewhere nonsensical. */
-  .work-detail__glow-curve {
+  .work-detail__glow-wrap {
     display: none;
   }
 
