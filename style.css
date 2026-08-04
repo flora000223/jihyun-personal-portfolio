@@ -4,7 +4,8 @@
    ========================================================================== */
 @font-face {
   font-family: 'Neue Montreal';
-  src: url('fonts/NeueMontreal-Light.otf') format('opentype');
+  src: url('fonts/NeueMontreal-Light.woff2') format('woff2'),
+       url('fonts/NeueMontreal-Light.otf') format('opentype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -12,7 +13,8 @@
 
 @font-face {
   font-family: 'Neue Montreal';
-  src: url('fonts/NeueMontreal-LightItalic.otf') format('opentype');
+  src: url('fonts/NeueMontreal-LightItalic.woff2') format('woff2'),
+       url('fonts/NeueMontreal-LightItalic.otf') format('opentype');
   font-weight: 300;
   font-style: italic;
   font-display: swap;
@@ -20,7 +22,8 @@
 
 @font-face {
   font-family: 'Neue Montreal';
-  src: url('fonts/NeueMontreal-Regular.otf') format('opentype');
+  src: url('fonts/NeueMontreal-Regular.woff2') format('woff2'),
+       url('fonts/NeueMontreal-Regular.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -28,7 +31,8 @@
 
 @font-face {
   font-family: 'Neue Montreal';
-  src: url('fonts/NeueMontreal-Italic.otf') format('opentype');
+  src: url('fonts/NeueMontreal-Italic.woff2') format('woff2'),
+       url('fonts/NeueMontreal-Italic.otf') format('opentype');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
@@ -36,7 +40,8 @@
 
 @font-face {
   font-family: 'Neue Montreal';
-  src: url('fonts/NeueMontreal-Medium.otf') format('opentype');
+  src: url('fonts/NeueMontreal-Medium.woff2') format('woff2'),
+       url('fonts/NeueMontreal-Medium.otf') format('opentype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -44,7 +49,8 @@
 
 @font-face {
   font-family: 'Neue Montreal';
-  src: url('fonts/NeueMontreal-MediumItalic.otf') format('opentype');
+  src: url('fonts/NeueMontreal-MediumItalic.woff2') format('woff2'),
+       url('fonts/NeueMontreal-MediumItalic.otf') format('opentype');
   font-weight: 500;
   font-style: italic;
   font-display: swap;
@@ -52,7 +58,8 @@
 
 @font-face {
   font-family: 'Neue Montreal';
-  src: url('fonts/NeueMontreal-Bold.otf') format('opentype');
+  src: url('fonts/NeueMontreal-Bold.woff2') format('woff2'),
+       url('fonts/NeueMontreal-Bold.otf') format('opentype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -60,7 +67,8 @@
 
 @font-face {
   font-family: 'Neue Montreal';
-  src: url('fonts/NeueMontreal-BoldItalic.otf') format('opentype');
+  src: url('fonts/NeueMontreal-BoldItalic.woff2') format('woff2'),
+       url('fonts/NeueMontreal-BoldItalic.otf') format('opentype');
   font-weight: 700;
   font-style: italic;
   font-display: swap;
@@ -587,7 +595,7 @@ button {
   font-weight: 400;
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .hero__title {
     font-size: clamp(30px, 12.5vw, 52px);
     line-height: 1.06;
@@ -1444,7 +1452,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #000000;
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   /* Same mobile fallback approach as every other pinned section here:
      drop the pin/scroll-scrub entirely and show the end state (fully
      inverted, white bg/black text) as a plain static block. */
@@ -1577,7 +1585,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #ffffff;
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .skill-transition {
     height: auto;
   }
@@ -1700,7 +1708,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: #000000;
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .about-transition {
     height: auto;
   }
@@ -3037,7 +3045,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   position: sticky;
   top: 50vh;
   transform: translateY(-50%);
-  margin: calc(16.25 * var(--u)) auto 0;
+  margin: calc(20 * var(--u)) auto 0;
   width: calc(55.7813 * var(--u));
   display: flex;
   flex-direction: column;
@@ -3306,7 +3314,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 .ai-lab {
   position: relative;
   container-type: inline-size;
-  padding: calc(24.3333 * var(--u)) 0 calc(9.375 * var(--u));
+  padding: calc(26 * var(--u)) 0 calc(9.375 * var(--u));
 }
 
 .ai-lab.is-cursor-active {
@@ -4371,7 +4379,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   margin: 0;
 }
 
-@media (min-width: 1440px) {
+@media (min-width: 1024px) {
   .work-scenes__desc-en p {
     white-space: nowrap;
   }
@@ -4671,6 +4679,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
+  /* Matches the `perspective = 900` constant script.js's WebGL path uses
+     for its own manual projection math, so the DOM fallback (see
+     .gallery-interaction__card-dom below) reads the same depth/scale even
+     though it lets the browser do the projection instead. Harmless for
+     the WebGL canvas itself -- perspective only affects 3D-transformed
+     children, and the canvas draws its own pixels regardless. */
+  perspective: 900px;
 }
 
 .gallery-interaction__webgl-canvas {
@@ -4680,6 +4695,45 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   height: 100%;
   display: block;
   pointer-events: none;
+}
+
+/* Fallback renderer for when WebGL is unavailable (getContext('webgl')
+   returns null -- disabled hardware acceleration, a GPU on Chrome's
+   blocklist, some locked-down/remote-desktop setups, etc). Only ever
+   created by script.js when that happens, so these never coexist with
+   the WebGL canvas -- see the !gl branch next to
+   .gallery-interaction__webgl-canvas's own creation. Same card.state
+   (x/y/z/rotation/flipX/scale/opacity) values as the WebGL path, just
+   applied as a real CSS 3D transform instead of a manual per-vertex
+   projection. */
+.gallery-interaction__card-dom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  border-radius: 6px;
+}
+
+.gallery-interaction__card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.gallery-interaction__card-face--front img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.gallery-interaction__card-face--back {
+  background: rgb(186, 191, 193);
+  transform: rotateX(180deg);
 }
 
 .gallery-interaction__ring-overlay {
@@ -4715,7 +4769,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   color: var(--ink, #252b2d);
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .gallery-interaction__shape-title {
     font-size: 32px;
   }
@@ -4929,7 +4983,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .quick-qa {
     padding: 144px 32px 120px;
   }
@@ -5228,7 +5282,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   transform: rotate(-10deg);
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .ready-cta {
     height: auto;
     padding: 144px 32px 120px;
@@ -5251,7 +5305,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 
   /* The .is-revealed toggle that lifts the base opacity:0 lives in a JS
-     block gated to min-width:1440px, so on this static layout the title
+     block gated to min-width:1024px, so on this static layout the title
      and desc must be visible without it. */
   .ready-cta__text .ready-cta__title,
   .ready-cta__text .ready-cta__desc {
@@ -5480,7 +5534,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   min-height: 30px;
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .site-footer {
     min-height: 720px;
   }
@@ -5563,9 +5617,10 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    --u-fixed since this element is position:fixed outside any section's own
    container-type context (see --u-fixed's own definition for why). */
 .portfolio-chatbot {
+  --chatbot-offset: calc(3.3854 * var(--u-fixed));
   position: fixed;
   right: calc(3.75 * var(--u-fixed));
-  bottom: calc(3.3854 * var(--u-fixed));
+  bottom: var(--chatbot-offset);
   z-index: 120;
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   transition: opacity 220ms ease, transform 220ms ease;
@@ -5665,11 +5720,20 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 }
 
 .portfolio-chatbot__panel {
+  --panel-bottom-gap: 92px;
   position: absolute;
   right: 0;
-  bottom: 92px;
+  bottom: var(--panel-bottom-gap);
   width: min(420px, calc(100vw - 32px));
-  max-height: min(1040px, calc(100vh - 56px));
+  /* Both gaps below the panel (the toggle's own offset from the viewport
+     edge, plus this panel's offset above the toggle) have to come out of
+     the available height, or the panel can grow tall enough to push its
+     own top off-screen above the viewport -- confirmed happening at every
+     tested size (even 375x667) before this, since the old flat "- 56px"
+     never actually matched either offset. The extra 16px is breathing
+     room so the panel's top edge doesn't sit flush against the browser's
+     own edge. */
+  max-height: min(1040px, calc(100vh - var(--chatbot-offset) - var(--panel-bottom-gap) - 16px));
   display: flex;
   flex-direction: column;
   overflow: auto;
@@ -5743,7 +5807,13 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 500px;
+  /* No min-height: on shorter viewports the panel's own max-height can be
+     less than header + 500px + chips + form, which forced the *panel*
+     itself (not just this area) to overflow and scroll as a whole --
+     hiding the header/close button above the fold. flex-shrink (the "1 1"
+     in flex above) already lets this area compress to fit whatever space
+     actually remains, down to min-height: 0's own default. */
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 18px 16px;
@@ -5972,8 +6042,9 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    exactly -- at these widths its fluid calc(3.75 * u) size has already
    bottomed out at its min-width/min-height floor, so pinning the offset
    here keeps both buttons' corner margins identical too. */
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .portfolio-chatbot {
+    --chatbot-offset: 48px;
     right: 32px;
     bottom: 48px;
   }
@@ -5981,15 +6052,16 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 @media (max-width: 520px) {
   .portfolio-chatbot {
+    --chatbot-offset: 40px;
     right: 24px;
     bottom: 40px;
   }
 
   .portfolio-chatbot__panel {
+    --panel-bottom-gap: 84px;
     right: 0;
     bottom: 84px;
     width: calc(100vw - 32px);
-    max-height: calc(100vh - 104px);
   }
 }
 
@@ -6029,8 +6101,8 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-/* Tablet 768 and below: collapse to hamburger menu */
-@media (max-width: 1439px) {
+/* 1023px and below: collapse to hamburger menu */
+@media (max-width: 1023px) {
   .header__inner {
     padding: 18px 32px;
   }
@@ -6838,12 +6910,20 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     width: 100%;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 40px;
+    /* .clone-coding__grid's base (desktop) rule sets overflow-x: hidden
+       for the pinned filmstrip and never sets overflow-y -- per the CSS
+       overflow spec, one axis set to a non-visible value forces the other
+       to compute as auto instead of visible, so without this reset the
+       stacked column here silently grew its own ~40px scrollable overflow
+       and a nested scrollbar, independent of the page's own scroll. */
+    overflow: visible;
   }
 
   .clone-coding__card {
     position: static;
-    width: 100%;
+    width: min(88%, 380px);
   }
 
   .clone-coding__frame {
@@ -7024,7 +7104,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
    widths tighter bounds so the page does not create side-scroll.
    ========================================================================== */
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   :root {
     --mobile-grid-images:
       linear-gradient(var(--color-line), var(--color-line)),
@@ -7421,21 +7501,46 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
-    column-gap: 14px;
+    column-gap: 8px;
     row-gap: 30px;
   }
 
   .work-scenes--together .work-scenes__media--video,
   .work-scenes--together .work-scenes__media--photo {
     width: 100%;
-    max-width: 144px;
+    max-width: 190px;
     margin: 0;
-    justify-self: center;
+  }
+
+  /* Each column here is much wider than the 190px photo it holds, so
+     centering both within their own column (justify-self: center) left a
+     large gap at the shared boundary. Pushing the left one to its
+     column's end and the right one to its column's start instead pulls
+     them together against that boundary, so the visual gap between the
+     two photos is just column-gap. */
+  .work-scenes--together .work-scenes__media--video {
+    justify-self: end;
+  }
+
+  .work-scenes--together .work-scenes__media--photo {
+    justify-self: start;
   }
 
   .work-scenes--together .work-scenes__copy,
   .work-scenes--together .work-scenes__links {
     grid-column: 1 / -1;
+  }
+
+  .work-scenes--together .work-scenes__copy {
+    align-items: center;
+    justify-self: center;
+    margin: 0 auto;
+  }
+
+  .work-scenes--together .work-scenes__links {
+    justify-content: flex-start;
+    justify-self: center;
+    margin: 0 auto;
   }
 
   .work-scenes__title,
@@ -8391,7 +8496,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .work-detail__link,
   .work-scenes__link,
   .work-scenes__deployment-link,
@@ -8466,29 +8571,9 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   }
 }
 
-@media (max-width: 1439px) {
+@media (max-width: 1023px) {
   .work-scenes--crafting .work-scenes__device {
     margin-top: 26px;
-  }
-
-  .work-scenes--together {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: stretch;
-    column-gap: 18px;
-  }
-
-  .work-scenes--together .work-scenes__media--video,
-  .work-scenes--together .work-scenes__media--photo {
-    width: 100%;
-    max-width: none;
-    aspect-ratio: 4 / 5;
-  }
-
-  .work-scenes--together .work-scenes__media--video video,
-  .work-scenes--together .work-scenes__media--photo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
   }
 
   .work-detail--p2 .work-scenes--community,
