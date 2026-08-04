@@ -608,10 +608,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('scroll', () => {
+    // Always kept in sync with the real scrollY, even while isScrollLocked
+    // -- a scrollbar drag straight up to the hero can land here on the one
+    // 'scroll' event where a section's lock (cards-reveal, the SKILL
+    // carousel) is still flagged active (its own listener releases it
+    // moments later, on this same event, but after this handler already
+    // ran). Gating this below the isScrollLocked check meant that one
+    // event -- often the last, since the drag has already reached the top
+    // -- got skipped and .header--hero never reapplied, leaving the logo/
+    // nav text black-on-black over the hero until something else (a manual
+    // refresh) recomputed it from scratch. Nothing bad comes from calling
+    // it while genuinely locked either: real scrollY isn't moving then, so
+    // it just recomputes the same value.
+    updateHeaderHeroState();
     if (isScrollLocked) return;
 
     const currentScrollY = window.scrollY;
-    updateHeaderHeroState();
 
     if (isNavJumping) {
       header.classList.remove('header--hidden');
@@ -1183,15 +1195,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // themselves -- preventScroll/preventScrollKey block them outright, so
     // any *other* scroll-position change seen here can only be an input
     // this lock doesn't listen for: a scrollbar drag, middle-click
-    // autoscroll, etc. This used to always force it back to lockedScrollY,
-    // which fights a scrollbar drag on every 'scroll' event it fires and
-    // reads as the page snagging right at this section. Releasing the lock
-    // instead lets that kind of scroll win immediately, the same fix
-    // already applied to the SKILL carousel's own lock further down this
-    // file (see its 'scroll' listener comment for the full writeup).
+    // autoscroll, etc. Unconditionally releasing on any such nudge (an
+    // earlier version of this) meant the dwell pause died the instant
+    // *anything* moved scrollY even slightly -- including the tiny
+    // scroll-anchoring correction the browser fires on its own right as
+    // the flip's layout change lands -- which read as the pause not
+    // engaging at all. Snapping back to lockedScrollY (like a plain wheel
+    // scroll gets) is correct for that case and restores the intended
+    // dwell. The one input that should still win outright is a scrollbar
+    // drag/click landing at the very top or bottom of the page -- a
+    // deliberate "jump to the end", not incidental drift -- so that alone
+    // is left to release the lock immediately.
+    const isAtScrollExtreme = () => {
+      const maxScrollY = document.documentElement.scrollHeight - window.innerHeight;
+      return window.scrollY <= 2 || window.scrollY >= maxScrollY - 2;
+    };
     const correctLockedScroll = () => {
-      if (scrollLockActive && !isNavJumping && window.scrollY !== lockedScrollY) {
+      if (!scrollLockActive || isNavJumping || window.scrollY === lockedScrollY) return;
+      if (isAtScrollExtreme()) {
         releaseScrollLock();
+      } else {
+        window.scrollTo(0, lockedScrollY);
       }
     };
     const releaseScrollLock = () => {
