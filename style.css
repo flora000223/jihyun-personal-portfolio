@@ -5427,6 +5427,23 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   height: 100%;
   display: block;
   pointer-events: none;
+  animation: site-footer__staff-glow 3000ms ease-in-out infinite;
+}
+
+@keyframes site-footer__staff-glow {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-footer__staff-canvas {
+    animation: none;
+  }
 }
 
 .site-footer__inner {
