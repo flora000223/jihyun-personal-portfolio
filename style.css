@@ -5847,20 +5847,54 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 .portfolio-chatbot__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 20px 20px 16px;
+  padding: 20px 20px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.portfolio-chatbot__header-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.portfolio-chatbot__header > *:not(.portfolio-chatbot__header-canvas) {
+  position: relative;
+  z-index: 1;
 }
 
 .portfolio-chatbot__eyebrow {
   margin: 0 0 5px;
-  font-family: 'Neue Montreal', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.2;
   color: rgba(255, 255, 255, 0.48);
+}
+
+/* Same -en/-em split used for every major heading sitewide (see
+   .work-transition__title-en/-em etc.) -- reused here at label scale so the
+   chatbot reads as part of the same visual system, not a generic widget. */
+.portfolio-chatbot__eyebrow-en {
+  font-family: 'Neue Montreal', sans-serif;
+  font-weight: 400;
   letter-spacing: 0.08em;
+}
+
+.portfolio-chatbot__eyebrow-em {
+  font-family: 'Cardinal Fruit', serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.48);
 }
 
 .portfolio-chatbot__title {
@@ -5953,6 +5987,30 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   align-self: flex-start;
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.9);
+}
+
+.portfolio-chatbot__message--entering {
+  transform-origin: left bottom;
+  animation: portfolioChatbotMessageIn 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes portfolioChatbotMessageIn {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.97);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-chatbot__message--entering {
+    animation: none;
+  }
 }
 
 .portfolio-chatbot__message--user {

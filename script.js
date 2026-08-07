@@ -46,6 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // and changes nothing about the result.
   const NINE_PI = Math.PI * 9;
 
+  // Chatbot header wave opacity controls (0 = invisible, 1 = opaque).
+  // Adjust only these five values to tune the foreground/background layers.
+  const CHATBOT_WAVE_OPACITY = Object.freeze({
+    front: 0.44,
+    middle: 0.24,
+    backTop: 0.24,
+    backBottom: 0.2,
+    backCenter: 0.35,
+  });
+
   const initStaffCanvas = (staffCanvas, options = {}) => {
     if (!staffCanvas) return;
     const ctx = staffCanvas.getContext('2d');
@@ -67,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const secondaryAlpha = options.secondaryAlpha ?? 0.3;
 
     const resizeStaffCanvas = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 1.35);
+      dpr = Math.min(window.devicePixelRatio || 1, options.dprCap ?? 1.35);
       // clientWidth/clientHeight, not the previous canvas.width/height --
       // the CSS (width/height: 100%) already drives the canvas's on-screen
       // size responsively, so measuring straight off that stays accurate on
@@ -119,6 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
         hue,
         lift,
         highlight,
+        phaseSpread = 0,
+        amplitudeSpread = 0,
       } = config;
 
       const gradient = getOuterGradient(alpha, hue);
@@ -130,12 +142,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const freqPi = Math.PI * frequency;
       const freqPiB = Math.PI * (frequency * 0.58);
       const amplitudeB = amplitude * 0.42;
+      const curveStep = options.curveStep ?? 14;
+
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
 
       for (let line = 0; line < count; line += 1) {
         const staffIndex = line % 5;
         const group = Math.floor(line / 5);
         const offset = (staffIndex - 2) * spacing + group * spacing * 7.2;
         const glow = staffIndex === 2 ? 0.22 : 0.08;
+        // Compact treatments such as the chatbot header can fan neighbouring
+        // strokes out slightly. The subtle phase/amplitude differences make
+        // them cross and overlap like translucent wave layers instead of
+        // looking like one curve duplicated at fixed vertical offsets.
+        const lineCenter = (count - 1) / 2;
+        const lineDelta = line - lineCenter;
+        const linePhase = phase + lineDelta * phaseSpread;
+        const lineAmplitude = amplitude * (1 + lineDelta * amplitudeSpread);
 
         // drift only depends on time/group (both fixed for this whole
         // line), not on x -- it was being recomputed on every one of the
@@ -147,10 +171,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const liftPhase = time * 0.0012 + line;
 
         ctx.beginPath();
-        for (let x = -80; x <= ribbonWidth + 80; x += 14) {
+        for (let x = -80; x <= ribbonWidth + 80; x += curveStep) {
           const nx = x / ribbonWidth;
-          const waveA = Math.sin(nx * freqPi + phase + driftA) * amplitude;
-          const waveB = Math.sin(nx * freqPiB - phase + driftB) * amplitudeB;
+          const waveA = Math.sin(nx * freqPi + linePhase + driftA) * lineAmplitude;
+          const waveB = Math.sin(nx * freqPiB - linePhase + driftB)
+            * amplitudeB * (1 - lineDelta * amplitudeSpread * 0.45);
           const y = centerY
             + offset
             + waveA
@@ -233,32 +258,60 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.save();
       ctx.translate(-cropX, 0);
 
+      const amplitudeScale = options.amplitudeScale ?? 1;
+      const spacingScale = options.spacingScale ?? 1;
+
+      // Optional low-opacity copies behind the two main ribbons. Keeping each
+      // echo at five lines preserves the staff motif while small differences
+      // in position, frequency and phase create depth rather than a hard clone.
+      (options.echoLayers || []).forEach((layer) => {
+        drawStaffRibbon(animationTime, {
+          centerY: height * layer.centerY,
+          amplitude: height * layer.amplitude * amplitudeScale,
+          frequency: layer.frequency,
+          phase: layer.phase,
+          thickness: layer.thickness ?? 0.62,
+          count: 5,
+          spacing: Math.max(6, height * 0.009) * spacingScale,
+          alpha: layer.alpha,
+          hue: layer.hue ?? '205,211,224',
+          lift: 0,
+          highlight: false,
+          phaseSpread: layer.phaseSpread ?? 0,
+          amplitudeSpread: layer.amplitudeSpread ?? 0,
+        });
+      });
+
       drawStaffRibbon(animationTime, {
         centerY: height * (options.primaryCenterY ?? 0.42),
-        amplitude: height * (isMobile ? 0.075 : 0.092),
-        frequency: 3.12,
-        phase: 1.4,
+        amplitude: height * (isMobile ? 0.075 : 0.092) * amplitudeScale,
+        frequency: options.primaryFrequency ?? 3.12,
+        phase: options.primaryPhase ?? 1.4,
         thickness: 0.9,
-        count: isMobile ? 18 : 25,
-        spacing: Math.max(7, height * 0.011),
+        count: options.primaryCount ?? (isMobile ? 18 : 25),
+        spacing: Math.max(7, height * 0.011) * spacingScale,
         alpha: primaryAlpha,
         hue: '238,240,246',
-        lift: 2.1,
+        lift: options.primaryLift ?? 2.1,
         highlight: true,
+        phaseSpread: options.primaryPhaseSpread ?? 0,
+        amplitudeSpread: options.primaryAmplitudeSpread ?? 0,
       });
 
       drawStaffRibbon(animationTime, {
         centerY: height * (options.secondaryCenterY ?? 0.63),
-        amplitude: height * (isMobile ? 0.052 : 0.064),
-        frequency: 2.5,
-        phase: -0.95,
+        amplitude: height * (isMobile ? 0.052 : 0.064) * amplitudeScale,
+        frequency: options.secondaryFrequency ?? 2.5,
+        phase: options.secondaryPhase ?? -0.95,
         thickness: 0.72,
-        count: isMobile ? 14 : 20,
-        spacing: Math.max(6, height * 0.009),
+        count: options.secondaryCount ?? (isMobile ? 14 : 20),
+        spacing: Math.max(6, height * 0.009) * spacingScale,
         alpha: secondaryAlpha,
         hue: '205,211,224',
-        lift: 1.7,
+        lift: options.secondaryLift ?? 1.7,
         highlight: false,
+        phaseSpread: options.secondaryPhaseSpread ?? 0,
+        amplitudeSpread: options.secondaryAmplitudeSpread ?? 0,
       });
 
       ctx.restore();
@@ -266,7 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
       requestStaffFrame();
     };
 
-    resizeStaffCanvas();
     // Resizing the canvas element clears its pixels, so a frozen (reduceMotion
     // or static) frame must be explicitly redrawn after every resize. rafCoalesce
     // defers the redraw to a requestAnimationFrame tick, but a frozen canvas has
@@ -274,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // gets serviced, which can leave the canvas cleared and never repainted. Only
     // the still-animating path (which does have a live rAF loop) uses rafCoalesce;
     // the frozen path redraws synchronously instead.
-    window.addEventListener('resize', reduceMotion
+    const refreshStaffCanvas = reduceMotion
       ? () => {
         resizeStaffCanvas();
         // renderStaffCanvas's frame-throttle compares against lastDrawTime --
@@ -285,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastDrawTime = -Infinity;
         renderStaffCanvas(initialAnimationOffset);
       }
-      : rafCoalesce(() => {
+      : () => {
         resizeStaffCanvas();
         // Same stale-canvas problem as the reduceMotion branch above, but
         // for the animating path: resizeStaffCanvas() clears the canvas
@@ -302,7 +354,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lastDrawTime = -Infinity;
         renderStaffCanvas(window.performance.now());
-      }));
+      };
+
+    resizeStaffCanvas();
+    window.addEventListener('resize', reduceMotion ? refreshStaffCanvas : rafCoalesce(refreshStaffCanvas));
     const staffObserver = new IntersectionObserver((entries) => {
       staffCanvasActive = entries.some((entry) => entry.isIntersecting);
       if (staffCanvasActive) requestStaffFrame();
@@ -310,6 +365,12 @@ document.addEventListener('DOMContentLoaded', () => {
     staffObserver.observe(staffCanvas);
     requestStaffFrame();
     if (reduceMotion) renderStaffCanvas(initialAnimationOffset);
+
+    // Lets a canvas that starts out at zero size (e.g. inside a
+    // `display: none`-hidden panel, like the chatbot header) be redrawn
+    // on demand once it actually becomes visible and has real dimensions,
+    // without waiting for an unrelated window resize.
+    return { refresh: refreshStaffCanvas };
   };
 
   initStaffCanvas(document.getElementById('staffCanvas'));
@@ -319,6 +380,61 @@ document.addEventListener('DOMContentLoaded', () => {
     secondaryCenterY: 0.68,
     primaryAlpha: 0.42,
     secondaryAlpha: 0.2,
+    static: true,
+  });
+  // Two translucent five-line staves for the compact chatbot header. Lines
+  // within each staff stay almost parallel so the musical structure remains
+  // legible; only the two complete staves drift slightly against one another.
+  const chatbotHeaderStaffCanvas = initStaffCanvas(document.getElementById('portfolioChatbotHeaderCanvas'), {
+    initialAnimationOffset: 3400,
+    background: 'transparent',
+    primaryCenterY: 0.53,
+    secondaryCenterY: 0.57,
+    primaryCount: 5,
+    secondaryCount: 5,
+    amplitudeScale: 1.28,
+    spacingScale: 0.52,
+    primaryFrequency: 4.25,
+    secondaryFrequency: 3.92,
+    primaryPhase: 0.18,
+    secondaryPhase: -0.02,
+    primaryPhaseSpread: 0.008,
+    secondaryPhaseSpread: -0.006,
+    primaryAmplitudeSpread: 0.004,
+    secondaryAmplitudeSpread: -0.003,
+    primaryLift: 0,
+    secondaryLift: 0,
+    primaryAlpha: CHATBOT_WAVE_OPACITY.front,
+    secondaryAlpha: CHATBOT_WAVE_OPACITY.middle,
+    dprCap: 2,
+    curveStep: 4,
+    echoLayers: [
+      {
+        centerY: 0.43,
+        amplitude: 0.07,
+        frequency: 4.9,
+        phase: 0.72,
+        alpha: CHATBOT_WAVE_OPACITY.backTop,
+        phaseSpread: 0.004,
+      },
+      {
+        centerY: 0.66,
+        amplitude: 0.058,
+        frequency: 3.28,
+        phase: -0.82,
+        alpha: CHATBOT_WAVE_OPACITY.backBottom,
+        phaseSpread: -0.004,
+      },
+      {
+        centerY: 0.55,
+        amplitude: 0.075,
+        frequency: 4.55,
+        phase: 1.18,
+        alpha: CHATBOT_WAVE_OPACITY.backCenter,
+        phaseSpread: 0.003,
+      },
+    ],
+    mobileCrop: false,
     static: true,
   });
 
@@ -4105,6 +4221,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getChatbotAnswer = (rawQuestion) => {
       const question = rawQuestion.trim().toLowerCase();
+      if (/^(안녕|안녕하세요|하이|hi|hello)[!?.~\s]*$/i.test(question)) {
+        return { text: '안녕하세요. 궁금한 점이 있으시다면 편하게 질문해주세요!' };
+      }
       if (!question) return { text: '궁금한 내용을 한 단어로만 적어도 괜찮아요. 예: 학력, MBTI, 포스터' };
       if (question.includes('학력') || question.includes('학교') || question.includes('education')) {
         return { text: chatbotInfo.education };
@@ -4176,27 +4295,32 @@ document.addEventListener('DOMContentLoaded', () => {
       chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
     };
 
+    const appendChatbotPosters = (message, posters) => {
+      if (!message || !posters) return;
+      const grid = document.createElement('div');
+      grid.className = 'portfolio-chatbot__poster-grid';
+      posters.forEach((poster) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'portfolio-chatbot__poster';
+        card.innerHTML = `
+          <img src="${escapeHtml(poster.thumb)}" alt="${escapeHtml(poster.title)}">
+        `;
+        card.addEventListener('click', () => openChatbotLightbox(poster.full, poster.title));
+        grid.append(card);
+      });
+      message.append(grid);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    };
+
     const appendChatbotMessage = (type, answer) => {
       if (!chatbotMessages) return null;
       const message = document.createElement('div');
       message.className = `portfolio-chatbot__message portfolio-chatbot__message--${type}`;
+      if (type === 'bot') message.classList.add('portfolio-chatbot__message--entering');
       message.innerHTML = renderChatbotMessageText(answer.text);
 
-      if (answer.posters) {
-        const grid = document.createElement('div');
-        grid.className = 'portfolio-chatbot__poster-grid';
-        answer.posters.forEach((poster) => {
-          const card = document.createElement('button');
-          card.type = 'button';
-          card.className = 'portfolio-chatbot__poster';
-          card.innerHTML = `
-            <img src="${escapeHtml(poster.thumb)}" alt="${escapeHtml(poster.title)}">
-          `;
-          card.addEventListener('click', () => openChatbotLightbox(poster.full, poster.title));
-          grid.append(card);
-        });
-        message.append(grid);
-      }
+      appendChatbotPosters(message, answer.posters);
 
       chatbotMessages.append(message);
       chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
@@ -4208,6 +4332,10 @@ document.addEventListener('DOMContentLoaded', () => {
       chatbotPanel.hidden = false;
       chatbotToggle.setAttribute('aria-expanded', 'true');
       chatbotToggle.setAttribute('aria-label', '챗봇 닫기');
+      // The header canvas sits inside this panel, which is `display: none`
+      // until now -- it measured 0x0 on the initial (hidden) page load, so
+      // it needs an explicit redraw now that it actually has real size.
+      chatbotHeaderStaffCanvas?.refresh();
       if (!chatbotSeeded) {
         chatbotSeeded = true;
         appendChatbotMessage('bot', {
