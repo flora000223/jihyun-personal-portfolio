@@ -131,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         highlight,
         phaseSpread = 0,
         amplitudeSpread = 0,
+        softGlow = true,
       } = config;
 
       const gradient = getOuterGradient(alpha, hue);
@@ -188,8 +189,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ctx.strokeStyle = gradient;
         ctx.lineWidth = thickness + (staffIndex === 2 ? 0.22 : 0);
-        ctx.shadowBlur = staffIndex === 2 ? 10 : 0;
-        ctx.shadowColor = `rgba(255,255,255,${0.18 + glow})`;
+        ctx.shadowBlur = softGlow && staffIndex === 2 ? 10 : 0;
+        ctx.shadowColor = softGlow
+          ? `rgba(255,255,255,${0.18 + glow})`
+          : 'rgba(255,255,255,0)';
         ctx.stroke();
 
         if (highlight && (staffIndex === 1 || staffIndex === 2 || staffIndex === 3)) {
@@ -279,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
           highlight: false,
           phaseSpread: layer.phaseSpread ?? 0,
           amplitudeSpread: layer.amplitudeSpread ?? 0,
+          softGlow: layer.softGlow ?? true,
         });
       });
 
@@ -287,15 +291,16 @@ document.addEventListener('DOMContentLoaded', () => {
         amplitude: height * (isMobile ? 0.075 : 0.092) * amplitudeScale,
         frequency: options.primaryFrequency ?? 3.12,
         phase: options.primaryPhase ?? 1.4,
-        thickness: 0.9,
+        thickness: options.primaryThickness ?? 0.9,
         count: options.primaryCount ?? (isMobile ? 18 : 25),
         spacing: Math.max(7, height * 0.011) * spacingScale,
         alpha: primaryAlpha,
         hue: '238,240,246',
         lift: options.primaryLift ?? 2.1,
-        highlight: true,
+        highlight: options.primaryHighlight ?? true,
         phaseSpread: options.primaryPhaseSpread ?? 0,
         amplitudeSpread: options.primaryAmplitudeSpread ?? 0,
+        softGlow: options.primarySoftGlow ?? true,
       });
 
       drawStaffRibbon(animationTime, {
@@ -303,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
         amplitude: height * (isMobile ? 0.052 : 0.064) * amplitudeScale,
         frequency: options.secondaryFrequency ?? 2.5,
         phase: options.secondaryPhase ?? -0.95,
-        thickness: 0.72,
+        thickness: options.secondaryThickness ?? 0.72,
         count: options.secondaryCount ?? (isMobile ? 14 : 20),
         spacing: Math.max(6, height * 0.009) * spacingScale,
         alpha: secondaryAlpha,
@@ -312,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         highlight: false,
         phaseSpread: options.secondaryPhaseSpread ?? 0,
         amplitudeSpread: options.secondaryAmplitudeSpread ?? 0,
+        softGlow: options.secondarySoftGlow ?? true,
       });
 
       ctx.restore();
@@ -404,10 +410,15 @@ document.addEventListener('DOMContentLoaded', () => {
     secondaryAmplitudeSpread: -0.003,
     primaryLift: 0,
     secondaryLift: 0,
+    primaryThickness: 0.72,
+    secondaryThickness: 0.56,
+    primaryHighlight: true,
+    primarySoftGlow: true,
+    secondarySoftGlow: true,
     primaryAlpha: CHATBOT_WAVE_OPACITY.front,
     secondaryAlpha: CHATBOT_WAVE_OPACITY.middle,
-    dprCap: 2,
-    curveStep: 4,
+    dprCap: 3,
+    curveStep: 2,
     echoLayers: [
       {
         centerY: 0.43,
@@ -416,6 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
         phase: 0.72,
         alpha: CHATBOT_WAVE_OPACITY.backTop,
         phaseSpread: 0.004,
+        thickness: 0.48,
+        softGlow: true,
       },
       {
         centerY: 0.66,
@@ -424,6 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
         phase: -0.82,
         alpha: CHATBOT_WAVE_OPACITY.backBottom,
         phaseSpread: -0.004,
+        thickness: 0.48,
+        softGlow: true,
       },
       {
         centerY: 0.55,
@@ -432,6 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
         phase: 1.18,
         alpha: CHATBOT_WAVE_OPACITY.backCenter,
         phaseSpread: 0.003,
+        thickness: 0.44,
+        softGlow: true,
       },
     ],
     mobileCrop: false,
