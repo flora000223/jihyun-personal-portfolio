@@ -2179,6 +2179,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   font-family: 'Pretendard', 'Neue Montreal', sans-serif;
   font-weight: 400;
   font-size: calc(1.25 * var(--u));
+  line-height: 1.4;
   letter-spacing: calc(-0.025 * var(--u));
   /* Same reasoning as .work-detail__title above -- Figma's own eyebrow
      paragraph is whitespace-nowrap too, meant to overflow past
@@ -2186,6 +2187,29 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
      for ILKW/W:RUN's shorter eyebrow copy; MU:it's is long enough to wrap
      without this. */
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.35 * var(--u));
+}
+
+.work-detail__eyebrow-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: calc(0.25 * var(--u));
+  color: inherit;
+}
+
+.work-detail__eyebrow-badge img {
+  width: 1.2em;
+  height: 1.2em;
+  flex: 0 0 auto;
+  display: block;
+}
+
+.work-detail__eyebrow-badge span {
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .work-detail__title {
