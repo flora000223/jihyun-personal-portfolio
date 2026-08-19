@@ -379,7 +379,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return { refresh: refreshStaffCanvas };
   };
 
-  initStaffCanvas(document.getElementById('staffCanvas'));
+  initStaffCanvas(document.getElementById('staffCanvas'), {
+    background: '#000000',
+  });
   initStaffCanvas(document.getElementById('footerStaffCanvas'), {
     initialAnimationOffset: 6200,
     primaryCenterY: 0.48,
