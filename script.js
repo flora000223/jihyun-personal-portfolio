@@ -4231,6 +4231,52 @@ document.addEventListener('DOMContentLoaded', () => {
       { title: '연주회 포스터', thumb: 'images/chat-poster-9-thumb.webp', full: 'images/chat-poster-9.webp' },
     ];
 
+    // Keyed by an internal id (not the display name) so showProjectDetail can
+    // look a project up after showProjectMenu passes only the id around.
+    const projectShortcuts = {
+      ilkw: {
+        name: '일광전구 웹 리뉴얼 프로젝트',
+        desc: '조명 브랜드 일광전구가 가진 역사와 감성을 전달하기 위해 기획한 웹사이트 리뉴얼 프로젝트입니다. (팀 프로젝트)',
+        mockup: { type: 'image', src: 'images/work-ilkw-mockup.webp', alt: '일광전구 웹사이트 목업' },
+        options: [
+          { label: '기획서', href: 'https://www.figma.com/proto/hlugZvAft0bIvHr3sZrKwU/%EC%9D%BC%EA%B4%91%EC%A0%84%EA%B5%AC_%ED%8C%80%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=40-469&viewport=2066%2C9299%2C0.28&t=KKgqrZJwd6AlwidY-1&scaling=min-zoom&content-scaling=fixed&page-id=1%3A1508' },
+          { label: '웹사이트', href: 'https://ezen-teamproject-1.vercel.app/' },
+        ],
+      },
+      werun: {
+        name: 'W:RUN 러닝 팬덤 어플',
+        desc: '러닝 팬덤을 위한 커뮤니티 러닝 앱 서비스를 기획하고 구현한 프로젝트입니다. (팀 프로젝트)',
+        mockup: { type: 'image', src: 'images/work-werun-mockup.webp', alt: 'W:RUN 앱 목업' },
+        options: [
+          { label: '기획서', href: 'https://www.figma.com/proto/cH2dx12auBMFkl7k0c71JD/%EC%9C%84%EB%9F%B0_%ED%8C%80%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=1-87&viewport=371%2C924%2C0.19&t=yvpTHuz9spNYRSIv-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1' },
+          { label: '어플', href: 'https://ezenteamproject2.vercel.app/' },
+        ],
+      },
+      muit: {
+        name: 'MU:it 레슨 매칭 및 성장 관리 어플',
+        desc: '클래식 음악 레슨 매칭 및 성장 관리를 돕는 어플 서비스입니다. (개인 프로젝트)',
+        mockup: { type: 'image', src: 'images/work-muit-mockup.webp', alt: 'MU:it 앱 목업' },
+        options: [
+          { label: '기획서', href: 'https://www.figma.com/proto/qRzZGUELmg7uROT616MDIk/%EB%AE%A4%EC%9E%87_%EA%B0%9C%EC%9D%B8%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=80-1863&viewport=-2114%2C4043%2C0.13&t=rYdodlYd3H1WPOpw-1&scaling=min-zoom&content-scaling=fixed&page-id=1%3A22552' },
+          { label: '어플', href: 'https://muit-app.vercel.app/' },
+        ],
+      },
+      aiPoster: {
+        name: 'AI 폰트 페어링 포스터 스튜디오',
+        desc: '사용자가 다양한 폰트 조합과 디자인 시안을 탐색할 수 있도록 AI를 활용한 폰트 페어링 및 포스터 생성 기능을 기획한 프로젝트입니다.',
+        // The AI Lab section on the page itself layers this same screen
+        // capture inside this same bezel frame (see .ai-lab__ipad-device /
+        // .ai-lab__ipad-bezel in style.css) rather than using one flattened
+        // image, so the thumbnail here does the same composite.
+        mockup: { type: 'ipad', screen: 'images/ai-ipad.webp', bezel: 'images/ai-lab-ipad-device.webp', alt: 'AI 포스터 스튜디오 iPad 화면' },
+        options: [
+          { label: '케이스 스터디', href: 'https://in-app-case-study.vercel.app/' },
+          { label: '데모', href: 'https://ai-font-poster-studio.vercel.app/' },
+        ],
+      },
+    };
+    const projectShortcutOrder = ['ilkw', 'werun', 'muit', 'aiPoster'];
+
     const escapeHtml = (value) => String(value)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -4332,6 +4378,39 @@ document.addEventListener('DOMContentLoaded', () => {
       chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
     };
 
+    // Renders either link buttons (item.href -- opens the project's proposal/
+    // site in a new tab) or action buttons (item.onSelect -- picks a project
+    // from the shortcut menu and continues the conversation in-place).
+    const appendChatbotOptions = (message, items) => {
+      if (!message || !items || !items.length) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'portfolio-chatbot__options';
+      // Link groups (proposal/website) are always short and read better side
+      // by side; the project-picker menu stays stacked since it can hold
+      // four items. All items in one call share a type, so checking the
+      // first is enough.
+      if (items[0].href) wrap.classList.add('portfolio-chatbot__options--row');
+      items.forEach((item) => {
+        const el = document.createElement(item.href ? 'a' : 'button');
+        el.className = 'portfolio-chatbot__option';
+        el.textContent = item.label;
+        if (item.href) {
+          el.href = item.href;
+          el.target = '_blank';
+          el.rel = 'noopener';
+        } else {
+          el.type = 'button';
+          // Deliberately left enabled after click (unlike a typical picked
+          // state) so a project menu earlier in the conversation history can
+          // still be reused to pull up a different project's detail.
+          el.addEventListener('click', () => item.onSelect());
+        }
+        wrap.append(el);
+      });
+      message.append(wrap);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    };
+
     const appendChatbotMessage = (type, answer) => {
       if (!chatbotMessages) return null;
       const message = document.createElement('div');
@@ -4340,10 +4419,57 @@ document.addEventListener('DOMContentLoaded', () => {
       message.innerHTML = renderChatbotMessageText(answer.text);
 
       appendChatbotPosters(message, answer.posters);
+      appendChatbotOptions(message, answer.options);
 
       chatbotMessages.append(message);
       chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
       return message;
+    };
+
+    // Sits above the detail bubble as its own element (not inside the
+    // message bubble) so it can be sized independently -- small, and capped
+    // to roughly the bubble's own width rather than stretching full-width.
+    const appendChatbotMockup = (mockup) => {
+      if (!mockup || !chatbotMessages) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'portfolio-chatbot__project-mockup portfolio-chatbot__message--entering';
+      if (mockup.type === 'ipad') {
+        wrap.classList.add('portfolio-chatbot__project-mockup--ipad');
+        const screen = document.createElement('img');
+        screen.className = 'portfolio-chatbot__project-mockup-screen';
+        screen.src = mockup.screen;
+        screen.alt = '';
+        const bezel = document.createElement('img');
+        bezel.className = 'portfolio-chatbot__project-mockup-bezel';
+        bezel.src = mockup.bezel;
+        bezel.alt = mockup.alt || '';
+        wrap.append(screen, bezel);
+      } else {
+        const img = document.createElement('img');
+        img.src = mockup.src;
+        img.alt = mockup.alt || '';
+        wrap.append(img);
+      }
+      chatbotMessages.append(wrap);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    };
+
+    const showProjectDetail = (key) => {
+      const project = projectShortcuts[key];
+      if (!project) return;
+      appendChatbotMessage('user', { text: project.name });
+      appendChatbotMockup(project.mockup);
+      appendChatbotMessage('bot', { text: project.desc, options: project.options });
+    };
+
+    const showProjectMenu = () => {
+      appendChatbotMessage('bot', {
+        text: '프로젝트를 선택해주세요.',
+        options: projectShortcutOrder.map((key) => ({
+          label: projectShortcuts[key].name,
+          onSelect: () => showProjectDetail(key),
+        })),
+      });
     };
 
     const openChatbot = () => {
@@ -4373,6 +4499,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const askChatbot = async (question) => {
       appendChatbotMessage('user', { text: question });
+      if (question.includes('바로가기')) {
+        showProjectMenu();
+        return;
+      }
       const knownAnswer = getChatbotAnswer(question);
       if (knownAnswer) {
         appendChatbotMessage('bot', knownAnswer);

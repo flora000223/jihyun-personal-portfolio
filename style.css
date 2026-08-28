@@ -5936,7 +5936,7 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
   flex: 1 1 380px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 22px;
   /* No min-height: on shorter viewports the panel's own max-height can be
      less than header + 500px + chips + form, which forced the *panel*
      itself (not just this area) to overflow and scroll as a whole --
@@ -6030,6 +6030,105 @@ body.js-anim .cards-reveal.is-docked .cards-reveal__reveal {
 
 .portfolio-chatbot__message p + p {
   margin-top: 0;
+}
+
+.portfolio-chatbot__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.portfolio-chatbot__options--row {
+  flex-direction: row;
+}
+
+.portfolio-chatbot__options--row .portfolio-chatbot__option {
+  flex: 1 1 0;
+}
+
+.portfolio-chatbot__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.portfolio-chatbot__option::after {
+  content: '\2192';
+  flex: none;
+  opacity: 0.6;
+}
+
+.portfolio-chatbot__option:hover,
+.portfolio-chatbot__option:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.portfolio-chatbot__option:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.portfolio-chatbot__project-mockup {
+  align-self: flex-start;
+  /* overflow: hidden below gives this flex item an automatic min-height of
+     0 per the flexbox spec, and the default flex-shrink: 1 then collapses
+     it toward that 0 instead of sizing to the image -- pin it in place. */
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 170px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.portfolio-chatbot__project-mockup img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Layers the same screen-capture-in-bezel-frame image pair the AI Lab
+   section uses (.ai-lab__ipad-device / .ai-lab__ipad-bezel), scaled down --
+   the bezel PNG is mostly transparent, so the screen crop has to be
+   positioned under it at matching percentages rather than just stacked. */
+.portfolio-chatbot__project-mockup--ipad {
+  position: relative;
+  aspect-ratio: 2610 / 1890;
+}
+
+.portfolio-chatbot__project-mockup--ipad img {
+  position: absolute;
+  width: auto;
+  height: auto;
+}
+
+.portfolio-chatbot__project-mockup-bezel {
+  inset: 0;
+  z-index: 2;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.portfolio-chatbot__project-mockup-screen {
+  left: 3.6%;
+  top: 5.05%;
+  width: 92.8% !important;
+  height: 89.9% !important;
+  border-radius: 6%;
+  object-fit: cover;
+  object-position: top center;
+  z-index: 1;
 }
 
 .portfolio-chatbot__poster-grid {
